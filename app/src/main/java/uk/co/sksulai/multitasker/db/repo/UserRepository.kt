@@ -31,25 +31,57 @@ class UserRepository(
     /**
      *
      */
-    suspend fun fromID(id: String): UserModel? = withContext(Dispatchers.IO) { TODO() }
-    suspend fun fromFirebase(user: FirebaseUser): UserModel? = withContext(Dispatchers.IO) { TODO() }
-    fun fromDisplayName(name: String): Flow<List<UserModel>> = withContext(Dispatchers.IO) { TODO() }
-    fun fromActualName(name: String): Flow<List<UserModel>> = withContext(Dispatchers.IO) { TODO() }
+    suspend fun fromID(id: String): UserModel? = withContext(Dispatchers.IO) {
+        dao.fromID(id)
+    }
+    suspend fun fromFirebase(user: FirebaseUser): UserModel? = withContext(Dispatchers.IO) {
+        dao.fromFirebaseID(user.uid)
+    }
+    fun fromDisplayName(name: String): Flow<List<UserModel>> {
+        return dao.fromDisplayName(name)
+    }
+    fun fromActualName(name: String): Flow<List<UserModel>> {
+        return dao.fromActualName(name)
+    }
 
-    // Creation
+    // Creation: Used when user creates an account
 
-    suspend fun create(user: FirebaseUser): UserModel = withContext(Dispatchers.IO) { TODO() }
+    suspend fun create(user: FirebaseUser): UserModel = withContext(Dispatchers.IO) {
+        create(
+            firebaseId   = user.uid,
+            displayName  = user.displayName,
+            email        = user.email,
+            avatar       = user.photoUrl,
+            actualName   = null,
+            homeLocation = null,
+            dob          = null
+        )
+    }
     suspend fun create(
         id: String = generateID(),
-        firebaseId: String? = null,
-        displayName: String = "",
+        firebaseId: String = "",
+        displayName: String? = null,
         email: String? = null,
         avatar: Uri? = null,
         actualName: String? = null,
         homeLocation: String? = null,
         dob: LocalDate? = null
-    ): UserModel = withContext(Dispatchers.IO) { TODO() }
-    suspend fun create(model: UserModel): UserModel  = withContext(Dispatchers.IO) { TODO() }
+    ): UserModel = withContext(Dispatchers.IO) {
+        create(UserModel(
+            ID = id,
+            FirebaseID = firebaseId,
+            DisplayName = displayName,
+            Email = email,
+            Avatar = avatar,
+            ActualName = actualName,
+            Home = homeLocation,
+            DOB = dob
+        ))
+    }
+    suspend fun create(model: UserModel): UserModel = withContext(Dispatchers.IO) {
+        dao.insert(model)
+        return@withContext model
+    }
 
     // Update
 
@@ -57,28 +89,38 @@ class UserRepository(
      * Updates the users information
      * @param model - UserModel with the modifications to make
      */
-    suspend fun update(model: UserModel) = withContext(Dispatchers.IO) { TODO() }
+    suspend fun update(model: UserModel) = withContext(Dispatchers.IO) {
+        dao.update(model)
+    }
 
     // Delete
 
-    /**
-     * Deletes the user given an ID
-     * @param id ID of the user to be deleted (UserModel#ID)
-     * @param localOnly Whether to just delete from local database or propagate to Firebase
-     */
-    suspend fun delete(id: String, localOnly: Boolean) = withContext(Dispatchers.IO) { TODO() }
     /**
      * Deletes the user given the UserModel
      * @param id ID of the user to be deleted (UserModel#ID)
      * @param localOnly Whether to just delete from local database or propagate to Firebase
      */
-    suspend fun delete(model: UserModel, localOnly: Boolean) = withContext(Dispatchers.IO) { TODO() }
+    suspend fun delete(model: UserModel, localOnly: Boolean = true) = withContext(Dispatchers.IO) {
+        dao.delete(model)
+        if(!localOnly)
+            TODO("Need to implement deleting firebase users")
+    }
+    /**
+     * Deletes the user given an ID
+     * @param id ID of the user to be deleted (UserModel#ID)
+     * @param localOnly Whether to just delete from local database or propagate to Firebase
+     */
+    suspend fun delete(id: String, localOnly: Boolean = true) = withContext(Dispatchers.IO) {
+        fromID(id)?.let { delete(it, localOnly) }
+    }
     /**
      * Deletes the user given the Firebase user object
      * @param id ID of the user to be deleted (UserModel#ID)
      * @param localOnly Whether to just delete from local database or propagate to Firebase
      */
-    suspend fun delete(model: FirebaseUser, localOnly: Boolean) = withContext(Dispatchers.IO) { TODO() }
+    suspend fun delete(user: FirebaseUser, localOnly: Boolean = true) = withContext(Dispatchers.IO) {
+        fromFirebase(user)?.let { delete(it, localOnly) }
+    }
 
     // User authentication & account linking
 
