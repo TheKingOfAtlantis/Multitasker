@@ -13,7 +13,8 @@ fun LocalDB.Companion.createDatabase(context: Context)
 @TypeConverters(
     DateConverter::class,
     TimeConverter::class,
-    DateTimeConverter::class
+    DateTimeConverter::class,
+    UriConverter::class
 ) @Database(version = 1, entities = [
 ]) abstract class LocalDB : RoomDatabase() {
     companion object { const val DBName = "Multitasker.db" }
