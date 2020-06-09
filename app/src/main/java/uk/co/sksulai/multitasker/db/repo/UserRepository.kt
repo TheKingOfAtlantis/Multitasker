@@ -23,6 +23,7 @@ import uk.co.sksulai.multitasker.db.model.UserModel
 import uk.co.sksulai.multitasker.db.model.generateID
 import uk.co.sksulai.multitasker.db.createDatabase
 
+inline class GoogleIntent(val value: Intent?)
 class UserRepository(private val context: Context) {
     private val db: LocalDB  = LocalDB.createDatabase(context)
     private val dao: UserDao = db.getUserDao()
