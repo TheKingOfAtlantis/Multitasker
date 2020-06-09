@@ -4,12 +4,14 @@ import java.time.LocalDate
 
 import android.net.Uri
 import android.content.Context
+import android.graphics.Bitmap
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.tasks.await
 
+import com.bumptech.glide.Glide
 import com.facebook.AccessToken
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 
@@ -214,5 +216,14 @@ class UserRepository(private val context: Context) {
     fun signOut() {
         setCurrentUser(null)
         Firebase.auth.signOut()
+    }
+
+    suspend fun getAvatar(user: UserModel): Bitmap? = withContext(Dispatchers.IO) {
+        if(user.Avatar == null) null
+        else Glide.with(context)
+                  .asBitmap()
+                  .load(user.Avatar)
+                  .submit()
+                  .get()
     }
 }
