@@ -1,22 +1,31 @@
 package uk.co.sksulai.multitasker.db.repo
 
+import java.time.LocalDate
+
 import android.net.Uri
+import android.content.Context
+
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.tasks.await
+
+import com.facebook.AccessToken
+import com.google.android.gms.auth.api.signin.GoogleSignIn
 
 import com.google.firebase.auth.*
-import kotlinx.coroutines.flow.Flow
+import com.google.firebase.ktx.Firebase
+import com.google.firebase.auth.ktx.auth
 
 import uk.co.sksulai.multitasker.db.LocalDB
 import uk.co.sksulai.multitasker.db.dao.UserDao
 import uk.co.sksulai.multitasker.db.model.UserModel
 import uk.co.sksulai.multitasker.db.model.generateID
-import java.time.LocalDate
+import uk.co.sksulai.multitasker.db.createDatabase
 
-class UserRepository(
-    val db: LocalDB,
-    val dao: UserDao
-) {
+class UserRepository(private val context: Context) {
+    private val db: LocalDB  = LocalDB.createDatabase(context)
+    private val dao: UserDao = db.getUserDao()
 
     /**
      * @brief Reference to the current user which is signed in
@@ -46,26 +55,30 @@ class UserRepository(
 
     // Creation: Used when user creates an account
 
+    suspend fun create(
+        email: String,
+        password: String
+    ) = withContext(Dispatchers.IO) {
+        val authResult = Firebase.auth.createUserWithEmailAndPassword(email, password).await()
+        create(authResult.user!!)
+    }
     suspend fun create(user: FirebaseUser): UserModel = withContext(Dispatchers.IO) {
         create(
-            firebaseId   = user.uid,
-            displayName  = user.displayName,
-            email        = user.email,
-            avatar       = user.photoUrl,
-            actualName   = null,
-            homeLocation = null,
-            dob          = null
+            firebaseId  = user.uid,
+            email       = user.email,
+            displayName = user.displayName,
+            avatar      = user.photoUrl
         )
     }
     suspend fun create(
-        id: String = generateID(),
-        firebaseId: String = "",
-        displayName: String? = null,
-        email: String? = null,
-        avatar: Uri? = null,
-        actualName: String? = null,
+        id: String            = generateID(),
+        firebaseId: String    = "",
+        displayName: String?  = null,
+        email: String?        = null,
+        avatar: Uri?          = null,
+        actualName: String?   = null,
         homeLocation: String? = null,
-        dob: LocalDate? = null
+        dob: LocalDate?       = null
     ): UserModel = withContext(Dispatchers.IO) {
         create(UserModel(
             ID = id,
@@ -129,30 +142,61 @@ class UserRepository(
      * @param email Email to authenticate against
      * @param password Password to check
      */
-    suspend fun authenticateWithEmail(
-        email: String,
-        password: String
-    ) = withContext(Dispatchers.IO) { TODO() }
+    suspend fun authenticate(email: String, password: String): String =
+        authenticate(EmailAuthProvider.getCredential(email, password))
     /**
      * Authenticate the user using the Google Sign In APIs
      */
-    suspend fun authenticateWithGoogle() = withContext(Dispatchers.IO) { TODO() }
+    suspend fun authenticate(googleIntent: GoogleIntent): String = withContext(Dispatchers.IO) {
+        val googleUser = GoogleSignIn.getSignedInAccountFromIntent(googleIntent.value).await()
+        authenticate(GoogleAuthProvider.getCredential(googleUser.idToken, null))
+    }
     /**
      * Authenticate the user using the Facebook APIs
      */
-    suspend fun authenticateWithFacebook() = withContext(Dispatchers.IO) { TODO() }
+    suspend fun authenticate(facebook: AccessToken) = withContext(Dispatchers.IO) {
+        authenticate(FacebookAuthProvider.getCredential(facebook.token))
+    }
+    private suspend fun authenticate(credential: AuthCredential): String {
+        // Authenticate the user w/ credential using Firebase
+        // Once we succeed retrieve user information from database
+        // Insert this information into the local database
+        // Set the current user value
+        // return the user ID
+
+        val authResult = Firebase.auth.signInWithCredential(credential).await()
+        return authResult.user!!.let {
+            // TODO: Replace w/ data from Firebase
+            val user = create(it)
+            user.ID
+        }
+    }
 
     /**
      * Link the user account to the Google Provider
      */
-    suspend fun linkWithGoogle() = withContext(Dispatchers.IO) { TODO() }
+    suspend fun link(googleIntent: GoogleIntent) = withContext(Dispatchers.IO) {
+        val googleAccount = GoogleSignIn.getSignedInAccountFromIntent(googleIntent.value).await()
+        link(GoogleAuthProvider.getCredential(googleAccount.idToken, null))
+    }
     /**
      * Link the user account to the Facebook Provider
      */
-    suspend fun linkWithFacebook() = withContext(Dispatchers.IO) { TODO() }
+    suspend fun link(facebook: AccessToken) = withContext(Dispatchers.IO) {
+        link(FacebookAuthProvider.getCredential(facebook.token))
+    }
+
+    private suspend fun link(credential: AuthCredential) {
+        Firebase.auth.currentUser?.linkWithCredential(credential)?.await()
+    }
+    private suspend fun unlink(provider: String) {
+        Firebase.auth.currentUser?.unlink(provider)?.await()
+    }
 
     /**
      * Signs the current user out
      */
-    suspend fun signout() = withContext(Dispatchers.IO) { TODO() }
+    fun signOut() {
+        Firebase.auth.signOut()
+    }
 }
