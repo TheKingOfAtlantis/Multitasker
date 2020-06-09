@@ -24,6 +24,7 @@ import uk.co.sksulai.multitasker.db.model.generateID
 import uk.co.sksulai.multitasker.db.createDatabase
 
 inline class GoogleIntent(val value: Intent?)
+@OptIn(ExperimentalCoroutinesApi::class)
 class UserRepository(private val context: Context) {
     private val db: LocalDB  = LocalDB.createDatabase(context)
     private val dao: UserDao = db.getUserDao()
@@ -32,11 +33,21 @@ class UserRepository(private val context: Context) {
      * @brief Reference to the current user which is signed in
      * The state of this value is automatically managed by the repository
      */
-    val currentUser: UserModel?
-        get() = currentUserState
-    private var currentUserState: UserModel? = null // currentUser backing property
+    val currentUser: StateFlow<UserModel?>
+        get() = _currentUser
+    private var _currentUser: MutableStateFlow<UserModel?> = MutableStateFlow(null)
 
-    // Getters
+    private suspend fun setCurrentUser(user: UserModel?) = withContext(Dispatchers.IO) {
+        context.getSharedPreferences("auth", Context.MODE_PRIVATE).edit { putString("current_user", user?.ID) }
+        _currentUser.value = user
+    }
+
+    init {
+        MainScope().launch {
+            val id = context.getSharedPreferences("auth", Context.MODE_PRIVATE).getString("current_user", null)
+            if(id != null) _currentUser.value = dao.fromID(id)
+        }
+    }
 
     /**
      *
@@ -93,8 +104,10 @@ class UserRepository(private val context: Context) {
         ))
     }
     suspend fun create(model: UserModel): UserModel = withContext(Dispatchers.IO) {
-        dao.insert(model)
-        return@withContext model
+        model.also {
+            insert(model)
+            setCurrentUser(model)
+        }
     }
 
     // Update
@@ -169,6 +182,7 @@ class UserRepository(private val context: Context) {
         return authResult.user!!.let {
             // TODO: Replace w/ data from Firebase
             val user = create(it)
+            setCurrentUser(user)
             user.ID
         }
     }
@@ -198,6 +212,7 @@ class UserRepository(private val context: Context) {
      * Signs the current user out
      */
     fun signOut() {
+        setCurrentUser(null)
         Firebase.auth.signOut()
     }
 }
