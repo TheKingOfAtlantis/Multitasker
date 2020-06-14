@@ -300,7 +300,7 @@ class UserRepository(private val context: Context) {
     /**
      * Signs the current user out
      */
-    fun signOut() {
+    suspend fun signOut() {
         setCurrentUser(null)
         Firebase.auth.signOut()
     }
