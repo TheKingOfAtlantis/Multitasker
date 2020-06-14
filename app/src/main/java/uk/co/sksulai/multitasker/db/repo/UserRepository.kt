@@ -313,4 +313,9 @@ class UserRepository(private val context: Context) {
                   .submit()
                   .get()
     }
+
+    suspend fun verifyEmail() = withContext(Dispatchers.IO) {
+        Firebase.auth.currentUser?.sendEmailVerification()?.await()
+    }
+    fun isEmailVerified()= Firebase.auth.currentUser?.isEmailVerified ?: false
 }
