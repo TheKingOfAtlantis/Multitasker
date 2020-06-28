@@ -6,7 +6,7 @@ import java.util.*
 import java.time.*
 import java.time.format.DateTimeFormatter
 
-class DateTimeConverter : IConverter<LocalDateTime?, String?> {
+class LocalDateTimeConverter : IConverter<LocalDateTime?, String?> {
     @TypeConverter override fun from(value: LocalDateTime?): String? = if(value == null) null else value.toString()
     @TypeConverter override fun to(value: String?): LocalDateTime? = value?.let { LocalDateTime.parse(it) }
 }
