@@ -11,7 +11,7 @@ class DateConverter : IConverter<LocalDate?, String?> {
     @TypeConverter override fun from(value: LocalDate?): String? = if(value == null) null else value.toString()
     @TypeConverter override fun to(value: String?): LocalDate? = value?.let { LocalDate.parse(it) }
 }
-class TimeConverter: IConverter<LocalTime?, String?> {
+class LocalTimeConverter: IConverter<LocalTime?, String?> {
     @TypeConverter override fun from(value: LocalTime?): String? = if(value == null) null else value.toString()
     @TypeConverter override fun to(value: String?): LocalTime? = value?.let { LocalTime.parse(it) }
 }
