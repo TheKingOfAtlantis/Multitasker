@@ -6,9 +6,22 @@ import java.util.*
 import java.time.*
 import java.time.format.DateTimeFormatter
 
+// Date-Time converters
+
+class ZonedDateTimeConverter : IConverter<ZonedDateTime?, String?> {
+    private val formatter = DateTimeFormatter.ISO_OFFSET_DATE_TIME
+    @TypeConverter override fun from(value: ZonedDateTime?): String? = value?.let { formatter.format(it) }
+    @TypeConverter override fun to(value: String?): ZonedDateTime? = value?.let { formatter.parse(it, ZonedDateTime::from) }
+}
+class OffsetDateTimeConverter : IConverter<OffsetDateTime?, String?> {
+    private val formatter = DateTimeFormatter.ISO_OFFSET_DATE_TIME
+    @TypeConverter override fun from(value: OffsetDateTime?): String? = value?.let { formatter.format(it) }
+    @TypeConverter override fun to(value: String?): OffsetDateTime? = value?.let { formatter.parse(it, OffsetDateTime::from) }
+}
 class LocalDateTimeConverter : IConverter<LocalDateTime?, String?> {
-    @TypeConverter override fun from(value: LocalDateTime?): String? = if(value == null) null else value.toString()
-    @TypeConverter override fun to(value: String?): LocalDateTime? = value?.let { LocalDateTime.parse(it) }
+    private val formatter = DateTimeFormatter.ISO_LOCAL_DATE_TIME
+    @TypeConverter override fun from(value: LocalDateTime?): String? = value?.let { formatter.format(it) }
+    @TypeConverter override fun to(value: String?): LocalDateTime? = value?.let { formatter.parse(it, LocalDateTime::from) }
 }
 // Date converter
 
