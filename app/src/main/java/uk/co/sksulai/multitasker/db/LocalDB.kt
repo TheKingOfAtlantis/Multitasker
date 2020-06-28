@@ -13,9 +13,14 @@ fun LocalDB.Companion.createDatabase(context: Context)
         = databaseBuilder<LocalDB>(context, DBName).build()
 
 @TypeConverters(
+    ZonedDateTimeConverter::class,
+    OffsetDateTimeConverter::class,
+    LocalDateTimeConverter::class,
+    LocalTimeConverter::class,
+    OffsetTimeConverter::class,
     DateConverter::class,
-    TimeConverter::class,
-    DateTimeConverter::class,
+    TimeZoneConverter::class,
+    DurationConverter::class,
     UriConverter::class
 ) @Database(version = 1, entities = [
     UserModel::class
