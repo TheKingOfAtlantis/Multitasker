@@ -7,6 +7,7 @@ import android.util.Log
 import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
+import androidx.compose.staticAmbientOf
 import androidx.core.content.edit
 
 import kotlinx.coroutines.*
@@ -16,6 +17,10 @@ import uk.co.sksulai.multitasker.util.asFlow
 
 import com.bumptech.glide.Glide
 import com.facebook.AccessToken
+import com.facebook.CallbackManager
+import com.facebook.FacebookCallback
+import com.facebook.FacebookException
+import com.facebook.login.LoginResult
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 
 import com.google.firebase.auth.*
@@ -28,6 +33,8 @@ import uk.co.sksulai.multitasker.db.model.UserModel
 import uk.co.sksulai.multitasker.db.model.generateID
 import uk.co.sksulai.multitasker.db.web.UserWebService
 import uk.co.sksulai.multitasker.db.createDatabase
+
+val FacebookCallbackAmbient = staticAmbientOf<CallbackManager>()
 
 inline class GoogleIntent(val value: Intent?)
 
@@ -254,6 +261,23 @@ class UserRepository(private val context: Context) {
     suspend fun authenticate(facebook: AccessToken) = withContext(Dispatchers.IO) {
         authenticate(FacebookAuthProvider.getCredential(facebook.token))
     }
+    fun getFacebookCallback() = object : FacebookCallback<LoginResult> {
+        override fun onSuccess(result: LoginResult) {
+            Log.d("auth", "facebook:onSuccess:$result")
+            MainScope().launch { authenticate(result.accessToken) }
+        }
+
+        override fun onCancel() {
+            Log.d("auth", "facebook:onCancel")
+            TODO("Not yet implemented")
+        }
+
+        override fun onError(error: FacebookException?) {
+            Log.d("auth", "facebook:onError:", error)
+            TODO("Not yet implemented")
+        }
+    }
+
     private suspend fun authenticate(credential: AuthCredential): String {
         // Authenticate the user w/ credential using Firebase
         // Once we succeed retrieve user information from database
