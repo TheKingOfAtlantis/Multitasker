@@ -1,46 +1,59 @@
 plugins {
-    id 'com.android.application'
-    id 'kotlin-android'
-    id 'kotlin-android-extensions'
-    id 'kotlin-kapt'
-    id 'com.google.gms.google-services'
+    id("com.android.application")
+    kotlin("android")
+    kotlin("android.extensions")
+    kotlin("kapt")
+    id("com.google.gms.google-services")
 }
 
 android {
-    compileSdkVersion 29
-    buildToolsVersion "29.0.3"
+    compileSdkVersion(29)
+    buildToolsVersion("30.0.0")
 
     defaultConfig {
-        applicationId "uk.co.sksulai.multitasker"
-        minSdkVersion 26
-        targetSdkVersion 29
-        versionCode 1
-        versionName "0.0.1"
+        applicationId = "uk.co.sksulai.multitasker"
+        minSdkVersion(26)
+        targetSdkVersion(29)
+        versionCode = 1
+        versionName = "0.0.1"
 
-        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
     buildTypes {
-        release {
-            minifyEnabled false
-            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        getByName("release") {
+            isMinifyEnabled = true
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
     }
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_1_8
-        targetCompatibility JavaVersion.VERSION_1_8
+        sourceCompatibility = JavaVersion.VERSION_1_8
+        targetCompatibility = JavaVersion.VERSION_1_8
     }
     kotlinOptions {
-        jvmTarget = '1.8'
-        freeCompilerArgs = [
+        jvmTarget = "1.8"
+        freeCompilerArgs = listOf(
             "-XXLanguage:+InlineClasses",
-            '-Xopt-in=kotlin.RequiresOptIn'
-        ]
+            "-Xopt-in=kotlin.RequiresOptIn"
+        )
     }
-    buildFeatures.compose true
+    buildFeatures.compose = true
     composeOptions {
         kotlinCompilerVersion = "1.3.70-dev-withExperimentalGoogleExtensions-20200424"
-        kotlinCompilerExtensionVersion "0.1.0-dev11"
+        kotlinCompilerExtensionVersion = Versions.compose
+    }
+
+    testOptions {
+        unitTests.isIncludeAndroidResources = true
+    }
+    dependenciesInfo {
+        includeInApk = true
+        includeInBundle = true
+    }
+    bundle {
+        language { enableSplit = true }
+        density { enableSplit = true }
+        abi { enableSplit = true }
     }
 }
 
@@ -51,77 +64,78 @@ kapt.arguments {
 }
 
 dependencies {
-    implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
+    implementation("org.jetbrains.kotlin:kotlin-stdlib:${Versions.kotlin}")
 
     // Kotlin Coroutine
-    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-core:1.3.6'
-    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.3.6'
-    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.3.6'
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.3.6")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.3.6")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.3.6")
 
     // Glide
-    implementation 'com.github.bumptech.glide:glide:4.11.0'
-    kapt 'com.github.bumptech.glide:compiler:4.11.0'
+    implementation("com.github.bumptech.glide:glide:4.11.0")
+    kapt("com.github.bumptech.glide:compiler:4.11.0")
 
     // Androidx
-    implementation 'androidx.core:core-ktx:1.2.0'
-    implementation 'androidx.appcompat:appcompat:1.1.0'
-    implementation 'com.google.android.material:material:1.1.0'
+    implementation("androidx.core:core-ktx:1.3.0")
+    implementation("androidx.appcompat:appcompat:1.1.0")
+    implementation("com.google.android.material:material:1.1.0")
 
     // Jetpack Compose
-    def compose_version = '0.1.0-dev11'
-    implementation "androidx.ui:ui-core:$compose_version"
-    implementation "androidx.ui:ui-layout:$compose_version"
-    implementation "androidx.ui:ui-material:$compose_version"
-    implementation "androidx.ui:ui-tooling:$compose_version"
-    implementation "androidx.ui:ui-material-icons-extended:$compose_version"
-    implementation "androidx.ui:ui-livedata:$compose_version"
-
-
+    implementation("androidx.ui:ui-core:${Versions.compose}")
+    implementation("androidx.ui:ui-layout:${Versions.compose}")
+    implementation("androidx.ui:ui-material:${Versions.compose}")
+    implementation("androidx.ui:ui-tooling:${Versions.compose}")
+    implementation("androidx.ui:ui-material-icons-extended:${Versions.compose}")
+    implementation("androidx.ui:ui-livedata:${Versions.compose}")
+    implementation("com.github.zsoltk:compose-router:0.12.0")
     // Facebook
-    implementation 'com.facebook.android:facebook-login:5.15.3'
+    implementation("com.facebook.android:facebook-login:[5,6)")
 
     // Firebase & Google
-    implementation platform('com.google.firebase:firebase-bom:25.3.1')
-    implementation "com.google.android.gms:play-services-auth:18.0.0"
-    implementation 'com.google.guava:listenablefuture:9999.0-empty-to-avoid-conflict-with-guava'
-    implementation 'com.google.firebase:firebase-analytics-ktx'
-    implementation 'com.google.firebase:firebase-firestore-ktx'
-    implementation 'com.google.firebase:firebase-auth-ktx'
+    implementation("com.google.android.gms:play-services-auth:18.0.0")
+
+    implementation(platform("com.google.firebase:firebase-bom:25.3.1"))
+    implementation("com.google.guava:listenablefuture:9999.0-empty-to-avoid-conflict-with-guava")
+    implementation("com.google.firebase:firebase-analytics-ktx")
+    implementation("com.google.firebase:firebase-firestore-ktx")
+    implementation("com.google.firebase:firebase-auth-ktx")
 
     // Arch: Lifecycle
-    def lifecycle_version = "2.2.0"
-    def arch_version = "2.1.0"
-    implementation "androidx.lifecycle:lifecycle-runtime-ktx:$lifecycle_version"
-    implementation "androidx.lifecycle:lifecycle-viewmodel-ktx:$lifecycle_version"
-    implementation "androidx.lifecycle:lifecycle-livedata-ktx:$lifecycle_version"
-    implementation "androidx.lifecycle:lifecycle-viewmodel-savedstate:$lifecycle_version"
-    implementation "androidx.lifecycle:lifecycle-common-java8:$lifecycle_version"
-    implementation "androidx.lifecycle:lifecycle-service:$lifecycle_version"
-    implementation "androidx.lifecycle:lifecycle-process:$lifecycle_version"
+    implementation("androidx.lifecycle:lifecycle-runtime-ktx:${Versions.lifecycle}")
+    implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:${Versions.lifecycle}")
+    implementation("androidx.lifecycle:lifecycle-livedata-ktx:${Versions.lifecycle}")
+    implementation("androidx.lifecycle:lifecycle-viewmodel-savedstate:${Versions.lifecycle}")
+    implementation("androidx.lifecycle:lifecycle-common-java8:${Versions.lifecycle}")
+    implementation("androidx.lifecycle:lifecycle-service:${Versions.lifecycle}")
+    implementation("androidx.lifecycle:lifecycle-process:${Versions.lifecycle}")
 
     // Arch: Room
-    def room_version = "2.2.5"
-    implementation "androidx.room:room-runtime:$room_version"
-    kapt "androidx.room:room-compiler:$room_version"
-    implementation "androidx.room:room-ktx:$room_version"
+    implementation("androidx.room:room-runtime:${Versions.room}")
+    kapt("androidx.room:room-compiler:${Versions.room}")
+    implementation("androidx.room:room-ktx:${Versions.room}")
 
     // Arch: Navigation
-    def nav_version = "2.3.0-beta01"
-    implementation "androidx.navigation:navigation-fragment-ktx:$nav_version"
-    implementation "androidx.navigation:navigation-ui-ktx:$nav_version"
+    implementation("androidx.navigation:navigation-fragment-ktx:${Versions.nav}")
+    implementation("androidx.navigation:navigation-ui-ktx:${Versions.nav}")
 
     // Arch: WorkManager
-    def work_version = "2.3.4"
-    implementation "androidx.work:work-runtime-ktx:$work_version"
-    implementation "androidx.work:work-gcm:$work_version"
+    implementation("androidx.work:work-runtime-ktx:${Versions.work}")
+    implementation("androidx.work:work-gcm:${Versions.work}")
 
     // Testing
-    testImplementation 'junit:junit:4.13'
-    testImplementation 'org.robolectric:robolectric:4.3'
-    testImplementation "androidx.arch.core:core-testing:$arch_version"
-    testImplementation "androidx.room:room-testing:$room_version"
-    androidTestImplementation 'androidx.test.ext:junit:1.1.1'
-    androidTestImplementation 'androidx.test.espresso:espresso-core:3.2.0'
-    androidTestImplementation "androidx.navigation:navigation-testing:$nav_version"
-	androidTestImplementation "androidx.work:work-testing:$work_version"
+    testImplementation("junit:junit:4.13")
+    testImplementation("androidx.test:core:1.2.0")
+    testImplementation("org.robolectric:robolectric:4.3.1")
+    testImplementation("org.mockito:mockito-core:2.19.0")
+    testImplementation("androidx.arch.core:core-testing:${Versions.arch}")
+    testImplementation("androidx.room:room-testing:${Versions.room}")
+
+    androidTestImplementation("androidx.test.ext:junit:1.1.1")
+    androidTestImplementation("androidx.test:runner:1.2.0")
+    androidTestImplementation("androidx.test:rules:1.2.0")
+    androidTestImplementation("org.hamcrest:hamcrest-library:2.2")
+    androidTestImplementation("androidx.test.espresso:espresso-core:3.2.0")
+    androidTestImplementation("androidx.test.uiautomator:uiautomator:2.2.0")
+    androidTestImplementation("androidx.navigation:navigation-testing:${Versions.nav}")
+	androidTestImplementation("androidx.work:work-testing:${Versions.work}")
 }
