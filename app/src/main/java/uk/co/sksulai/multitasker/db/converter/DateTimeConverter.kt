@@ -9,7 +9,7 @@ import java.time.format.DateTimeFormatter
 // Date-Time converters
 
 class ZonedDateTimeConverter : IConverter<ZonedDateTime?, String?> {
-    private val formatter = DateTimeFormatter.ISO_OFFSET_DATE_TIME
+    private val formatter = DateTimeFormatter.ISO_ZONED_DATE_TIME
     @TypeConverter override fun from(value: ZonedDateTime?): String? = value?.let { formatter.format(it) }
     @TypeConverter override fun to(value: String?): ZonedDateTime? = value?.let { formatter.parse(it, ZonedDateTime::from) }
 }
