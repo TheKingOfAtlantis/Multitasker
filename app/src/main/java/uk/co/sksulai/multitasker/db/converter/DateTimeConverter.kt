@@ -47,7 +47,7 @@ class DateConverter : IConverter<LocalDate?, String?> {
 
 // Misc converter
 
-class TimeZoneConverter: IConverter<TimeZone?, String?> {
+class TimeZoneConverter : IConverter<TimeZone?, String?> {
     @TypeConverter override fun from(value: TimeZone?): String? = value?.let { value.id }
     @TypeConverter override fun to(value: String?): TimeZone? = value?.let { TimeZone.getTimeZone(it) }
 }

@@ -19,3 +19,28 @@ class DurationConverterTest : ConverterTest<Duration, String>(
     @Test override fun validateConversion() = super.validateConversion()
     @Test override fun inverse() = super.inverse()
 }
+
+class TimeZoneConverterTest : ConverterTest<TimeZone, String>(
+    TimeZoneConverter(),
+    listOf(
+        "GMT",
+        "Europe/London"
+    ).map { TimeZone.getTimeZone(it) to it }
+) {
+    @Test override fun withNull() = super.withNull()
+    @Test override fun validateConversion() = super.validateConversion()
+    @Test override fun inverse() = testData.forEach { (lhs, rhs) ->
+        Assert.assertThat(
+            converter.from(converter.to(rhs)),
+            Matchers.equalTo(lhs?.id)
+        )
+        // Fixme: Find work around ?.toString()
+        //        Without it values don't match even tho the values are equivalent
+        //        but one is surrounded by <...> and the other "..."
+        Assert.assertThat(
+            converter.to(converter.from(lhs))?.id,
+            Matchers.equalTo(rhs)
+        )
+    }
+
+}
