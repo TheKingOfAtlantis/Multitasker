@@ -8,6 +8,11 @@ import org.hamcrest.Matchers
 import java.util.*
 import java.time.*
 
+@RunWith(Suite::class) @Suite.SuiteClasses(
+    DurationConverterTest::class,
+    TimeZoneConverterTest::class
+) class TimeMiscConverterSuite
+
 class DurationConverterTest : ConverterTest<Duration, String>(
     DurationConverter(),
     listOf(

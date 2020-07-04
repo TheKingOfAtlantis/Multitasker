@@ -6,6 +6,10 @@ import org.junit.runners.Suite
 
 import java.time.*
 
+@RunWith(Suite::class) @Suite.SuiteClasses(
+    OffsetTimeConverterTest::class,
+    LocalTimeConverterTest::class
+) class TimeConverterSuite
 
 class OffsetTimeConverterTest : ConverterTest<OffsetTime, String>(
     OffsetTimeConverter(),
