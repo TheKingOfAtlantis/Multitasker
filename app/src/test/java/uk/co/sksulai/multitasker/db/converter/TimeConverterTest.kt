@@ -6,6 +6,21 @@ import org.junit.runners.Suite
 
 import java.time.*
 
+
+class OffsetTimeConverterTest : ConverterTest<OffsetTime, String>(
+    OffsetTimeConverter(),
+    listOf(
+        OffsetTime.of(
+            LocalTime.of(10, 10, 10),
+            ZoneOffset.ofHours(1)
+        ) to "10:10:10+01:00"
+    )
+){
+    @Test override fun withNull() = super.withNull()
+    @Test override fun validateConversion() = super.validateConversion()
+    @Test override fun inverse() = super.inverse()
+}
+
 class LocalTimeConverterTest : ConverterTest<LocalTime, String>(
     LocalTimeConverter(),
     listOf(

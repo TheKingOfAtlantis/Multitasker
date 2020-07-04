@@ -26,7 +26,7 @@ class LocalDateTimeConverter : IConverter<LocalDateTime?, String?> {
 
 // Time converters
 
-class OffsetTimeConverter: IConverter<OffsetTime?, String?> {
+class OffsetTimeConverter : IConverter<OffsetTime?, String?> {
     private val formatter = DateTimeFormatter.ISO_OFFSET_TIME
     @TypeConverter override fun from(value: OffsetTime?): String? = value?.let { formatter.format(it) }
     @TypeConverter override fun to(value: String?): OffsetTime? = value?.let { formatter.parse(it, OffsetTime::from) }
