@@ -51,7 +51,7 @@ class TimeZoneConverter: IConverter<TimeZone?, String?> {
     @TypeConverter override fun from(value: TimeZone?): String? = value?.let { value.id }
     @TypeConverter override fun to(value: String?): TimeZone? = value?.let { TimeZone.getTimeZone(it) }
 }
-class DurationConverter: IConverter<Duration?, String?> {
+class DurationConverter : IConverter<Duration?, String?> {
     @TypeConverter override fun from(value: Duration?): String? = value?.toString()
-    @TypeConverter override fun to(value: String?): Duration? = Duration.parse(value)
+    @TypeConverter override fun to(value: String?): Duration? = value?.let{ Duration.parse(it) }
 }
