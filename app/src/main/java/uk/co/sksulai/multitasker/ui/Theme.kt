@@ -5,6 +5,12 @@ import androidx.ui.foundation.isSystemInDarkTheme
 import androidx.ui.graphics.Color
 import androidx.ui.material.*
 
+enum class ThemeState {
+    System,
+    Light,
+    Dark
+}
+
 object MultitaskerColour {
     object Palette {
         val Primary     = Color(0xff8636b2)
@@ -33,6 +39,14 @@ object MultitaskerTheme {
     )
 
     @Composable val currentTheme: ColorPalette get() =
-        if(isSystemInDarkTheme())
-            darkTheme else lightTheme
+        when(MultitaskerOptions.General.theme.let { pref ->
+            if(pref == ThemeState.System)
+                if(isSystemInDarkTheme())
+                    ThemeState.Dark else ThemeState.Light
+                else pref
+        }) {
+            ThemeState.Light -> lightTheme
+            ThemeState.Dark  -> darkTheme
+            else -> throw IllegalStateException("Invalid theme state")
+        }
 }
