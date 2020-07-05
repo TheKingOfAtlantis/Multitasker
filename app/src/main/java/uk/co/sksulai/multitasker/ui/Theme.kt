@@ -5,6 +5,8 @@ import androidx.ui.foundation.isSystemInDarkTheme
 import androidx.ui.graphics.Color
 import androidx.ui.material.*
 
+import uk.co.sksulai.multitasker.db.AppSettings
+
 enum class ThemeState {
     System,
     Light,
@@ -43,7 +45,7 @@ object MultitaskerTheme {
     )
 
     @Composable val currentTheme: ColorPalette get() =
-        when(MultitaskerOptions.General.theme.let { pref ->
+        when(AppSettings.General.theme.let { pref ->
             if(pref == ThemeState.System)
                 if(isSystemInDarkTheme())
                     ThemeState.Dark else ThemeState.Light

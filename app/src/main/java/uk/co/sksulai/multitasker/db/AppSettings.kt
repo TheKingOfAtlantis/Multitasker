@@ -1,4 +1,4 @@
-package uk.co.sksulai.multitasker.ui
+package uk.co.sksulai.multitasker.db
 
 import android.content.Context
 import android.content.SharedPreferences
@@ -6,8 +6,9 @@ import androidx.core.content.edit
 
 import androidx.compose.Composable
 import androidx.ui.core.ContextAmbient
+import uk.co.sksulai.multitasker.ui.ThemeState
 
-@Composable object MultitaskerOptions {
+@Composable object AppSettings {
     @Composable val pref: SharedPreferences; get() = ContextAmbient.current.getSharedPreferences("pref", Context.MODE_PRIVATE)
 
     @Composable object General {
