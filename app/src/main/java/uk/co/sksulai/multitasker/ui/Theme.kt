@@ -25,6 +25,10 @@ object MultitaskerColour {
     }
 }
 
+val ColorPalette.Info : Color    get() = MultitaskerColour.Palette.Info
+val ColorPalette.Success : Color get() = MultitaskerColour.Palette.Success
+val ColorPalette.Warning : Color get() = MultitaskerColour.Palette.Warning
+
 object MultitaskerTheme {
     private val darkTheme = darkColorPalette(
         primary        = MultitaskerColour.Palette.Primary,
