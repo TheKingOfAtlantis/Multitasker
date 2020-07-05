@@ -1,5 +1,7 @@
 package uk.co.sksulai.multitasker.ui
 
+import androidx.compose.Composable
+import androidx.ui.foundation.isSystemInDarkTheme
 import androidx.ui.graphics.Color
 import androidx.ui.material.*
 
@@ -29,4 +31,8 @@ object MultitaskerTheme {
         primaryVariant = MultitaskerColour.Palette.DarkAccent,
         error          = MultitaskerColour.Palette.Danger
     )
+
+    @Composable val currentTheme: ColorPalette get() =
+        if(isSystemInDarkTheme())
+            darkTheme else lightTheme
 }
