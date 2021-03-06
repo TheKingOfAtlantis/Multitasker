@@ -36,7 +36,19 @@ import uk.co.sksulai.multitasker.util.*
                     SignInScreen(email, password)
                 }
             }
-            composable("SignUp") { }
+            composable(
+                "SignUp?email={email}&password={password}",
+                arguments = listOf(
+                    navArgument("email") { },
+                    navArgument("password") { },
+                )
+            ) {
+                it.arguments?.let { bundle ->
+                    val email    : String by bundle
+                    val password : String by bundle
+                    SignUpScreen(email, password)
+                }
+            }
             composable("SignUp/Done") { }
             composable("Forgot") { }
         }

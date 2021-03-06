@@ -53,4 +53,11 @@ class UserViewModel(app: Application) : AndroidViewModel(app) {
         try { userRepo.authenticate(email, password) }
         catch (e: FirebaseAuthException) { handleAuthError(e, onError) }
     }
+    suspend fun create(email: String, password : String, onError: suspend (emailError: String, passwordError: String, authError: String) -> Unit) = when {
+        email.isEmpty()    -> onError("No email provided", "", "")
+        password.isEmpty() -> onError("", "No password provided", "")
+        else ->
+            try { userRepo.create(email, password) }
+            catch (e: FirebaseAuthException) { handleAuthError(e, onError) }
+    }
 }
