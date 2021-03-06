@@ -122,6 +122,10 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-service:2.3.0")
     implementation("androidx.lifecycle:lifecycle-process:2.3.0")
 
+    // Arch: DataStore
+    implementation("androidx.datastore:datastore:1.0.0-alpha07")
+    implementation("androidx.datastore:datastore-preferences:1.0.0-alpha07")
+
     // Arch: Room
     implementation("androidx.room:room-runtime:2.3.0-beta02")
     kapt("androidx.room:room-compiler:2.3.0-beta02")
