@@ -1,0 +1,12 @@
+
+# Ignore all of the mobile app files
+
+.gradle/
+.idea/
+gradle/
+buildSrc/
+app/
+*.gradle.kts
+gradle*
+local.properties
+.travis.yml
