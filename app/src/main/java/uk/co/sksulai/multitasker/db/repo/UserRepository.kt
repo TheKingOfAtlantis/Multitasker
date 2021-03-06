@@ -7,7 +7,6 @@ import android.util.Log
 import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
-import androidx.compose.staticAmbientOf
 import androidx.core.content.edit
 
 import kotlinx.coroutines.*
@@ -34,8 +33,6 @@ import uk.co.sksulai.multitasker.db.model.generateID
 import uk.co.sksulai.multitasker.db.web.UserWebService
 import uk.co.sksulai.multitasker.db.createDatabase
 
-val FacebookCallbackAmbient = staticAmbientOf<CallbackManager>()
-
 inline class GoogleIntent(val value: Intent?)
 
 /**
@@ -54,8 +51,7 @@ class UserRepository(private val context: Context) {
      * @brief Reference to the current user which is signed in
      * The state of this value is automatically managed by the repository
      */
-    val currentUser: StateFlow<UserModel?>
-        get() = _currentUser
+    val currentUser: StateFlow<UserModel?> get() = _currentUser
     private var _currentUser: MutableStateFlow<UserModel?> = MutableStateFlow(null)
 
     private suspend fun setCurrentUser(user: UserModel?) = withContext(Dispatchers.IO) {

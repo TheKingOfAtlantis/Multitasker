@@ -1,9 +1,9 @@
 package uk.co.sksulai.multitasker.ui
 
-import androidx.compose.Composable
-import androidx.ui.foundation.isSystemInDarkTheme
-import androidx.ui.graphics.Color
-import androidx.ui.material.*
+import androidx.compose.runtime.*
+import androidx.compose.material.*
+import androidx.compose.foundation.*
+import androidx.compose.ui.graphics.*
 
 import uk.co.sksulai.multitasker.db.AppSettings
 
@@ -27,29 +27,29 @@ object MultitaskerColour {
     }
 }
 
-val ColorPalette.Info : Color    get() = MultitaskerColour.Palette.Info
-val ColorPalette.Success : Color get() = MultitaskerColour.Palette.Success
-val ColorPalette.Warning : Color get() = MultitaskerColour.Palette.Warning
+val Colors.Info : Color    get() = MultitaskerColour.Palette.Info
+val Colors.Success : Color get() = MultitaskerColour.Palette.Success
+val Colors.Warning : Color get() = MultitaskerColour.Palette.Warning
 
 object MultitaskerTheme {
-    private val darkTheme = darkColorPalette(
+    private val darkTheme = darkColors(
         primary        = MultitaskerColour.Palette.Primary,
         primaryVariant = MultitaskerColour.Palette.DarkAccent,
         secondary      = MultitaskerColour.Palette.LightAccent,
         error          = MultitaskerColour.Palette.Danger
     )
-    private val lightTheme = lightColorPalette(
+    private val lightTheme = lightColors(
         primary        = MultitaskerColour.Palette.Primary,
         primaryVariant = MultitaskerColour.Palette.DarkAccent,
         error          = MultitaskerColour.Palette.Danger
     )
 
-    @Composable val currentTheme: ColorPalette get() =
-        when(AppSettings.General.theme.let { pref ->
+    val currentTheme: Colors
+        @Composable get() = when(AppSettings.General.theme.let { pref ->
             if(pref == ThemeState.System)
                 if(isSystemInDarkTheme())
                     ThemeState.Dark else ThemeState.Light
-                else pref
+            else pref
         }) {
             ThemeState.Light -> lightTheme
             ThemeState.Dark  -> darkTheme
