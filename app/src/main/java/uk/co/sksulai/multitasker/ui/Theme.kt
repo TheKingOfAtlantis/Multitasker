@@ -32,27 +32,36 @@ val Colors.Success : Color get() = MultitaskerColour.Palette.Success
 val Colors.Warning : Color get() = MultitaskerColour.Palette.Warning
 
 object MultitaskerTheme {
-    private val darkTheme = darkColors(
+    val darkTheme = darkColors(
         primary        = MultitaskerColour.Palette.Primary,
         primaryVariant = MultitaskerColour.Palette.DarkAccent,
         secondary      = MultitaskerColour.Palette.LightAccent,
         error          = MultitaskerColour.Palette.Danger
     )
-    private val lightTheme = lightColors(
+    val lightTheme = lightColors(
         primary        = MultitaskerColour.Palette.Primary,
         primaryVariant = MultitaskerColour.Palette.DarkAccent,
         error          = MultitaskerColour.Palette.Danger
     )
+}
 
-    val currentTheme: Colors
-        @Composable get() = when(AppSettings.General.theme.let { pref ->
-            if(pref == ThemeState.System)
-                if(isSystemInDarkTheme())
-                    ThemeState.Dark else ThemeState.Light
-            else pref
-        }) {
-            ThemeState.Light -> lightTheme
-            ThemeState.Dark  -> darkTheme
-            else -> throw IllegalStateException("Invalid theme state")
-        }
+@Composable fun MultitaskerTheme(content: @Composable () -> Unit) {
+
+    val themePref = AppSettings.General.theme.let { pref -> // Get stored preference
+        if(pref == ThemeState.System) // If to just follow the system then we need to detect what it currently is
+            if(isSystemInDarkTheme())
+                ThemeState.Dark else ThemeState.Light
+        else pref // Otherwise just return the users preference
+    }
+
+    val theme = when(themePref) {
+        ThemeState.Light -> MultitaskerTheme.lightTheme
+        ThemeState.Dark  -> MultitaskerTheme.darkTheme
+        else -> throw IllegalStateException("Invalid theme state")
+    }
+
+    MaterialTheme(
+        colors = theme,
+        content = content
+    )
 }
