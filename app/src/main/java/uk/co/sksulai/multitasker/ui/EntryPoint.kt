@@ -21,7 +21,7 @@ import uk.co.sksulai.multitasker.util.*
     }
 
     NavHost(LocalNavController.current, initialState) {
-        composable("OnBoarding") {  }
+        composable("OnBoarding") { OnBoardingScreen() }
         navigation("SignIn", "SignInFlow") {
             composable("SignIn") { }
             composable("SignUp") { }
