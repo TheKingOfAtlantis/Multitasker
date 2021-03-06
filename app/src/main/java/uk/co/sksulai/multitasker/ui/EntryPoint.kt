@@ -23,7 +23,19 @@ import uk.co.sksulai.multitasker.util.*
     NavHost(LocalNavController.current, initialState) {
         composable("OnBoarding") { OnBoardingScreen() }
         navigation("SignIn", "SignInFlow") {
-            composable("SignIn") { }
+            composable(
+                "SignIn?email={email}&password={password}",
+                arguments = listOf(
+                    navArgument("email") { },
+                    navArgument("password") { },
+                )
+            ) {
+                it.arguments?.let { bundle ->
+                    val email    : String by bundle
+                    val password : String by bundle
+                    SignInScreen(email, password)
+                }
+            }
             composable("SignUp") { }
             composable("SignUp/Done") { }
             composable("Forgot") { }
