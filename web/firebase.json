@@ -7,9 +7,6 @@
       "**/.*",
       "**/node_modules/**"
     ],
-	"headers": [
-      {"source": "/service-worker.js", "headers": [{"key": "Cache-Control", "value": "no-cache"}]}
-    ]
   },{
 	"target": "app",
     "public": "app/build",
@@ -18,8 +15,5 @@
       "**/.*",
       "**/node_modules/**"
     ],
-	"headers": [
-      {"source": "/service-worker.js", "headers": [{"key": "Cache-Control", "value": "no-cache"}]}
-    ]
   }]
 }
