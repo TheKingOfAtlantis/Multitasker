@@ -14,11 +14,10 @@ jobs:
     steps:
       - name: Checkout Repository 
         uses: actions/checkout@v2
-      - name: Change working directory
       - name: Build main
-      - run: cd main/ && yarn install && yarn build      
+        run: cd main/ && yarn install && yarn build      
       - name: Build app
-      - run: cd app/ && yarn install && yarn build
+        run: cd app/ && yarn install && yarn build
       - name: Deploy
         uses: FirebaseExtended/action-hosting-deploy@v0
         with:
