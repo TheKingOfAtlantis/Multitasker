@@ -7,7 +7,8 @@ name: Build & Deploy (Preview)
     branches:
       - site-develop # Anything pushed to develop branch is for production (even if ready)
 defaults:
-    working-directory: web/
+    run:
+      working-directory: web/
 jobs:
   build_and_deploy:
     runs-on: ubuntu-latest

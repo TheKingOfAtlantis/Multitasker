@@ -7,14 +7,14 @@ name: Build & Deploy (Live)
     branches:
       - site-main # Anything on the main branch is production ready
 defaults:
-    working-directory: web/
+    run:
+      working-directory: web/
 jobs:
   build_and_deploy:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository 
         uses: actions/checkout@v2
-      - name: Change working directory
       - name: Build main
         run: cd main/ && yarn install && yarn build      
       - name: Build app
