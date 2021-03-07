@@ -1,5 +1,17 @@
 {
   "projects": {
-    "default": "multitasker-31a71"
+    "default": "multitasker-dfd0d"
+  },
+  "targets": {
+    "multitasker-dfd0d": {
+      "hosting": {
+        "main": [
+          "multitasker-dfd0d"
+        ],
+        "app": [
+          "app-multitasker"
+        ]
+      }
+    }
   }
 }

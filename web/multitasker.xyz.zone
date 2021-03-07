@@ -1,0 +1,68 @@
+﻿; Domain: multitasker.xyz
+; Exported (y-m-d hh:mm:ss): 2021-03-06 17:50:02
+;
+; This file is intended for use for informational and archival
+; purposes ONLY and MUST be edited before use on a production
+; DNS server.
+;
+; In particular, you must update the SOA record with the correct
+; authoritative name server and contact e-mail address information,
+; and add the correct NS records for the name servers which will
+; be authoritative for this domain.
+;
+; For further information, please consult the BIND documentation
+; located on the following website:
+;
+; http://www.isc.org/
+;
+; And RFC 1035:
+;
+; http://www.ietf.org/rfc/rfc1035.txt
+;
+; Please note that we do NOT offer technical support for any use
+; of this zone data, the BIND name server, or any other third-
+; party DNS software.
+;
+; Use at your own risk.
+
+
+$ORIGIN multitasker.xyz.
+
+; SOA Record
+@	3600	 IN 	SOA	ns01.domaincontrol.com.	dns.jomax.net. (
+					2021030637
+					28800
+					7200
+					604800
+					3600
+					) 
+
+; A Records
+@	3600	 IN 	A	151.101.1.195
+@	3600	 IN 	A	151.101.65.195
+app	3600	 IN 	A	151.101.1.195
+app	3600	 IN 	A	151.101.65.195
+
+; CNAME Records
+firebase1._domainkey	3600	 IN 	CNAME	mail-multitasker-xyz.dkim1._domainkey.firebasemail.com.
+firebase2._domainkey	3600	 IN 	CNAME	mail-multitasker-xyz.dkim2._domainkey.firebasemail.com.
+www	3600	 IN 	CNAME	@
+_domainconnect	3600	 IN 	CNAME	_domainconnect.gd.domaincontrol.com.
+
+; MX Records
+
+; TXT Records
+@	3600	 IN 	TXT	"firebase=multitasker-dfd0d"
+@	3600	 IN 	TXT	"google-site-verification=VkT_Np7Odb5qunupkV2xFX7qHAmeOewB_tCuL0zrDPY"
+@	3600	 IN 	TXT	"v=spf1 include:_spf.firebasemail.com ~all"
+
+; SRV Records
+
+; AAAA Records
+
+; CAA Records
+
+; NS Records
+@	3600	 IN 	NS	ns01.domaincontrol.com.
+@	3600	 IN 	NS	ns02.domaincontrol.com.
+
