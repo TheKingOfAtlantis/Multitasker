@@ -1,7 +1,7 @@
 {
   "hosting": [{
   	"target": "main",
-    "public": "main/build",
+    "public": "./main/build",
     "ignore": [
       "firebase.json",
       "**/.*",
@@ -9,7 +9,7 @@
     ]
   },{
 	"target": "app",
-    "public": "app/build",
+    "public": "./app/build",
     "ignore": [
       "firebase.json",
       "**/.*",
