@@ -13,12 +13,14 @@ jobs:
       - name: Checkout Repository 
         uses: actions/checkout@v2
       - name: Change working directory
-        run: cd web
       - name: Build main
-        run: cd ./main && yarn install && yarn build      
+        run: yarn install && yarn build
+        working-directory: web/main/
       - name: Build app
         run: cd ../app && yarn install && yarn build
-      - name: Deploy 
+        working-directory: web/app/
+      - name: Deploy
+        working-directory: web/
         uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: '${{ secrets.GITHUB_TOKEN }}'
