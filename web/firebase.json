@@ -1,5 +1,6 @@
 {
-  "hosting": {
+  "hosting": [{
+	"target": "main",
     "public": "main/build",
     "ignore": [
       "firebase.json",
@@ -12,5 +13,22 @@
         "destination": "/index.html"
       }
     ]
+  },
+  {
+	"target": "app",
+    "public": "app/build",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "rewrites": [
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ]
   }
+  
+  ]
 }
