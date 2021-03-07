@@ -1,20 +1,25 @@
 {
   "hosting": [{
   	"target": "main",
-    "public": "main/public",
+    "public": "main/build",
     "ignore": [
       "firebase.json",
       "**/.*",
       "**/node_modules/**"
+    ],
+	"headers": [
+      {"source": "/service-worker.js", "headers": [{"key": "Cache-Control", "value": "no-cache"}]}
     ]
   },{
 	"target": "app",
-	"site": "multitasker-app",
-    "public": "app/public",
+    "public": "app/build",
     "ignore": [
       "firebase.json",
       "**/.*",
       "**/node_modules/**"
+    ],
+	"headers": [
+      {"source": "/service-worker.js", "headers": [{"key": "Cache-Control", "value": "no-cache"}]}
     ]
   }]
 }
