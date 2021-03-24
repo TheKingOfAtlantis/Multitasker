@@ -1,13 +1,27 @@
 package uk.co.sksulai.multitasker.db.viewmodel
 
 import android.app.Application
+import android.app.PendingIntent
+import androidx.activity.result.*
 import androidx.lifecycle.AndroidViewModel
+
 import com.google.firebase.auth.FirebaseAuthException
+import com.google.android.gms.auth.api.identity.*
+import kotlinx.coroutines.tasks.await
+
+import uk.co.sksulai.multitasker.R
+import uk.co.sksulai.multitasker.db.repo.GoogleIntent
 import uk.co.sksulai.multitasker.db.repo.UserRepository
+
+inline class GoogleIntentLauncher(val value: ActivityResultLauncher<IntentSenderRequest>)
+private fun GoogleIntentLauncher.launch(intent: PendingIntent) =
+    value.launch(IntentSenderRequest.Builder(intent).build())
+private fun GoogleIntentLauncher.launch(intent: BeginSignInResult) = launch(intent.pendingIntent)
+private fun GoogleIntentLauncher.launch(intent: SavePasswordResult) = launch(intent.pendingIntent)
 
 typealias emailError = suspend (emailError: String, passwordError: String, authError: String) -> Unit
 
-class UserViewModel(app: Application) : AndroidViewModel(app) {
+class UserViewModel(private val app: Application) : AndroidViewModel(app) {
     private val userRepo by lazy { UserRepository(app) }
 
     val currentUser = userRepo.currentUser
@@ -46,18 +60,82 @@ class UserViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    suspend fun authenticate(email: String, password: String, onError: suspend (emailError: String, passwordError: String, authError: String) -> Unit) = when {
+    suspend fun authenticate(
+        email: String,
+        password: String,
+        launcher: GoogleIntentLauncher,
+        onError: suspend (emailError: String, passwordError: String, authError: String) -> Unit
+    ) = when {
         email.isEmpty()    -> { onError("No email provided", "", "") }
         password.isEmpty() -> { onError("", "No password provided", "") }
-        else ->
-        try { userRepo.authenticate(email, password) }
-        catch (e: FirebaseAuthException) { handleAuthError(e, onError) }
+        else -> try {
+            userRepo.authenticate(email, password)
+
+            val saver = Identity.getCredentialSavingClient(app)
+                .savePassword(
+                    SavePasswordRequest.builder()
+                        .setSignInPassword(SignInPassword(email, password))
+                        .build()
+                ).await()
+            launcher.launch(saver)
+        } catch (e: FirebaseAuthException) { handleAuthError(e, onError) }
     }
-    suspend fun create(email: String, password : String, onError: suspend (emailError: String, passwordError: String, authError: String) -> Unit) = when {
+    suspend fun create(
+        email: String,
+        password: String,
+        launcher: GoogleIntentLauncher,
+        onError: suspend (emailError: String, passwordError: String, authError: String) -> Unit
+    ) = when {
         email.isEmpty()    -> onError("No email provided", "", "")
         password.isEmpty() -> onError("", "No password provided", "")
         else ->
-            try { userRepo.create(email, password) }
+            try {
+                userRepo.create(email, password)
+
+                val saver = Identity.getCredentialSavingClient(app)
+                    .savePassword(
+                        SavePasswordRequest.builder()
+                            .setSignInPassword(SignInPassword(email, password))
+                            .build()
+                    ).await()
+                launcher.launch(saver)
+            }
             catch (e: FirebaseAuthException) { handleAuthError(e, onError) }
+    }
+
+    suspend fun authenticate(googleIntent: GoogleIntent)
+        = userRepo.authenticate(googleIntent)
+
+    suspend fun authenticate(launcher: GoogleIntentLauncher) {
+        val request = BeginSignInRequest.builder()
+            .setGoogleIdTokenRequestOptions(
+                BeginSignInRequest.GoogleIdTokenRequestOptions.builder()
+                    .setServerClientId(app.getString(R.string.default_web_client_id))
+                    .setFilterByAuthorizedAccounts(true)
+                    .setSupported(true)
+                    .build()
+            ).setPasswordRequestOptions(
+                BeginSignInRequest.PasswordRequestOptions.builder()
+                    .setSupported(true)
+                    .build()
+            ).build()
+        val intent = Identity.getSignInClient(app)
+            .beginSignIn(request)
+            .await()
+        launcher.launch(intent)
+    }
+    suspend fun create(launcher: GoogleIntentLauncher) {
+        val request = BeginSignInRequest.builder()
+            .setGoogleIdTokenRequestOptions(
+                BeginSignInRequest.GoogleIdTokenRequestOptions.builder()
+                    .setServerClientId(app.getString(R.string.default_web_client_id))
+                    .setFilterByAuthorizedAccounts(false)
+                    .setSupported(true)
+                    .build()
+            ).build()
+        val intent = Identity.getSignInClient(app)
+            .beginSignIn(request)
+            .await()
+        launcher.launch(intent)
     }
 }
