@@ -13,44 +13,38 @@ import uk.co.sksulai.multitasker.util.getAwait
 
 class UserWebService {
     private val db = Firebase.firestore
-    private val collection = db.collection("user")
+    private val collection = db.collection("users")
 
-    private fun UserModel.toDocument() = mutableMapOf(
-        "ID"          to ID,
-        "FirebaseID"  to FirebaseID,
+    private fun UserModel.toDocument() = hashMapOf(
+        "Email"       to Email,
         "DisplayName" to DisplayName,
         "ActualName"  to ActualName,
         "Avatar"      to UriConverter().from(Avatar),
-        "Email"       to Email,
         "DOB"         to DateConverter().from(DOB),
         "Home"        to Home
     )
-    private fun MutableMap<String, Any?>.fromDocument() = UserModel(
-        ID          = get("ID") as String,
-        FirebaseID  = get("FirebaseID") as String?,
+    private fun MutableMap<String, Any?>.fromDocument(id: String) = UserModel(
+        ID          = id,
+        Email       = get("Email") as String?,
         DisplayName = get("DisplayName") as String?,
         ActualName  = get("ActualName") as String?,
         Avatar      = UriConverter().to(get("Avatar") as String?),
-        Email       = get("Email") as String?,
         DOB         = DateConverter().to(get("DOB") as String?),
         Home        = get("Home") as String?
     )
 
-    suspend fun fromID(id: String): UserModel? {
+    suspend fun fromID(id: String): UserModel {
         val doc = collection.document(id).getAwait()
-        return doc.data?.fromDocument()
+        return doc.data?.fromDocument(id)!!
     }
-    suspend fun fromFirebase(user: FirebaseUser): UserModel? {
-        val docs = collection.whereEqualTo("FirebaseID", user.uid).getAwait()
-        return docs.single().data.fromDocument()
-    }
+    suspend fun fromFirebase(user: FirebaseUser): UserModel = fromID(user.uid)
     suspend fun fromDisplayName(displayName: String): List<UserModel> {
         val docs = collection.startAt(displayName).endAt(displayName + "\uf8ff").getAwait()
-        return docs.documents.map { it.data!!.fromDocument() }
+        return docs.documents.map { it.data!!.fromDocument(it.id) }
     }
     suspend fun fromActualName(actualName: String): List<UserModel> {
         val docs = collection.startAt(actualName).endAt(actualName + "\uf8ff").getAwait()
-        return docs.documents.map { it.data!!.fromDocument() }
+        return docs.documents.map { it.data!!.fromDocument(it.id) }
     }
 
     suspend fun insert(user: UserModel) {
