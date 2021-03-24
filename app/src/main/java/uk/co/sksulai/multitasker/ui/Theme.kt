@@ -4,6 +4,7 @@ import androidx.compose.runtime.*
 import androidx.compose.material.*
 import androidx.compose.foundation.*
 import androidx.compose.ui.graphics.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 
 import uk.co.sksulai.multitasker.db.AppSettings
 
@@ -20,16 +21,16 @@ object MultitaskerColour {
         val DarkAccent  = Color(0xff647098)
         val DarkShades  = Color(0xff1e1e34)
 
-        val Info     = Color(0xff20213a)
-        val Success  = Color(0x5d8b6d)
-        val Warning  = Color(0xdb7b35)
-        val Danger   = Color(0xf44336)
+        val Info        = Color(0xff20213a)
+        val Success     = Color(0xff5d8b6d)
+        val Warning     = Color(0xffdb7b35)
+        val Danger      = Color(0xfff44336)
     }
 }
 
-val Colors.Info : Color    get() = MultitaskerColour.Palette.Info
-val Colors.Success : Color get() = MultitaskerColour.Palette.Success
-val Colors.Warning : Color get() = MultitaskerColour.Palette.Warning
+val Colors.Info: Color    get() = MultitaskerColour.Palette.Info
+val Colors.Success: Color get() = MultitaskerColour.Palette.Success
+val Colors.Warning: Color get() = MultitaskerColour.Palette.Warning
 
 object MultitaskerTheme {
     val darkTheme = darkColors(
@@ -42,6 +43,9 @@ object MultitaskerTheme {
         primary        = MultitaskerColour.Palette.Primary,
         primaryVariant = MultitaskerColour.Palette.DarkAccent,
         error          = MultitaskerColour.Palette.Danger
+    )
+    val shapes = Shapes(
+        small = RoundedCornerShape(50)
     )
 }
 
@@ -62,6 +66,7 @@ object MultitaskerTheme {
 
     MaterialTheme(
         colors = theme,
+        shapes = MultitaskerTheme.shapes,
         content = content
     )
 }
