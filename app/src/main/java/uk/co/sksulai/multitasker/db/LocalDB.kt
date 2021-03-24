@@ -23,6 +23,7 @@ fun LocalDB.Companion.createDatabase(context: Context)
     DateConverter::class,
     TimeZoneConverter::class,
     DurationConverter::class,
+    InstantConverter::class,
     UriConverter::class
 ) @Database(version = 2, entities = [
     UserModel::class
