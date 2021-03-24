@@ -147,10 +147,11 @@ class UserRepository(private val context: Context) {
      * Create a user given the values for various UserModel fields
      * @return The UserModel created for this user
      */
-    suspend fun create(
+    private suspend fun create(
         id: String,
         displayName: String?  = null,
         email: String?        = null,
+        preferredHome: String = "Dashboard",
         avatar: Uri?          = null,
         actualName: String?   = null,
         homeLocation: String? = null,
@@ -162,6 +163,7 @@ class UserRepository(private val context: Context) {
             LastModified  = Instant.now(),
             Email         = email,
             DisplayName   = displayName,
+            PreferredHome = preferredHome,
             Avatar        = avatar,
             ActualName    = actualName,
             Home          = homeLocation,
@@ -185,7 +187,6 @@ class UserRepository(private val context: Context) {
     suspend fun insert(user: UserModel): Unit = withContext(Dispatchers.IO) {
         launch { dao.insert(user) }
         launch { web.insert(user) }
-        return@withContext
     }
 
     // Update
