@@ -27,6 +27,7 @@ class UserViewModel(private val app: Application) : AndroidViewModel(app) {
     private val userRepo by lazy { UserRepository(app) }
 
     val currentUser = userRepo.currentUser
+    val preferredHome = userRepo.currentUser.value?.PreferredHome ?: "Sign In"
 
     private suspend fun handleAuthError(
         err: FirebaseAuthException,
