@@ -6,8 +6,7 @@ import androidx.room.PrimaryKey
 import java.time.LocalDate
 
 @Entity data class UserModel(
-    @PrimaryKey val ID: String, // ID of the user
-    val FirebaseID: String?,    // Firebase uid for the User
+    @PrimaryKey val ID: String, // ID of the user - Same as Firebase uid
     val DisplayName: String?,   // User display name
     val Email: String?,         // Email associated with the account
 

@@ -62,7 +62,7 @@ class UserRepository(private val context: Context) {
     }
 
     init {
-        MainScope().launch {
+        MainScope().launch(Dispatchers.IO) {
             // Load the persisted value
             // Update the currentUser
             val id = context.getSharedPreferences("auth", Context.MODE_PRIVATE).getString("current_user", null)
@@ -89,7 +89,7 @@ class UserRepository(private val context: Context) {
     fun fromFirebase(user: FirebaseUser): Flow<UserModel?> = flow { emit(
         // Check the local database first
         // If we haven't found the user try polling the internet
-        dao.fromFirebaseID(user.uid) ?:
+        dao.fromID(user.uid) ?:
         web.fromFirebase(user)
     )}
     /**
@@ -136,7 +136,7 @@ class UserRepository(private val context: Context) {
      */
     private suspend fun create(user: FirebaseUser): UserModel = withContext(Dispatchers.IO) {
         create(
-            firebaseId  = user.uid,
+            id          = user.uid,
             email       = user.email,
             displayName = user.displayName,
             avatar      = user.photoUrl
@@ -147,8 +147,7 @@ class UserRepository(private val context: Context) {
      * @return The UserModel created for this user
      */
     suspend fun create(
-        id: String            = generateID(),
-        firebaseId: String    = "",
+        id: String,
         displayName: String?  = null,
         email: String?        = null,
         avatar: Uri?          = null,
@@ -158,7 +157,6 @@ class UserRepository(private val context: Context) {
     ): UserModel = withContext(Dispatchers.IO) {
         create(UserModel(
             ID          = id,
-            FirebaseID  = firebaseId,
             DisplayName = displayName,
             Email       = email,
             Avatar      = avatar,
@@ -294,8 +292,9 @@ class UserRepository(private val context: Context) {
 
         val authResult = Firebase.auth.signInWithCredential(credential).await()
         return authResult.user!!.let {
-            val user = web.fromFirebase(it)!!
-            dao.insert(user)
+            val user = web.fromFirebase(it)
+            if(dao.fromID(user.ID) == null)
+                dao.insert(user)
             setCurrentUser(user)
             user.ID
         }
