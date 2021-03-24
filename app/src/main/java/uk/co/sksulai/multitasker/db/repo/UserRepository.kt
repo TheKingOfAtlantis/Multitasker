@@ -32,6 +32,7 @@ import uk.co.sksulai.multitasker.db.model.UserModel
 import uk.co.sksulai.multitasker.db.model.generateID
 import uk.co.sksulai.multitasker.db.web.UserWebService
 import uk.co.sksulai.multitasker.db.createDatabase
+import java.time.Instant
 
 inline class GoogleIntent(val value: Intent?)
 
@@ -62,7 +63,7 @@ class UserRepository(private val context: Context) {
     }
 
     init {
-        MainScope().launch(Dispatchers.IO) {
+        MainScope().launch {
             // Load the persisted value
             // Update the currentUser
             val id = context.getSharedPreferences("auth", Context.MODE_PRIVATE).getString("current_user", null)
@@ -89,7 +90,7 @@ class UserRepository(private val context: Context) {
     fun fromFirebase(user: FirebaseUser): Flow<UserModel?> = flow { emit(
         // Check the local database first
         // If we haven't found the user try polling the internet
-        dao.fromID(user.uid) ?:
+        dao.fromFirebaseID(user.uid) ?:
         web.fromFirebase(user)
     )}
     /**
@@ -136,7 +137,7 @@ class UserRepository(private val context: Context) {
      */
     private suspend fun create(user: FirebaseUser): UserModel = withContext(Dispatchers.IO) {
         create(
-            id          = user.uid,
+            firebaseId  = user.uid,
             email       = user.email,
             displayName = user.displayName,
             avatar      = user.photoUrl
@@ -147,7 +148,8 @@ class UserRepository(private val context: Context) {
      * @return The UserModel created for this user
      */
     suspend fun create(
-        id: String,
+        id: String            = generateID(),
+        firebaseId: String    = "",
         displayName: String?  = null,
         email: String?        = null,
         avatar: Uri?          = null,
@@ -156,13 +158,15 @@ class UserRepository(private val context: Context) {
         dob: LocalDate?       = null
     ): UserModel = withContext(Dispatchers.IO) {
         create(UserModel(
-            ID          = id,
-            DisplayName = displayName,
-            Email       = email,
-            Avatar      = avatar,
-            ActualName  = actualName,
-            Home        = homeLocation,
-            DOB         = dob
+            ID            = id,
+            Creation      = Instant.now(),
+            LastModified  = Instant.now(),
+            Email         = email,
+            DisplayName   = displayName,
+            Avatar        = avatar,
+            ActualName    = actualName,
+            Home          = homeLocation,
+            DOB           = dob
         ))
     }
     /**
@@ -191,9 +195,8 @@ class UserRepository(private val context: Context) {
      * @param model - UserModel with the modifications to make
      */
     suspend fun update(user: UserModel): Unit = withContext(Dispatchers.IO) {
-        launch { dao.update(user) }
-        launch { web.update(user) }
-        return@withContext
+        launch { dao.update(user.copy(LastModified = Instant.now())) }
+        launch { web.update(user.copy(LastModified = Instant.now())) }
     }
 
     // Delete
@@ -293,8 +296,7 @@ class UserRepository(private val context: Context) {
         val authResult = Firebase.auth.signInWithCredential(credential).await()
         return authResult.user!!.let {
             val user = web.fromFirebase(it)
-            if(dao.fromID(user.ID) == null)
-                dao.insert(user)
+            dao.insert(user)
             setCurrentUser(user)
             user.ID
         }

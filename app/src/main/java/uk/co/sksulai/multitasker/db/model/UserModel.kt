@@ -3,10 +3,15 @@ package uk.co.sksulai.multitasker.db.model
 import android.net.Uri
 import androidx.room.Entity
 import androidx.room.PrimaryKey
+import java.time.Instant
 import java.time.LocalDate
 
 @Entity data class UserModel(
     @PrimaryKey val ID: String, // ID of the user - Same as Firebase uid
+    // Metadata
+    val Creation: Instant,      // User creation timestamp
+    val LastModified: Instant,  // When user last modified
+
     val DisplayName: String?,   // User display name
     val Email: String?,         // Email associated with the account
 
