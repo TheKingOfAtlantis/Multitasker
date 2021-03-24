@@ -2,11 +2,13 @@ package uk.co.sksulai.multitasker.db.viewmodel
 
 import android.app.Application
 import android.app.PendingIntent
+import android.util.Log
 import androidx.activity.result.*
 import androidx.lifecycle.AndroidViewModel
 
 import com.google.firebase.auth.FirebaseAuthException
 import com.google.android.gms.auth.api.identity.*
+import com.google.android.gms.common.api.ApiException
 import kotlinx.coroutines.tasks.await
 
 import uk.co.sksulai.multitasker.R
@@ -63,7 +65,7 @@ class UserViewModel(private val app: Application) : AndroidViewModel(app) {
     suspend fun authenticate(
         email: String,
         password: String,
-        launcher: GoogleIntentLauncher,
+        saverlauncher: GoogleIntentLauncher,
         onError: suspend (emailError: String, passwordError: String, authError: String) -> Unit
     ) = when {
         email.isEmpty()    -> { onError("No email provided", "", "") }
@@ -77,13 +79,19 @@ class UserViewModel(private val app: Application) : AndroidViewModel(app) {
                         .setSignInPassword(SignInPassword(email, password))
                         .build()
                 ).await()
-            launcher.launch(saver)
-        } catch (e: FirebaseAuthException) { handleAuthError(e, onError) }
+            saverlauncher.launch(saver)
+        } catch (e: FirebaseAuthException) {
+            handleAuthError(e, onError)
+        } catch (e: ApiException) {
+            // If the saver fails isn't critical
+            // May fail if we just used autofill to get details
+            Log.e("Sign in", "Failed to save the email/password", e)
+        }
     }
     suspend fun create(
         email: String,
         password: String,
-        launcher: GoogleIntentLauncher,
+        saverlauncher: GoogleIntentLauncher,
         onError: suspend (emailError: String, passwordError: String, authError: String) -> Unit
     ) = when {
         email.isEmpty()    -> onError("No email provided", "", "")
@@ -98,9 +106,14 @@ class UserViewModel(private val app: Application) : AndroidViewModel(app) {
                             .setSignInPassword(SignInPassword(email, password))
                             .build()
                     ).await()
-                launcher.launch(saver)
+                saverlauncher.launch(saver)
+            } catch (e: FirebaseAuthException) {
+                handleAuthError(e, onError)
+            } catch (e: ApiException) {
+                // If the saver fails isn't critical
+                // May fail if we just used autofill to get details
+                Log.e("Sign up", "Failed to save the email/password", e)
             }
-            catch (e: FirebaseAuthException) { handleAuthError(e, onError) }
     }
 
     suspend fun authenticate(googleIntent: GoogleIntent)
