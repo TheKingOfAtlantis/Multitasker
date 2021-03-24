@@ -7,7 +7,6 @@ import android.util.Log
 import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
-import androidx.compose.staticAmbientOf
 import androidx.core.content.edit
 
 import kotlinx.coroutines.*
@@ -21,7 +20,7 @@ import com.facebook.CallbackManager
 import com.facebook.FacebookCallback
 import com.facebook.FacebookException
 import com.facebook.login.LoginResult
-import com.google.android.gms.auth.api.signin.GoogleSignIn
+import com.google.android.gms.auth.api.identity.Identity
 
 import com.google.firebase.auth.*
 import com.google.firebase.ktx.Firebase
@@ -33,8 +32,6 @@ import uk.co.sksulai.multitasker.db.model.UserModel
 import uk.co.sksulai.multitasker.db.model.generateID
 import uk.co.sksulai.multitasker.db.web.UserWebService
 import uk.co.sksulai.multitasker.db.createDatabase
-
-val FacebookCallbackAmbient = staticAmbientOf<CallbackManager>()
 
 inline class GoogleIntent(val value: Intent?)
 
@@ -54,8 +51,7 @@ class UserRepository(private val context: Context) {
      * @brief Reference to the current user which is signed in
      * The state of this value is automatically managed by the repository
      */
-    val currentUser: StateFlow<UserModel?>
-        get() = _currentUser
+    val currentUser: StateFlow<UserModel?> get() = _currentUser
     private var _currentUser: MutableStateFlow<UserModel?> = MutableStateFlow(null)
 
     private suspend fun setCurrentUser(user: UserModel?) = withContext(Dispatchers.IO) {
@@ -248,12 +244,23 @@ class UserRepository(private val context: Context) {
      */
     suspend fun authenticate(email: String, password: String): String =
         authenticate(EmailAuthProvider.getCredential(email, password))
+
     /**
      * Authenticate the user using the Google Sign In APIs
      */
     suspend fun authenticate(googleIntent: GoogleIntent): String = withContext(Dispatchers.IO) {
-        val googleUser = GoogleSignIn.getSignedInAccountFromIntent(googleIntent.value).await()
-        authenticate(GoogleAuthProvider.getCredential(googleUser.idToken, null))
+        val googleUser = Identity.getSignInClient(context)
+            .getSignInCredentialFromIntent(googleIntent.value)
+
+        val idToken  = googleUser.googleIdToken
+        val email    = googleUser.id
+        val password = googleUser.password
+
+        authenticate(when {
+            idToken  != null -> GoogleAuthProvider.getCredential(idToken, null)
+            password != null -> EmailAuthProvider.getCredential(email, password)
+            else -> throw Exception("We received neither a Id Token or Email/Password")
+        })
     }
     /**
      * Authenticate the user using the Facebook APIs
@@ -298,8 +305,8 @@ class UserRepository(private val context: Context) {
      * Link the user account to the Google Provider
      */
     suspend fun link(googleIntent: GoogleIntent) = withContext(Dispatchers.IO) {
-        val googleAccount = GoogleSignIn.getSignedInAccountFromIntent(googleIntent.value).await()
-        link(GoogleAuthProvider.getCredential(googleAccount.idToken, null))
+        val googleAccount = Identity.getSignInClient(context).getSignInCredentialFromIntent(googleIntent.value)
+        link(GoogleAuthProvider.getCredential(googleAccount.googleIdToken, null))
     }
     /**
      * Link the user account to the Facebook Provider
