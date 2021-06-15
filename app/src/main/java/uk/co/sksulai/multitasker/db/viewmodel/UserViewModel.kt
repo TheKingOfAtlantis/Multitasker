@@ -29,9 +29,11 @@ class UserViewModel(private val app: Application) : AndroidViewModel(app) {
     val currentUser = userRepo.currentUser
     val preferredHome = userRepo.currentUser.value?.PreferredHome ?: "Sign In"
 
-    private suspend fun handleAuthError(
+    suspend fun handleAuthError(
         err: FirebaseAuthException,
-        onError: emailError
+        onEmailError: suspend (String) -> Unit,
+        onPasswordError: suspend (String) -> Unit,
+        onAuthError: suspend (String) -> Unit
     ) {
         // Copied from StackOverflow: https://stackoverflow.com/a/48503254/3856359
         val authError = when (err.errorCode) {
@@ -56,66 +58,33 @@ class UserViewModel(private val app: Application) : AndroidViewModel(app) {
         // Some error codes should be given as email or password errors instead
         when(err.errorCode) {
             "ERROR_INVALID_EMAIL",
-            "ERROR_EMAIL_ALREADY_IN_USE" -> onError(authError, "", "")
+            "ERROR_EMAIL_ALREADY_IN_USE" -> onEmailError(authError)
             "ERROR_WRONG_PASSWORD",
-            "ERROR_WEAK_PASSWORD" -> onError("", authError, "")
-            else -> onError("", "", authError)
+            "ERROR_WEAK_PASSWORD" -> onPasswordError(authError)
+            else -> onAuthError(authError)
         }
+    }
+
+    private suspend fun <T> action(
+        action: suspend (email: String, password: String) -> T,
+        email: String,
+        password: String,
+        saverLauncher: GoogleIntentLauncher
+    ): Unit {
+        action(email, password)
     }
 
     suspend fun authenticate(
         email: String,
         password: String,
-        saverlauncher: GoogleIntentLauncher,
-        onError: suspend (emailError: String, passwordError: String, authError: String) -> Unit
-    ) = when {
-        email.isEmpty()    -> { onError("No email provided", "", "") }
-        password.isEmpty() -> { onError("", "No password provided", "") }
-        else -> try {
-            userRepo.authenticate(email, password)
+        saverLauncher: GoogleIntentLauncher
+    ):Unit = action(userRepo::authenticate, email, password, saverLauncher)
 
-            val saver = Identity.getCredentialSavingClient(app)
-                .savePassword(
-                    SavePasswordRequest.builder()
-                        .setSignInPassword(SignInPassword(email, password))
-                        .build()
-                ).await()
-            saverlauncher.launch(saver)
-        } catch (e: FirebaseAuthException) {
-            handleAuthError(e, onError)
-        } catch (e: ApiException) {
-            // If the saver fails isn't critical
-            // May fail if we just used autofill to get details
-            Log.e("Sign in", "Failed to save the email/password", e)
-        }
-    }
     suspend fun create(
         email: String,
         password: String,
-        saverlauncher: GoogleIntentLauncher,
-        onError: suspend (emailError: String, passwordError: String, authError: String) -> Unit
-    ) = when {
-        email.isEmpty()    -> onError("No email provided", "", "")
-        password.isEmpty() -> onError("", "No password provided", "")
-        else ->
-            try {
-                userRepo.create(email, password)
-
-                val saver = Identity.getCredentialSavingClient(app)
-                    .savePassword(
-                        SavePasswordRequest.builder()
-                            .setSignInPassword(SignInPassword(email, password))
-                            .build()
-                    ).await()
-                saverlauncher.launch(saver)
-            } catch (e: FirebaseAuthException) {
-                handleAuthError(e, onError)
-            } catch (e: ApiException) {
-                // If the saver fails isn't critical
-                // May fail if we just used autofill to get details
-                Log.e("Sign up", "Failed to save the email/password", e)
-            }
-    }
+        saverLauncher: GoogleIntentLauncher
+    ): Unit = action(userRepo::create, email, password, saverLauncher)
 
     suspend fun authenticate(googleIntent: GoogleIntent)
         = userRepo.authenticate(googleIntent)
