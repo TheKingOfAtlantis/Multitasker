@@ -1,12 +1,12 @@
 {
   "formatVersion": 1,
   "database": {
-    "version": 1,
-    "identityHash": "44e04bceb2358e1c066843a99bb20f8f",
+    "version": 2,
+    "identityHash": "1cbd2689ca2d0969567f067f469dfc6f",
     "entities": [
       {
         "tableName": "UserModel",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`ID` TEXT NOT NULL, `FirebaseID` TEXT, `DisplayName` TEXT, `Email` TEXT, `Avatar` TEXT, `ActualName` TEXT, `Home` TEXT, `DOB` TEXT, PRIMARY KEY(`ID`))",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`ID` TEXT NOT NULL, `Creation` TEXT NOT NULL, `LastModified` TEXT NOT NULL, `DisplayName` TEXT, `Email` TEXT, `PreferredHome` TEXT NOT NULL, `Avatar` TEXT, `ActualName` TEXT, `Home` TEXT, `DOB` TEXT, PRIMARY KEY(`ID`))",
         "fields": [
           {
             "fieldPath": "ID",
@@ -15,10 +15,16 @@
             "notNull": true
           },
           {
-            "fieldPath": "FirebaseID",
-            "columnName": "FirebaseID",
+            "fieldPath": "Creation",
+            "columnName": "Creation",
             "affinity": "TEXT",
-            "notNull": false
+            "notNull": true
+          },
+          {
+            "fieldPath": "LastModified",
+            "columnName": "LastModified",
+            "affinity": "TEXT",
+            "notNull": true
           },
           {
             "fieldPath": "DisplayName",
@@ -31,6 +37,12 @@
             "columnName": "Email",
             "affinity": "TEXT",
             "notNull": false
+          },
+          {
+            "fieldPath": "PreferredHome",
+            "columnName": "PreferredHome",
+            "affinity": "TEXT",
+            "notNull": true
           },
           {
             "fieldPath": "Avatar",
@@ -70,7 +82,7 @@
     "views": [],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '44e04bceb2358e1c066843a99bb20f8f')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '1cbd2689ca2d0969567f067f469dfc6f')"
     ]
   }
 }
