@@ -1,20 +1,26 @@
 package uk.co.sksulai.multitasker.db.web
 
+import java.time.Instant
+
 import com.google.firebase.Timestamp
 import com.google.firebase.auth.FirebaseUser
+import com.google.firebase.firestore.DocumentReference
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
 
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.tasks.await
 
 import uk.co.sksulai.multitasker.db.converter.DateConverter
 import uk.co.sksulai.multitasker.db.converter.UriConverter
 import uk.co.sksulai.multitasker.db.model.UserModel
-import uk.co.sksulai.multitasker.util.getAwait
-import java.time.Instant
 
 fun Timestamp.toInstance() = Instant.ofEpochSecond(seconds, nanoseconds.toLong())
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class UserWebService {
     private val db = Firebase.firestore
     private val collection = db.collection("users")
@@ -43,18 +49,38 @@ class UserWebService {
         Home          = get("Home") as String?
     )
 
-    suspend fun fromID(id: String): UserModel {
-        val doc = collection.document(id).getAwait()
-        return doc.data?.fromDocument(id)!!
+
+    fun fromID(id: String) = callbackFlow {
+        val doc: DocumentReference = collection.document(id)
+
+        val listener  = doc.addSnapshotListener { value, error ->
+            error?.let { cancel(it.message.toString(), it) }
+            if(value!!.exists())
+                trySend(value.data?.fromDocument(value.id))
+        }
+
+        awaitClose { listener.remove() }
     }
-    suspend fun fromFirebase(user: FirebaseUser): UserModel = fromID(user.uid)
-    suspend fun fromDisplayName(displayName: String): List<UserModel> {
-        val docs = collection.startAt(displayName).endAt(displayName + "\uf8ff").getAwait()
-        return docs.documents.map { it.data!!.fromDocument(it.id) }
+    fun fromFirebase(user: FirebaseUser) = fromID(user.uid)
+    fun fromDisplayName(displayName: String) = callbackFlow {
+        val docs = collection.startAt(displayName).endAt(displayName + "\uf8ff")
+
+        val listener = docs.addSnapshotListener { value, error ->
+            error?.let { cancel(it.message.toString(), it) }
+            trySend(value?.map { it.data.fromDocument(it.id) } ?: listOf<UserModel>())
+        }
+
+        awaitClose { listener.remove() }
     }
-    suspend fun fromActualName(actualName: String): List<UserModel> {
-        val docs = collection.startAt(actualName).endAt(actualName + "\uf8ff").getAwait()
-        return docs.documents.map { it.data!!.fromDocument(it.id) }
+    fun fromActualName(actualName: String) = callbackFlow {
+        val docs = collection.startAt(actualName).endAt(actualName + "\uf8ff")
+
+        val listener = docs.addSnapshotListener { value, error ->
+            error?.let { cancel(it.message.toString(), it) }
+            trySend(value?.map { it.data.fromDocument(it.id) } ?: listOf<UserModel>())
+        }
+
+        awaitClose { listener.remove() }
     }
 
     suspend fun insert(user: UserModel) {
@@ -64,8 +90,6 @@ class UserWebService {
         collection.document(user.ID).update(user.toDocument() as Map<String, Any?>).await()
     }
 
-    suspend fun delete(id: String) {
-        collection.document(id).delete().await()
-    }
+    suspend fun delete(id: String) { collection.document(id).delete().await() }
     suspend fun delete(user: UserModel) = delete(user.ID)
 }

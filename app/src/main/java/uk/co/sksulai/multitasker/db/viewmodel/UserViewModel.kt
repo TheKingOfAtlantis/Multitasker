@@ -2,13 +2,16 @@ package uk.co.sksulai.multitasker.db.viewmodel
 
 import android.app.Application
 import android.app.PendingIntent
-import android.util.Log
+
 import androidx.activity.result.*
 import androidx.lifecycle.AndroidViewModel
 
 import com.google.firebase.auth.FirebaseAuthException
 import com.google.android.gms.auth.api.identity.*
-import com.google.android.gms.common.api.ApiException
+import com.facebook.login.LoginResult
+
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.tasks.await
 
 import uk.co.sksulai.multitasker.R
@@ -18,16 +21,15 @@ import uk.co.sksulai.multitasker.db.repo.UserRepository
 inline class GoogleIntentLauncher(val value: ActivityResultLauncher<IntentSenderRequest>)
 private fun GoogleIntentLauncher.launch(intent: PendingIntent) =
     value.launch(IntentSenderRequest.Builder(intent).build())
-private fun GoogleIntentLauncher.launch(intent: BeginSignInResult) = launch(intent.pendingIntent)
+private fun GoogleIntentLauncher.launch(intent: BeginSignInResult)  = launch(intent.pendingIntent)
 private fun GoogleIntentLauncher.launch(intent: SavePasswordResult) = launch(intent.pendingIntent)
 
-typealias emailError = suspend (emailError: String, passwordError: String, authError: String) -> Unit
-
+@OptIn(ExperimentalCoroutinesApi::class)
 class UserViewModel(private val app: Application) : AndroidViewModel(app) {
     private val userRepo by lazy { UserRepository(app) }
 
-    val currentUser = userRepo.currentUser
-    val preferredHome = userRepo.currentUser.value?.PreferredHome ?: "Sign In"
+    val currentUser   = userRepo.currentUser
+    val preferredHome = currentUser.map { it?.PreferredHome }
 
     suspend fun handleAuthError(
         err: FirebaseAuthException,
@@ -70,7 +72,7 @@ class UserViewModel(private val app: Application) : AndroidViewModel(app) {
         email: String,
         password: String,
         saverLauncher: GoogleIntentLauncher
-    ): Unit {
+    ) {
         action(email, password)
     }
 
@@ -78,17 +80,16 @@ class UserViewModel(private val app: Application) : AndroidViewModel(app) {
         email: String,
         password: String,
         saverLauncher: GoogleIntentLauncher
-    ):Unit = action(userRepo::authenticate, email, password, saverLauncher)
+    ) = action(userRepo::authenticate, email, password, saverLauncher)
 
     suspend fun create(
         email: String,
         password: String,
         saverLauncher: GoogleIntentLauncher
-    ): Unit = action(userRepo::create, email, password, saverLauncher)
+    ) = action(userRepo::create, email, password, saverLauncher)
 
-    suspend fun authenticate(googleIntent: GoogleIntent)
-        = userRepo.authenticate(googleIntent)
-
+    suspend fun authenticate(loginResult: LoginResult) { userRepo.authenticate(loginResult.accessToken) }
+    suspend fun authenticate(googleIntent: GoogleIntent) { userRepo.authenticate(googleIntent) }
     suspend fun authenticate(launcher: GoogleIntentLauncher) {
         val request = BeginSignInRequest.builder()
             .setGoogleIdTokenRequestOptions(

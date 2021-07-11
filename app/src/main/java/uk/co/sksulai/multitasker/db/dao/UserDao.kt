@@ -13,7 +13,7 @@ import uk.co.sksulai.multitasker.db.model.UserModel
     @Query("Delete From UserModel") suspend fun deleteAll() : Int
     @Query("Select * From UserModel") fun getAll() : Flow<List<UserModel>>
 
-    @Query("Select * From UserModel Where ID is :id") fun fromID(id: String) : UserModel?
+    @Query("Select * From UserModel Where ID is :id") fun fromID(id: String) : Flow<UserModel?>
     @Query("Select * From UserModel Where DisplayName like :displayName") fun fromDisplayName(displayName: String) : Flow<List<UserModel>>
     @Query("Select * From UserModel Where ActualName like :actualName") fun fromActualName(actualName: String) : Flow<List<UserModel>>
 }

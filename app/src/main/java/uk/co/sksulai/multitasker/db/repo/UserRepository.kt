@@ -1,22 +1,19 @@
 package uk.co.sksulai.multitasker.db.repo
 
+import java.time.Instant
 import java.time.LocalDate
 
 import android.net.Uri
 import android.util.Log
 import android.content.Context
 import android.content.Intent
-import android.graphics.Bitmap
-import androidx.core.content.edit
+import androidx.datastore.preferences.core.edit
 
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.tasks.await
-import uk.co.sksulai.multitasker.util.asFlow
 
-import com.bumptech.glide.Glide
 import com.facebook.AccessToken
-import com.facebook.CallbackManager
 import com.facebook.FacebookCallback
 import com.facebook.FacebookException
 import com.facebook.login.LoginResult
@@ -29,10 +26,10 @@ import com.google.firebase.auth.ktx.auth
 import uk.co.sksulai.multitasker.db.LocalDB
 import uk.co.sksulai.multitasker.db.dao.UserDao
 import uk.co.sksulai.multitasker.db.model.UserModel
-import uk.co.sksulai.multitasker.db.model.generateID
 import uk.co.sksulai.multitasker.db.web.UserWebService
 import uk.co.sksulai.multitasker.db.createDatabase
-import java.time.Instant
+import uk.co.sksulai.multitasker.util.DatastoreKeys
+import uk.co.sksulai.multitasker.util.Datastores.appStatePref
 
 inline class GoogleIntent(val value: Intent?)
 
@@ -42,6 +39,8 @@ inline class GoogleIntent(val value: Intent?)
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class UserRepository(private val context: Context) {
+    private val repoScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+
     private val db: LocalDB         = LocalDB.createDatabase(context)
     private val dao: UserDao        = db.getUserDao()
     private val web: UserWebService = UserWebService()
@@ -52,67 +51,62 @@ class UserRepository(private val context: Context) {
      * @brief Reference to the current user which is signed in
      * The state of this value is automatically managed by the repository
      */
-    val currentUser: StateFlow<UserModel?> get() = _currentUser
-    private var _currentUser: MutableStateFlow<UserModel?> = MutableStateFlow(null)
-
-    private suspend fun setCurrentUser(user: UserModel?) = withContext(Dispatchers.IO) {
-        // Persist the change
-        // Update the currentUser
-        context.getSharedPreferences("auth", Context.MODE_PRIVATE).edit { putString("current_user", user?.ID) }
-        _currentUser.value = user
-    }
-
-    init {
-        MainScope().launch(Dispatchers.IO) {
-            // Load the persisted value
-            // Update the currentUser
-            val id = context.getSharedPreferences("auth", Context.MODE_PRIVATE).getString("current_user", null)
-            if(id != null) _currentUser.value = dao.fromID(id)
+    val currentUser = flow {
+        val id = context.appStatePref.data.map {
+            it[DatastoreKeys.AppState.CurrentUser] ?: ""
         }
+        emitAll(id.distinctUntilChanged().flatMapLatest {
+            if(it.isNotEmpty()) fromID(it)
+            else emptyFlow()
+        })
+    }.flowOn(Dispatchers.IO)
+
+    private suspend fun setCurrentUser(value: String) = repoScope.launch {
+        context.appStatePref.edit { it[DatastoreKeys.AppState.CurrentUser] = value }
     }
+
+    fun getAll() = dao.getAll()
 
     /**
      * Retrieves a UserModel given the user ID
-     * @param id - The user ID to check for
+     * @param id ID associated with the user to retrieve
      * @return Flow containing the UserModel (if found) or null
      */
-    fun fromID(id: String): Flow<UserModel?> = flow { emit(
+    fun fromID(id: String) = combine(
         // Check the local database first
         // If we haven't found the user try polling the internet
-        dao.fromID(id) ?:
+        dao.fromID(id),
         web.fromID(id)
-    )}
+    ) { db, web -> db ?: web }.flowOn(Dispatchers.IO)
+
     /**
      * Retrieves a UserModel given the FirebaseUser object
-     * @param id - The user to check for
+     * @param user Firebase user to retrieve the associated UserModel
      * @return Flow containing the UserModel (if found) or null
      */
-    fun fromFirebase(user: FirebaseUser): Flow<UserModel?> = flow { emit(
-        // Check the local database first
-        // If we haven't found the user try polling the internet
-        dao.fromID(user.uid) ?:
-        web.fromFirebase(user)
-    )}
+    fun fromFirebase(user: FirebaseUser) = fromID(user.uid)
     /**
      * Retrieves a list of UserModels given a search string to query against display names
      * @param id - The display name search string
      * @return Flow containing the list of UserModels
      */
-    fun fromDisplayName(displayName: String): Flow<List<UserModel>> =
+    fun fromDisplayName(displayName: String) = combine(
         // Check the local database and the internet
         // Combine the resulting lists
-        dao.fromDisplayName(displayName)
-            .combine(web::fromDisplayName.asFlow(displayName)) { local, web -> local + web }
+        dao.fromDisplayName(displayName),
+        web.fromDisplayName(displayName)
+    ) { local, web -> local + web }.flowOn(Dispatchers.IO)
     /**
      * Retrieves a list of UserModels given a search string to query against names
      * @param id - The name search string
      * @return Flow containing the list of UserModels
      */
-    fun fromActualName(actualName: String): Flow<List<UserModel>> =
+    fun fromActualName(actualName: String) = combine(
         // Check the local database and the internet
         // Combine the resulting lists
-        dao.fromActualName(actualName)
-            .combine(web::fromActualName.asFlow(actualName)) { local, web -> local + web }
+        dao.fromActualName(actualName),
+        web.fromActualName(actualName)
+    ) { local, web -> local + web }.flowOn(Dispatchers.IO)
 
     // Creation: Used when user creates an account
 
@@ -135,7 +129,7 @@ class UserRepository(private val context: Context) {
      * @param user - FirebaseUser object to create an account for
      * @return The UserModel created for this user
      */
-    private suspend fun create(user: FirebaseUser): UserModel = withContext(Dispatchers.IO) {
+    private suspend fun create(user: FirebaseUser) = withContext(Dispatchers.IO) {
         create(
             id          = user.uid,
             email       = user.email,
@@ -174,10 +168,10 @@ class UserRepository(private val context: Context) {
      * Create a user given a UserModel object
      * @return The UserModel passed for this user
      */
-    private suspend fun create(model: UserModel): UserModel = withContext(Dispatchers.IO) {
+    private suspend fun create(model: UserModel) = withContext(Dispatchers.IO) {
         model.also {
-            insert(model)
-            setCurrentUser(model)
+            insert(it)
+            setCurrentUser(it.ID)
         }
     }
 
@@ -221,7 +215,7 @@ class UserRepository(private val context: Context) {
     suspend fun delete(id: String, localOnly: Boolean = true) = withContext(Dispatchers.IO) {
         launch {
             val user = dao.fromID(id)
-            user?.let { dao.delete(it) }
+            user.single()?.let { dao.delete(it) }
         }
         if(!localOnly) launch { web.delete(id) }
     }
@@ -243,13 +237,13 @@ class UserRepository(private val context: Context) {
      * @param email Email to authenticate against
      * @param password Password to check
      */
-    suspend fun authenticate(email: String, password: String): String =
+    suspend fun authenticate(email: String, password: String) =
         authenticate(EmailAuthProvider.getCredential(email, password))
 
     /**
      * Authenticate the user using the Google Sign In APIs
      */
-    suspend fun authenticate(googleIntent: GoogleIntent): String = withContext(Dispatchers.IO) {
+    suspend fun authenticate(googleIntent: GoogleIntent) = withContext(Dispatchers.IO) {
         val googleUser = Identity.getSignInClient(context)
             .getSignInCredentialFromIntent(googleIntent.value)
 
@@ -286,7 +280,7 @@ class UserRepository(private val context: Context) {
         }
     }
 
-    private suspend fun authenticate(credential: AuthCredential): String {
+    suspend fun authenticate(credential: AuthCredential) = withContext(Dispatchers.IO) {
         // Authenticate the user w/ credential using Firebase
         // Once we succeed retrieve user information from database
         // Insert this information into the local database
@@ -294,11 +288,14 @@ class UserRepository(private val context: Context) {
         // return the user ID
 
         val authResult = Firebase.auth.signInWithCredential(credential).await()
-        return authResult.user!!.let {
-            val user = web.fromFirebase(it)
-            dao.insert(user)
-            setCurrentUser(user)
-            user.ID
+        authResult.user!!.let {
+
+            // Fixed: Appears that this flow was never returning a value
+            // So using StateFlow to ensure that it is hot and thus has a value
+            web.fromFirebase(it).first()?.also { user ->
+                dao.insert(user)
+                setCurrentUser(user.ID)
+            }?.ID ?: ""
         }
     }
 
@@ -333,21 +330,8 @@ class UserRepository(private val context: Context) {
      * Signs the current user out
      */
     suspend fun signOut() {
-        setCurrentUser(null)
+        setCurrentUser("")
         Firebase.auth.signOut()
     }
 
-    suspend fun getAvatar(user: UserModel): Bitmap? = withContext(Dispatchers.IO) {
-        if(user.Avatar == null) null
-        else Glide.with(context)
-                  .asBitmap()
-                  .load(user.Avatar)
-                  .submit()
-                  .get()
-    }
-
-    suspend fun verifyEmail() = withContext(Dispatchers.IO) {
-        Firebase.auth.currentUser?.sendEmailVerification()?.await()
-    }
-    fun isEmailVerified()= Firebase.auth.currentUser?.isEmailVerified ?: false
 }
