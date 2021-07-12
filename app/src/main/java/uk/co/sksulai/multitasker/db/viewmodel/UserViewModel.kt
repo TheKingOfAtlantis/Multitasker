@@ -73,6 +73,14 @@ class UserViewModel(private val app: Application) : AndroidViewModel(app) {
         saverLauncher: GoogleIntentLauncher
     ) {
         action(email, password)
+//        TODO: Once we can force the one-tap saver ui to appear switch to it
+//        val saver = Identity.getCredentialSavingClient(app)
+//            .savePassword(
+//                SavePasswordRequest.builder()
+//                    .setSignInPassword(SignInPassword(email, password))
+//                    .build()
+//            ).await()
+//        saverLauncher.launch(saver)
     }
 
     suspend fun create(
@@ -119,6 +127,11 @@ class UserViewModel(private val app: Application) : AndroidViewModel(app) {
             .beginSignIn(request)
             .await()
         launcher.launch(intent)
+    }
+
+    suspend fun signOut() {
+        userRepo.signOut()
+        Identity.getSignInClient(app).signOut().await()
     }
 
     val resetPassword     get() = userRepo.resetPassword
