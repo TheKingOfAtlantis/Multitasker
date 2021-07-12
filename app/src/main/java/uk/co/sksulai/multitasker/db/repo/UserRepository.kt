@@ -334,4 +334,38 @@ class UserRepository(private val context: Context) {
         Firebase.auth.signOut()
     }
 
+    // Email & Password Actions
+
+    interface ResetPassword {
+        suspend fun request(email: String)
+        suspend fun isValid(code: String): String
+        suspend fun reset(code: String, email: String, password: String)
+    }
+    interface EmailVerification {
+        val verified: Boolean
+        suspend fun request(email: String)
+        suspend fun confirm(code: String)
+    }
+
+    val resetPassword = object : ResetPassword {
+        override suspend fun request(email: String): Unit = withContext(Dispatchers.IO) {
+            Firebase.auth.sendPasswordResetEmail(email).await()
+        }
+        override suspend fun isValid(code: String) = withContext(Dispatchers.IO) {
+            Firebase.auth.verifyPasswordResetCode(code).await()
+        }
+        override suspend fun reset(code: String, email: String, password: String): Unit = withContext(Dispatchers.IO) {
+            Firebase.auth.confirmPasswordReset(code, password).await()
+            authenticate(email, password)
+        }
+    }
+    val emailVerification = object : EmailVerification {
+        override val verified = Firebase.auth.currentUser?.isEmailVerified ?: false
+        override suspend fun request(email: String) {
+            Firebase.auth.currentUser?.sendEmailVerification()
+        }
+        override suspend fun confirm(code: String) {
+            Firebase.auth.applyActionCode(code).await()
+        }
+    }
 }

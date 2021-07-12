@@ -2,7 +2,6 @@ package uk.co.sksulai.multitasker.db.viewmodel
 
 import android.app.Application
 import android.app.PendingIntent
-
 import androidx.activity.result.*
 import androidx.lifecycle.AndroidViewModel
 
@@ -76,18 +75,31 @@ class UserViewModel(private val app: Application) : AndroidViewModel(app) {
         action(email, password)
     }
 
-    suspend fun authenticate(
-        email: String,
-        password: String,
-        saverLauncher: GoogleIntentLauncher
-    ) = action(userRepo::authenticate, email, password, saverLauncher)
-
     suspend fun create(
         email: String,
         password: String,
         saverLauncher: GoogleIntentLauncher
     ) = action(userRepo::create, email, password, saverLauncher)
+    suspend fun create(launcher: GoogleIntentLauncher) {
+        val request = BeginSignInRequest.builder()
+            .setGoogleIdTokenRequestOptions(
+                BeginSignInRequest.GoogleIdTokenRequestOptions.builder()
+                    .setServerClientId(app.getString(R.string.default_web_client_id))
+                    .setFilterByAuthorizedAccounts(false)
+                    .setSupported(true)
+                    .build()
+            ).build()
+        val intent = Identity.getSignInClient(app)
+            .beginSignIn(request)
+            .await()
+        launcher.launch(intent)
+    }
 
+    suspend fun authenticate(
+        email: String,
+        password: String,
+        saverLauncher: GoogleIntentLauncher
+    ) = action(userRepo::authenticate, email, password, saverLauncher)
     suspend fun authenticate(loginResult: LoginResult) { userRepo.authenticate(loginResult.accessToken) }
     suspend fun authenticate(googleIntent: GoogleIntent) { userRepo.authenticate(googleIntent) }
     suspend fun authenticate(launcher: GoogleIntentLauncher) {
@@ -108,18 +120,7 @@ class UserViewModel(private val app: Application) : AndroidViewModel(app) {
             .await()
         launcher.launch(intent)
     }
-    suspend fun create(launcher: GoogleIntentLauncher) {
-        val request = BeginSignInRequest.builder()
-            .setGoogleIdTokenRequestOptions(
-                BeginSignInRequest.GoogleIdTokenRequestOptions.builder()
-                    .setServerClientId(app.getString(R.string.default_web_client_id))
-                    .setFilterByAuthorizedAccounts(false)
-                    .setSupported(true)
-                    .build()
-            ).build()
-        val intent = Identity.getSignInClient(app)
-            .beginSignIn(request)
-            .await()
-        launcher.launch(intent)
-    }
+
+    val resetPassword     get() = userRepo.resetPassword
+    val emailVerification get() = userRepo.emailVerification
 }
