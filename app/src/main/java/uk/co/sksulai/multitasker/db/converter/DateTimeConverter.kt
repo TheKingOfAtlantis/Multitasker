@@ -55,3 +55,7 @@ class DurationConverter : IConverter<Duration?, String?> {
     @TypeConverter override fun from(value: Duration?): String? = value?.toString()
     @TypeConverter override fun to(value: String?): Duration? = value?.let{ Duration.parse(it) }
 }
+class InstantConverter : IConverter<Instant?, String?> {
+    @TypeConverter override fun from(value: Instant?): String? = value?.toString()
+    @TypeConverter override fun to(value: String?): Instant? = value?.let{ Instant.parse(it) }
+}

@@ -85,21 +85,21 @@ dependencies {
     implementation("com.google.android.material:material:1.3.0")
 
     // Jetpack Compose
+    implementation("androidx.compose.runtime:runtime:1.0.0-beta02")
+    implementation("androidx.compose.runtime:runtime-livedata:1.0.0-beta02")
+    implementation("androidx.compose.foundation:foundation:1.0.0-beta02")
+    implementation("androidx.compose.foundation:foundation-layout:1.0.0-beta02")
+    implementation("androidx.compose.material:material:1.0.0-beta02")
+    implementation("androidx.compose.material:material-icons-extended:1.0.0-beta02")
+    implementation("androidx.compose.animation:animation:1.0.0-beta02")
+    implementation("androidx.compose.ui:ui:1.0.0-beta02")
+    implementation("androidx.constraintlayout:constraintlayout-compose:1.0.0-alpha05")
 
-    implementation("androidx.compose.runtime:runtime:1.0.0-beta01")
-    implementation("androidx.compose.runtime:runtime-livedata:1.0.0-beta01")
-    implementation("androidx.compose.foundation:foundation:1.0.0-beta01")
-    implementation("androidx.compose.foundation:foundation-layout:1.0.0-beta01")
-    implementation("androidx.compose.material:material:1.0.0-beta01")
-    implementation("androidx.compose.material:material-icons-extended:1.0.0-beta01")
-    implementation("androidx.compose.animation:animation:1.0.0-beta01")
-    implementation("androidx.compose.ui:ui:1.0.0-beta01")
+    implementation("dev.chrisbanes.accompanist:accompanist-glide:0.6.2")
+    implementation("dev.chrisbanes.accompanist:accompanist-insets:0.6.2")
 
-    implementation("dev.chrisbanes.accompanist:accompanist-glide:0.6.1")
-    implementation("dev.chrisbanes.accompanist:accompanist-insets:0.6.1")
-
-    implementation("androidx.compose.ui:ui-tooling:1.0.0-beta01")
-    implementation("androidx.compose.ui:ui-test:1.0.0-beta01")
+    implementation("androidx.compose.ui:ui-tooling:1.0.0-beta02")
+    implementation("androidx.compose.ui:ui-test:1.0.0-beta02")
 
     // Facebook
     implementation("com.facebook.android:facebook-login:[5,6)")
@@ -121,6 +121,10 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-common-java8:2.3.0")
     implementation("androidx.lifecycle:lifecycle-service:2.3.0")
     implementation("androidx.lifecycle:lifecycle-process:2.3.0")
+
+    // Arch: DataStore
+    implementation("androidx.datastore:datastore:1.0.0-alpha07")
+    implementation("androidx.datastore:datastore-preferences:1.0.0-alpha07")
 
     // Arch: Room
     implementation("androidx.room:room-runtime:2.3.0-beta02")

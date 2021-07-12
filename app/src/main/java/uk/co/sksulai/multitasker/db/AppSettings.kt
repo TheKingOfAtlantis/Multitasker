@@ -4,16 +4,19 @@ import android.content.Context
 import android.content.SharedPreferences
 import androidx.core.content.edit
 
-import androidx.compose.Composable
-import androidx.ui.core.ContextAmbient
+import androidx.compose.runtime.*
+import androidx.compose.ui.platform.LocalContext
+
 import uk.co.sksulai.multitasker.ui.ThemeState
 
-@Composable object AppSettings {
-    @Composable val pref: SharedPreferences; get() = ContextAmbient.current.getSharedPreferences("pref", Context.MODE_PRIVATE)
+object AppSettings {
+    val pref : SharedPreferences
+        @Composable get() = LocalContext.current.getSharedPreferences("pref", Context.MODE_PRIVATE)
 
-    @Composable object General {
+    object General {
         @Composable fun setTheme(value: ThemeState) = pref.edit { putString("theme", value.toString()) }
-        @Composable val theme: ThemeState get() = pref.getString("theme", ThemeState.System.toString())!!.let {
+        val theme: ThemeState
+            @Composable get() = pref.getString("theme", ThemeState.System.toString())!!.let {
             ThemeState.valueOf(it)
         }
     }

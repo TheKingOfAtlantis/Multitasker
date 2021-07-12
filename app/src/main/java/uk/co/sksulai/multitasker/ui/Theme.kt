@@ -1,9 +1,10 @@
 package uk.co.sksulai.multitasker.ui
 
-import androidx.compose.Composable
-import androidx.ui.foundation.isSystemInDarkTheme
-import androidx.ui.graphics.Color
-import androidx.ui.material.*
+import androidx.compose.runtime.*
+import androidx.compose.material.*
+import androidx.compose.foundation.*
+import androidx.compose.ui.graphics.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 
 import uk.co.sksulai.multitasker.db.AppSettings
 
@@ -20,39 +21,52 @@ object MultitaskerColour {
         val DarkAccent  = Color(0xff647098)
         val DarkShades  = Color(0xff1e1e34)
 
-        val Info     = Color(0xff20213a)
-        val Success  = Color(0x5d8b6d)
-        val Warning  = Color(0xdb7b35)
-        val Danger   = Color(0xf44336)
+        val Info        = Color(0xff20213a)
+        val Success     = Color(0xff5d8b6d)
+        val Warning     = Color(0xffdb7b35)
+        val Danger      = Color(0xfff44336)
     }
 }
 
-val ColorPalette.Info : Color    get() = MultitaskerColour.Palette.Info
-val ColorPalette.Success : Color get() = MultitaskerColour.Palette.Success
-val ColorPalette.Warning : Color get() = MultitaskerColour.Palette.Warning
+val Colors.Info: Color    get() = MultitaskerColour.Palette.Info
+val Colors.Success: Color get() = MultitaskerColour.Palette.Success
+val Colors.Warning: Color get() = MultitaskerColour.Palette.Warning
 
 object MultitaskerTheme {
-    private val darkTheme = darkColorPalette(
+    val darkTheme = darkColors(
         primary        = MultitaskerColour.Palette.Primary,
         primaryVariant = MultitaskerColour.Palette.DarkAccent,
         secondary      = MultitaskerColour.Palette.LightAccent,
         error          = MultitaskerColour.Palette.Danger
     )
-    private val lightTheme = lightColorPalette(
+    val lightTheme = lightColors(
         primary        = MultitaskerColour.Palette.Primary,
         primaryVariant = MultitaskerColour.Palette.DarkAccent,
         error          = MultitaskerColour.Palette.Danger
     )
+    val shapes = Shapes(
+        small = RoundedCornerShape(50)
+    )
+}
 
-    @Composable val currentTheme: ColorPalette get() =
-        when(AppSettings.General.theme.let { pref ->
-            if(pref == ThemeState.System)
-                if(isSystemInDarkTheme())
-                    ThemeState.Dark else ThemeState.Light
-                else pref
-        }) {
-            ThemeState.Light -> lightTheme
-            ThemeState.Dark  -> darkTheme
-            else -> throw IllegalStateException("Invalid theme state")
-        }
+@Composable fun MultitaskerTheme(content: @Composable () -> Unit) {
+
+    val themePref = AppSettings.General.theme.let { pref -> // Get stored preference
+        if(pref == ThemeState.System) // If to just follow the system then we need to detect what it currently is
+            if(isSystemInDarkTheme())
+                ThemeState.Dark else ThemeState.Light
+        else pref // Otherwise just return the users preference
+    }
+
+    val theme = when(themePref) {
+        ThemeState.Light -> MultitaskerTheme.lightTheme
+        ThemeState.Dark  -> MultitaskerTheme.darkTheme
+        else -> throw IllegalStateException("Invalid theme state")
+    }
+
+    MaterialTheme(
+        colors = theme,
+        shapes = MultitaskerTheme.shapes,
+        content = content
+    )
 }
