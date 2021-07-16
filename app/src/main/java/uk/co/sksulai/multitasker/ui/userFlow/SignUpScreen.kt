@@ -11,20 +11,17 @@ import androidx.compose.ui.text.input.TransformedText
 import androidx.compose.ui.unit.dp
 
 import androidx.lifecycle.viewmodel.compose.viewModel
-
-import androidx.navigation.compose.navigate
-import androidx.navigation.compose.popUpTo
+import androidx.navigation.NavHostController
 
 import kotlinx.coroutines.launch
 
 import uk.co.sksulai.multitasker.db.viewmodel.UserViewModel
-import uk.co.sksulai.multitasker.util.LocalNavController
 
 @Composable fun SignUpScreen(
-    emailInitial: String,
+    navController: NavHostController,
+    emailInitial: String    = "",
     passwordInitial: String = ""
 ) {
-    val navController = LocalNavController.current
 
     val userViewModel = viewModel<UserViewModel>()
     val scaffoldState = rememberScaffoldState()

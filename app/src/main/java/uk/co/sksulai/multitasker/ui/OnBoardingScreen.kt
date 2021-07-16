@@ -11,10 +11,11 @@ import androidx.compose.foundation.lazy.*
 import androidx.compose.foundation.gestures.*
 import androidx.compose.foundation.interaction.collectIsDraggedAsState
 import androidx.compose.ui.graphics.Color
+import androidx.navigation.NavHostController
 
 import androidx.navigation.compose.*
 
-@Composable fun OnBoardingScreen() {
+@Composable fun OnBoardingScreen(navController: NavHostController) {
     val state = rememberLazyListState()
 
     LazyRow(
