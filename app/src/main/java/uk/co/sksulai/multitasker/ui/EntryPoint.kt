@@ -1,43 +1,42 @@
 package uk.co.sksulai.multitasker.ui
 
 import androidx.compose.runtime.*
-import androidx.navigation.compose.*
+import androidx.compose.ui.platform.LocalContext
+import androidx.datastore.preferences.core.preferencesOf
 import androidx.lifecycle.viewmodel.compose.viewModel
-import uk.co.sksulai.multitasker.db.viewmodel.UserViewModel
 
-import uk.co.sksulai.multitasker.ui.userFlow.*
+import androidx.navigation.*
+import androidx.navigation.compose.*
+
 import uk.co.sksulai.multitasker.util.*
+import uk.co.sksulai.multitasker.util.Datastores.appStatePref
+import uk.co.sksulai.multitasker.db.viewmodel.UserViewModel
+import uk.co.sksulai.multitasker.ui.userFlow.*
 
-@Composable fun EntryPoint() = ProvideNavController {
-    val userViewModel = viewModel<UserViewModel>()
-    val statePref     = sharedPreferences("state")
-    val initialState  = remember {
-        // Check if this is the first launch
-        if(!statePref.getBoolean("been_onboarded", false)) "OnBoarding"
-        // Check if a user is currently signed in, if not direct to sign in/sign up
-        else if(userViewModel.currentUser.value == null) "SignInFlow"
-        // Otherwise direct to calendar view TODO: direct preferred "Home"
-        else "CalendarView"
+@Composable fun EntryPoint(
+    navController: NavHostController = rememberNavController(),
+    userViewModel: UserViewModel     = viewModel()
+) {
+    val context     = LocalContext.current
+
+    val statePref   by context.appStatePref.data.collectAsState(initial = preferencesOf())
+    val currentUser by userViewModel.currentUser.collectAsState(initial = null)
+    val initialState = remember(statePref, currentUser) {
+        when {
+            // Check if this is the first launch
+            statePref[DatastoreKeys.AppState.OnBoarded] ?: false -> "OnBoarding"
+            // Check if a user is currently signed in, if not direct to sign in/sign up
+            !statePref[DatastoreKeys.AppState.CurrentUser].isNullOrEmpty() -> "SignInFlow"
+            // Otherwise direct to calendar view
+            else -> "CalendarView"
+        }
     }
 
-    NavHost(LocalNavController.current, initialState) {
-        composable("OnBoarding") { OnBoardingScreen() }
+    NavHost(navController, initialState) {
+        composable("OnBoarding") { OnBoardingScreen(navController) }
         navigation("SignIn", "SignInFlow") {
-            composable("SignIn") { SignInScreen() }
-            composable(
-                "SignUp?email={email}&password={password}",
-                arguments = listOf(
-                    navArgument("email") { },
-                    navArgument("password") { },
-                )
-            ) {
-                it.arguments?.let { bundle ->
-                    val email    : String by bundle
-                    val password : String by bundle
-                    SignUpScreen(email, password)
-                }
-            }
-            composable("SignUp/Done") { }
+            composable("SignIn") { SignInScreen(navController) }
+            composable("SignUp") { SignUpScreen(navController) }
             composable("Forgot") { }
         }
     }
