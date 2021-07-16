@@ -23,8 +23,8 @@ import uk.co.sksulai.multitasker.util.LocalNavController
 @Composable fun SignUpScreen(
     emailInitial: String,
     passwordInitial: String = ""
+    navController: NavHostController
 ) {
-    val navController = LocalNavController.current
 
     val userViewModel = viewModel<UserViewModel>()
     val scaffoldState = rememberScaffoldState()

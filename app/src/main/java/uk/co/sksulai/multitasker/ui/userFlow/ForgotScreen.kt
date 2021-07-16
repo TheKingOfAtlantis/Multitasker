@@ -8,6 +8,5 @@ import androidx.compose.ui.*
 import uk.co.sksulai.multitasker.util.LocalNavController
 
 @Composable fun ForgotPasswordScreen() {
-    val navController = LocalNavController.current
 
 }

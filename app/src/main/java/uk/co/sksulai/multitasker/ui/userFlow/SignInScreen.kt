@@ -46,13 +46,14 @@ import uk.co.sksulai.multitasker.util.LocalNavController
 
 
 @OptIn(ExperimentalComposeUiApi::class)
-@Composable fun SignInScreen() {
-    val navController = LocalNavController.current
+@Composable fun SignInScreen(
+    navController: NavController,
+    userViewModel: UserViewModel = viewModel(),
+) {
     val keyboardController = LocalSoftwareKeyboardController.current
     val autofill           = LocalAutofill.current
     val autofillTree       = LocalAutofillTree.current
 
-    val userViewModel = viewModel<UserViewModel>()
     val scaffoldState = rememberScaffoldState()
     val scope         = rememberCoroutineScope()
 
