@@ -2,7 +2,7 @@ package uk.co.sksulai.multitasker.ui.userFlow
 
 import android.util.Log
 import android.content.IntentSender
-import androidx.activity.compose.registerForActivityResult
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 
 import androidx.compose.material.*
@@ -17,7 +17,6 @@ import androidx.compose.ui.*
 import androidx.compose.ui.autofill.*
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.focus.isFocused
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.boundsInWindow
@@ -30,12 +29,13 @@ import androidx.compose.ui.text.input.*
 import androidx.compose.ui.unit.dp
 import androidx.constraintlayout.compose.*
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavGraph.Companion.findStartDestination
+import androidx.navigation.NavHostController
 
-import androidx.navigation.compose.navigate
 import com.google.android.gms.common.api.ApiException
 import com.google.android.gms.common.api.CommonStatusCodes
 import com.google.firebase.analytics.ktx.*
-import com.google.firebase.ktx.Firebase
+import com.google.firebase.auth.FirebaseAuthException
 import kotlinx.coroutines.launch
 
 import uk.co.sksulai.multitasker.R
@@ -46,8 +46,10 @@ import uk.co.sksulai.multitasker.db.viewmodel.UserViewModel
 
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable fun SignInScreen(
-    navController: NavController,
+    navController: NavHostController,
     userViewModel: UserViewModel = viewModel(),
+    email: FieldState    = rememberFieldState(),
+    password: FieldState = rememberFieldState()
 ) {
     val keyboardController = LocalSoftwareKeyboardController.current
     val autofill           = LocalAutofill.current
@@ -63,7 +65,7 @@ import uk.co.sksulai.multitasker.db.viewmodel.UserViewModel
         // We allow the user two cancellations before limiting its usage
         // May use the first cancellation to open ui when we first navigate to this screen
         var limitOneTap by rememberSaveable { mutableStateOf(2) }
-        val googleSignInLauncher = registerForActivityResult(ActivityResultContracts.StartIntentSenderForResult()) {
+        val googleSignInLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartIntentSenderForResult()) {
                 result -> scope.launch {
             try {
                 userViewModel.authenticate(GoogleIntent(result.data))
@@ -78,7 +80,7 @@ import uk.co.sksulai.multitasker.db.viewmodel.UserViewModel
                 }
             }
         } }
-        val googleSignUpLauncher = registerForActivityResult(ActivityResultContracts.StartIntentSenderForResult()) {
+        val googleSignUpLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartIntentSenderForResult()) {
                 result -> scope.launch {
             try {
                 userViewModel.authenticate(GoogleIntent(result.data))
@@ -93,9 +95,63 @@ import uk.co.sksulai.multitasker.db.viewmodel.UserViewModel
                 }
             }
         } }
-        val googlePasswordSaverLauncher = registerForActivityResult(ActivityResultContracts.StartIntentSenderForResult()) {
+        val googlePasswordSaverLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartIntentSenderForResult()) {
                 result -> scope.launch {
         } }
+
+        val (emailFocuser, passwordFocuser) = FocusRequester.createRefs()
+
+        fun signInAction(
+            email: FieldState, password: FieldState
+        ) {
+            keyboardController?.hide()
+            scope.launch {
+                email.error    = ""
+                password.error = ""
+                when {
+                    email.text.isEmpty() -> {
+                        email.error = "No email provided"
+                        emailFocuser.requestFocus()
+                        return@launch
+                    }
+                    password.text.isEmpty() -> {
+                        password.error = "No password provided"
+                        passwordFocuser.requestFocus()
+                        return@launch
+                    }
+                }
+                try {
+                    userViewModel.authenticate(
+                        email.text, password.text,
+                        GoogleIntentLauncher(googlePasswordSaverLauncher)
+                    )
+                    navController.navigate("CalendarView") {
+                        popUpTo(navController.graph.findStartDestination().id)
+                        launchSingleTop = true
+                    }
+                } catch (e: FirebaseAuthException) {
+                    userViewModel.handleAuthError(
+                        err = e,
+                        onEmailError = {
+                            email.error = it
+                            emailFocuser.requestFocus()
+                        },
+                        onPasswordError = {
+                            password.error = it
+                            passwordFocuser.requestFocus()
+                        },
+                        onAuthError = { scaffoldState.snackbarHostState.showSnackbar(it) }
+                    )
+                } catch (e: ApiException) {
+                    // If the saver fails isn't critical
+                    // May fail if we just used autofill to get details
+                    Log.e("Sign in/up", "Failed to save the email/password", e)
+                } finally {
+                    Log.d("", "We should eventually arrive here")
+                }
+
+            }
+        }
 
         Box(
             Modifier.fillMaxSize(),
@@ -113,29 +169,8 @@ import uk.co.sksulai.multitasker.db.viewmodel.UserViewModel
                 googleButton,
             ) = createRefs()
 
-            val (emailFocuser, passwordFocuser) = FocusRequester.createRefs()
-
-            var email    by rememberSaveable { mutableStateOf("") }
-            var password by rememberSaveable { mutableStateOf("") }
-
-            var emailError      by rememberSaveable { mutableStateOf("") }
-            var passwordError   by rememberSaveable { mutableStateOf("") }
-            var passwordVisible by rememberSaveable { mutableStateOf(false) }
-
-            val signInAction = { scope.launch { userViewModel.authenticate(
-                email,
-                password,
-                GoogleIntentLauncher(googlePasswordSaverLauncher)
-            ) { emailErr, passwordErr, authErr ->
-                emailError    = emailErr
-                passwordError = passwordErr
-
-                if(authErr.isNotEmpty())
-                    scaffoldState.snackbarHostState.showSnackbar(authErr)
-            } } }
-
             val emailAutofillNode = AutofillNode(
-                onFill = { email = it },
+                onFill = { email.text = it },
                 autofillTypes = listOf(
                     AutofillType.EmailAddress,
                     AutofillType.Username
@@ -157,33 +192,31 @@ import uk.co.sksulai.multitasker.db.viewmodel.UserViewModel
                             else cancelAutofillForNode(emailAutofillNode)
                         }
                     },
-                value = email,
-                onValueChange = { email = it },
+                value = email.text,
+                onValueChange = { email.text = it },
                 label   = { Text("Email") },
-                isError = emailError.isNotEmpty(),
+                isError = email.valid,
                 keyboardOptions = KeyboardOptions(
                     keyboardType = KeyboardType.Email,
                     imeAction = ImeAction.Next
                 ),
-                keyboardActions = KeyboardActions {
-                    passwordFocuser.requestFocus()
-                }
+                keyboardActions = KeyboardActions { passwordFocuser.requestFocus() }
             )
-            if(emailError.isNotEmpty()) Text(
+            if(!email.valid) Text(
                 modifier = Modifier.constrainAs(emailErrorText) {
                     top.linkTo(emailField.bottom, 8.dp)
                     start.linkTo(emailField.start)
                     end.linkTo(emailField.end)
                 },
-                text = emailError,
+                text = email.error,
                 color = MaterialTheme.colors.error
             )
 
             val passwordAutofillNode = AutofillNode(
                 autofillTypes = listOf(AutofillType.Password, AutofillType.NewPassword),
                 onFill = {
-                    password = it
-                    signInAction()
+                    password.text = it
+                    signInAction(email, password)
                 }
             )
             autofillTree += passwordAutofillNode
@@ -191,7 +224,7 @@ import uk.co.sksulai.multitasker.db.viewmodel.UserViewModel
             TextField(
                 modifier = Modifier
                     .constrainAs(passwordField) {
-                        if (emailError.isNotEmpty())
+                        if (!email.valid)
                             top.linkTo(emailErrorText.bottom, 8.dp)
                         else top.linkTo(emailField.bottom, 8.dp)
                         start.linkTo(emailField.start)
@@ -204,11 +237,11 @@ import uk.co.sksulai.multitasker.db.viewmodel.UserViewModel
                             else cancelAutofillForNode(passwordAutofillNode)
                         }
                     },
-                value = password,
-                onValueChange = { password = it },
+                value = password.text,
+                onValueChange = { password.text = it },
                 label = { Text("Password") },
-                trailingIcon = { IconToggleButton(checked = passwordVisible, onCheckedChange = { passwordVisible = it }) {
-                    if(passwordVisible) Icon(Icons.Filled.Visibility, "Password visible")
+                trailingIcon = { IconToggleButton(checked = password.visible, onCheckedChange = { password.visible = it }) {
+                    if(password.visible) Icon(Icons.Filled.Visibility, "Password visible")
                     else Icon(Icons.Filled.VisibilityOff, "Password not visible")
                 }},
                 keyboardOptions = KeyboardOptions(
@@ -216,29 +249,29 @@ import uk.co.sksulai.multitasker.db.viewmodel.UserViewModel
                     imeAction = ImeAction.Done
                 ),
                 keyboardActions = KeyboardActions {
-                    keyboardController?.hideSoftwareKeyboard()
-                    signInAction()
+                    keyboardController?.hide()
+                    signInAction(email, password)
                 },
                 visualTransformation = when {
-                    passwordVisible -> VisualTransformation.None
+                    password.visible -> VisualTransformation.None
                     else -> PasswordVisualTransformation()
                 },
-                isError = passwordError.isNotEmpty()
+                isError = !password.valid
             )
 
-            if(passwordError.isNotEmpty()) Text(
+            if(password.valid) Text(
                 modifier = Modifier.constrainAs(passwordErrorText) {
                     top.linkTo(passwordField.bottom, 8.dp)
                     start.linkTo(passwordField.start)
                     end.linkTo(passwordField.end)
                 },
-                text = passwordError,
+                text = password.error,
                 color = MaterialTheme.colors.error
             )
 
             Button(
                 modifier = Modifier.constrainAs(signInButton) {
-                    if(passwordError.isNotEmpty())
+                    if(!password.valid)
                         top.linkTo(passwordErrorText.bottom, 8.dp)
                     else top.linkTo(passwordField.bottom, 8.dp)
                     start.linkTo(passwordField.start, 8.dp)
@@ -246,7 +279,7 @@ import uk.co.sksulai.multitasker.db.viewmodel.UserViewModel
 
                     width = Dimension.fillToConstraints
                 },
-                onClick = { signInAction() }
+                onClick = { signInAction(email, password) }
             ) { Text("Sign In") }
             Button(
                 modifier = Modifier.constrainAs(signUpButton) {
@@ -256,18 +289,10 @@ import uk.co.sksulai.multitasker.db.viewmodel.UserViewModel
 
                     width = Dimension.fillToConstraints
                 },
-                onClick = { scope.launch { userViewModel.create(
-                        email,
-                        password,
-                        GoogleIntentLauncher(googlePasswordSaverLauncher)
-                    ) { emailErr, passwordErr, authErr ->
-                        emailError = emailErr
-                        passwordError = passwordErr
-
-                        if (authErr.isNotEmpty())
-                            scaffoldState.snackbarHostState.showSnackbar(authErr)
-                    }
-                }}) { Text("Sign Up") }
+                onClick = {
+                    
+                }
+            ) { Text("Sign Up") }
 
             TextButton(
                 modifier = Modifier.constrainAs(forgotButton) {
@@ -279,7 +304,8 @@ import uk.co.sksulai.multitasker.db.viewmodel.UserViewModel
                 },
                 onClick = {
 
-            }) { Text("Forgot Password") }
+            }
+            ) { Text("Forgot Password") }
 
             Divider(Modifier.constrainAs(divider) {
                 top.linkTo(forgotButton.bottom, 8.dp)
@@ -290,35 +316,25 @@ import uk.co.sksulai.multitasker.db.viewmodel.UserViewModel
             })
 
             Button(modifier = Modifier.constrainAs(googleButton) {
-                    top.linkTo(divider.bottom, 16.dp)
-                    start.linkTo(passwordField.start, 8.dp)
-                    end.linkTo(passwordField.end, 8.dp)
+                top.linkTo(divider.bottom, 16.dp)
+                start.linkTo(passwordField.start, 8.dp)
+                end.linkTo(passwordField.end, 8.dp)
 
-                    width = Dimension.fillToConstraints
-                }, onClick = { scope.launch {
-                    try {
-                        if(limitOneTap > 0)
-                            userViewModel.authenticate(GoogleIntentLauncher(googleSignInLauncher))
-                        else scaffoldState.snackbarHostState.showSnackbar(
-                            "Apologises, usage of Google sign in has been limited"
-                        )
-                    } catch(e: IntentSender.SendIntentException) {
-                        Log.e("Sign in", "Failed to start One Tap UI", e)
-                    } catch(e: ApiException) {
-                        when(e.statusCode) {
-                            CommonStatusCodes.CANCELED -> {
-                                Log.d("Sign up", "User cancelled sign up w/ One-Tap")
-                                scaffoldState.snackbarHostState.showSnackbar(
-                                    "Usage of Google sign in has been limited"
-                                )
-                                limitOneTap = 0
-                            }
-                            else -> {
-                                Log.d("Sign in", "No saved credentials found", e)
-                                userViewModel.create(GoogleIntentLauncher(googleSignUpLauncher))
-                            }
-                        }
-                    }
+                width = Dimension.fillToConstraints
+            }, onClick = { scope.launch {
+                try {
+                    Log.d("Sign In", "Current limit count: $limitOneTap")
+                    if(limitOneTap > 0)
+                        userViewModel.authenticate(GoogleIntentLauncher(googleSignInLauncher))
+                    else scaffoldState.snackbarHostState.showSnackbar(
+                        "Apologises, usage of Google sign in has been limited"
+                    )
+                } catch(e: IntentSender.SendIntentException) {
+                    Log.e("Sign in", "Failed to start One Tap UI", e)
+                } catch(e: ApiException) {
+                    Log.d("Sign in", "No saved credentials found", e)
+                    userViewModel.create(GoogleIntentLauncher(googleSignUpLauncher))
+                }
             }}) {
                 Icon(
                     painterResource(R.drawable.ic_google_g_logo),

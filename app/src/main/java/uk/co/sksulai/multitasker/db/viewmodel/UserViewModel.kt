@@ -17,7 +17,7 @@ import uk.co.sksulai.multitasker.R
 import uk.co.sksulai.multitasker.db.repo.GoogleIntent
 import uk.co.sksulai.multitasker.db.repo.UserRepository
 
-inline class GoogleIntentLauncher(val value: ActivityResultLauncher<IntentSenderRequest>)
+@JvmInline value class GoogleIntentLauncher(val value: ActivityResultLauncher<IntentSenderRequest>)
 private fun GoogleIntentLauncher.launch(intent: PendingIntent) =
     value.launch(IntentSenderRequest.Builder(intent).build())
 private fun GoogleIntentLauncher.launch(intent: BeginSignInResult)  = launch(intent.pendingIntent)
