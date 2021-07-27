@@ -325,9 +325,7 @@ fun Autofill.onValueChanged(
 
                     width = Dimension.fillToConstraints
                 },
-                onClick = {
-
-            }
+                onClick = { navController.navigate("Forgot?email=${email.text}") }
             ) { Text("Forgot Password") }
 
             Divider(Modifier.constrainAs(divider) {

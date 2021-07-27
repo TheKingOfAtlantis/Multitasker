@@ -39,7 +39,26 @@ import uk.co.sksulai.multitasker.util.Datastores.appStatePref
         composable("OnBoarding") { OnBoardingScreen(navController) }
         navigation(startDestination = "SignIn", route = "SignInFlow") {
             composable("SignIn") { SignInScreen(navController) }
-            composable("Forgot") { }
+            composable(
+                "Forgot?email={email}&submitted={submitted}",
+                arguments = listOf(
+                    navArgument("email")     { defaultValue = "" },
+                    navArgument("submitted") { defaultValue = false }
+                )
+            ) {
+                it.arguments?.let { bundle ->
+                    val email:     String  by bundle
+                    val submitted: Boolean by bundle
+                    Crossfade(targetState = submitted) {
+                        ForgotPasswordScreen(
+                            navController,
+                            email     = rememberFieldState(email),
+                            submitted = it
+                        )
+                    }
+                }
+            }
+        }
         }
     }
 }
