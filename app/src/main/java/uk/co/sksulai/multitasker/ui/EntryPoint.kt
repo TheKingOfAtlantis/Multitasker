@@ -5,12 +5,14 @@ import android.content.Context
 import androidx.compose.runtime.*
 import androidx.compose.animation.Crossfade
 import androidx.compose.ui.platform.LocalContext
+import androidx.datastore.preferences.core.preferencesOf
 
 import androidx.navigation.*
 import androidx.navigation.compose.*
 
-import androidx.datastore.preferences.core.preferencesOf
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.google.firebase.dynamiclinks.ktx.dynamicLinks
+import com.google.firebase.ktx.Firebase
 
 import uk.co.sksulai.multitasker.util.*
 import uk.co.sksulai.multitasker.ui.userFlow.*
@@ -24,6 +26,12 @@ const val baseUrl = "app.multitasker.xyz"
     userViewModel: UserViewModel     = viewModel(),
     context: Context                 = LocalContext.current,
 ) {
+    Firebase.dynamicLinks.getDynamicLink(LocalActivity.current.intent).addOnSuccessListener {
+        val deepLink = it?.link
+        if(deepLink != null)
+            navController.handleDeepLink(Intent().apply { data = deepLink })
+    }
+
     val statePref   by context.appStatePref.data.collectAsState(initial = preferencesOf())
     val currentUser by userViewModel.currentUser.collectAsState(initial = null)
 
