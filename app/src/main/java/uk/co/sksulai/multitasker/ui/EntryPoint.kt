@@ -17,6 +17,8 @@ import uk.co.sksulai.multitasker.ui.userFlow.*
 import uk.co.sksulai.multitasker.db.viewmodel.UserViewModel
 import uk.co.sksulai.multitasker.util.Datastores.appStatePref
 
+const val baseUrl = "app.multitasker.xyz"
+
 @Composable fun EntryPoint(
     navController: NavHostController = rememberNavController(),
     userViewModel: UserViewModel     = viewModel(),
@@ -59,6 +61,35 @@ import uk.co.sksulai.multitasker.util.Datastores.appStatePref
                 }
             }
         }
+        composable(
+            "Action?mode={mode}&oobCode={oobCode}&apiKey={apiKey}&continueUrl={continueUrl}&lang={lang}",
+            deepLinks = listOf(
+                navDeepLink { uriPattern = "$baseUrl/user/action?mode={mode}&oobCode={oobCode}&apiKey={apiKey}&continueUrl={continueUrl}&lang={lang}" },
+            ),
+            arguments = listOf(
+                navArgument("mode")        { },
+                navArgument("oobCode")     { nullable = true },
+                navArgument("apiKey")      { nullable = true },
+                navArgument("lang")        { nullable = true },
+                navArgument("continueUrl") {
+                    defaultValue = null
+                    nullable     = true
+                },
+            )
+        ) {
+            it.arguments?.let { bundle ->
+                val mode:        String by bundle
+                val oobCode:     String by bundle
+                val apiKey:      String by bundle
+                val continueUrl: String by bundle
+                val lang:        String by bundle
+
+                when(mode) {
+                    "resetPassword" -> ForgotPasswordScreen(navController, oobCode, continueUrl)
+                    "recoverEmail"  -> TODO()
+                    "verifyEmail"   -> TODO()
+                }
+            }
         }
     }
 }
