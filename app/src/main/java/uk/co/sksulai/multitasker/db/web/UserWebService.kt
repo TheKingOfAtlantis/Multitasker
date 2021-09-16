@@ -32,8 +32,8 @@ class UserWebService {
         "DisplayName"   to DisplayName,
         "PreferredHome" to PreferredHome,
         "ActualName"    to ActualName,
-        "Avatar"        to UriConverter().from(Avatar),
-        "DOB"           to DateConverter().from(DOB),
+        "Avatar"        to UriConverter.from(Avatar),
+        "DOB"           to DateConverter.from(DOB),
         "Home"          to Home
     )
     private fun MutableMap<String, Any?>.fromDocument(id: String) = UserModel(
@@ -44,8 +44,8 @@ class UserWebService {
         DisplayName   = get("DisplayName") as String?,
         PreferredHome = get("PreferredHome") as String,
         ActualName    = get("ActualName") as String?,
-        Avatar        = UriConverter().to(get("Avatar") as String?),
-        DOB           = DateConverter().to(get("DOB") as String?),
+        Avatar        = UriConverter.to(get("Avatar") as String?),
+        DOB           = DateConverter.to(get("DOB") as String?),
         Home          = get("Home") as String?
     )
 
