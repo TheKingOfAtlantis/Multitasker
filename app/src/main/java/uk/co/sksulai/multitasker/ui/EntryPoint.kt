@@ -95,7 +95,7 @@ const val baseUrl = "app.multitasker.xyz"
                 when(mode) {
                     "resetPassword" -> ForgotPasswordScreen(navController, oobCode, continueUrl)
                     "recoverEmail"  -> TODO()
-                    "verifyEmail"   -> TODO()
+                    "verifyEmail"   -> EmailVerificationScreen(navController, oobCode, continueUrl)
                 }
             }
         }
