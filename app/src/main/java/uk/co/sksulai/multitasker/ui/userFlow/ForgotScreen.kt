@@ -30,6 +30,7 @@ import androidx.navigation.NavController
 import androidx.navigation.NavGraph.Companion.findStartDestination
 
 import uk.co.sksulai.multitasker.db.viewmodel.UserViewModel
+import uk.co.sksulai.multitasker.util.setScreen
 
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable fun ForgotPasswordScreen(
@@ -42,6 +43,7 @@ import uk.co.sksulai.multitasker.db.viewmodel.UserViewModel
     Arrangement.Center,
     Alignment.CenterHorizontally
 ) {
+    setScreen("Forgot Password")
     when(submitted) {
         false -> {
             val scope = rememberCoroutineScope()
@@ -111,6 +113,8 @@ private enum class PasswordForgotState {
     code: String,
     continueUrl: String?,
 ) = Scaffold {
+    setScreen("Forgot Password")
+
     val scope = rememberCoroutineScope()
 
     val userViewModel = viewModel<UserViewModel>()
@@ -223,4 +227,3 @@ private enum class PasswordForgotState {
         }
     }
 }
-

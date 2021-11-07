@@ -66,6 +66,8 @@ fun Autofill.onValueChanged(
     password: FieldState = rememberFieldState(),
     view: View = LocalView.current
 ) {
+    setScreen("Sign In")
+
     val keyboardController = LocalSoftwareKeyboardController.current
     val autofill           = LocalAutofill.current
     val autofillTree       = LocalAutofillTree.current

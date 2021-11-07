@@ -27,6 +27,7 @@ import uk.co.sksulai.multitasker.ui.TextDateConverter
 import uk.co.sksulai.multitasker.ui.component.PagerBuilder
 import uk.co.sksulai.multitasker.ui.component.Paging
 import uk.co.sksulai.multitasker.util.LocalActivity
+import uk.co.sksulai.multitasker.util.setScreen
 
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -58,18 +59,19 @@ fun PagerBuilder.emailVerificationPage(
     verticalArrangement = Arrangement.Center,
     horizontalAlignment = Alignment.CenterHorizontally
 ) {
+
     val emailVerification = userViewModel.emailVerification
     LaunchedEffect(Unit) {
         if(emailVerification.verified)
             pagerState.animateScrollToPage(pagerState.currentPage + 1)
-        else emailVerification.request("user/signup")
+        else {
+            emailVerification.request("user/signup")
+            setScreen("Email Verification")
+        }
     }
-
     Text("Email verification request sent")
     Text("Check your email")
-
 } }
-
 
 @ExperimentalPagerApi
 fun PagerBuilder.detailsPage(
@@ -81,6 +83,7 @@ fun PagerBuilder.detailsPage(
     verticalArrangement = Arrangement.Center,
     horizontalAlignment = Alignment.CenterHorizontally
 ) {
+    setScreen("Sign Up Wizard")
 
     val activity = LocalActivity.current
     val scope = rememberCoroutineScope()
@@ -124,8 +127,6 @@ fun PagerBuilder.detailsPage(
             }
         })
     }
-
-
     Button(
         onClick = { scope.launch {
             userViewModel.update(
@@ -140,6 +141,5 @@ fun PagerBuilder.detailsPage(
             navController.navigate("CalendarView")
         } }
     ) { Text("Submit") }
-
 } }
 

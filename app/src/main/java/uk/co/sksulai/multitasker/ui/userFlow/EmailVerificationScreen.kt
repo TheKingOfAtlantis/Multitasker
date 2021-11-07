@@ -21,6 +21,7 @@ import androidx.navigation.NavOptions
 import androidx.navigation.NavOptionsBuilder
 import kotlinx.coroutines.delay
 import uk.co.sksulai.multitasker.db.viewmodel.UserViewModel
+import uk.co.sksulai.multitasker.util.setScreen
 import kotlin.time.Duration
 import kotlin.time.ExperimentalTime
 
@@ -36,6 +37,8 @@ enum class EmailVerificationState {
     code: String,
     continueUrl: String?,
 ) = Scaffold {
+    setScreen("Email Verification")
+
     val scope = rememberCoroutineScope()
 
     val userViewModel = viewModel<UserViewModel>()
