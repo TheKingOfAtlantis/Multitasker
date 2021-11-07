@@ -61,7 +61,11 @@ class UserRepository @Inject constructor(
     val currentUser = AppState.retrieve(context).data
         .map { it[AppState.CurrentUser] ?: "" }
         .flatMapLatest { fromID(it) }
-        .flowOn(Dispatchers.IO)
+        .stateIn(
+            repoScope,
+            started = SharingStarted.WhileSubscribed(),
+            initialValue = null
+        )
 
     /**
      * Used when authenticating to set the current user
