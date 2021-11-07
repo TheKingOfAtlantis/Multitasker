@@ -121,9 +121,6 @@ dependencies {
     implementation("androidx.compose.ui:ui-tooling:1.1.0-beta02")
     implementation("androidx.compose.ui:ui-test:1.1.0-beta02")
 
-    // Facebook
-    implementation("com.facebook.android:facebook-login:[5,6)")
-
     // Firebase & Google
     implementation("com.google.android.gms:play-services-auth:19.2.0")
 

@@ -16,18 +16,14 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.tasks.await
 
-import com.facebook.AccessToken
-import com.facebook.FacebookCallback
-import com.facebook.FacebookException
-import com.facebook.login.LoginResult
-import com.google.android.gms.auth.api.identity.Identity
-
 import com.google.firebase.auth.*
 import com.google.firebase.ktx.Firebase
 import com.google.firebase.auth.ktx.auth
 
-import uk.co.sksulai.multitasker.db.dao.UserDao
+import com.google.android.gms.auth.api.identity.Identity
+
 import uk.co.sksulai.multitasker.db.model.UserModel
+import uk.co.sksulai.multitasker.db.dao.UserDao
 import uk.co.sksulai.multitasker.db.web.UserWebService
 import uk.co.sksulai.multitasker.util.DatastoreLocators.AppState
 
@@ -271,28 +267,6 @@ class UserRepository @Inject constructor(
             else -> throw Exception("We received neither a Id Token or Email/Password")
         })
     }
-    /**
-     * Authenticate the user using the Facebook APIs
-     */
-    suspend fun authenticate(facebook: AccessToken) = withContext(Dispatchers.IO) {
-        authenticate(FacebookAuthProvider.getCredential(facebook.token))
-    }
-    fun getFacebookCallback() = object : FacebookCallback<LoginResult> {
-        override fun onSuccess(result: LoginResult) {
-            Log.d("auth", "facebook:onSuccess:$result")
-            MainScope().launch { authenticate(result.accessToken) }
-        }
-
-        override fun onCancel() {
-            Log.d("auth", "facebook:onCancel")
-            TODO("Not yet implemented")
-        }
-
-        override fun onError(error: FacebookException?) {
-            Log.d("auth", "facebook:onError:", error)
-            TODO("Not yet implemented")
-        }
-    }
 
     /**
      * Used to perform authentication via firebase
@@ -323,12 +297,6 @@ class UserRepository @Inject constructor(
     suspend fun link(googleIntent: GoogleIntent) = withContext(Dispatchers.IO) {
         val googleAccount = Identity.getSignInClient(context).getSignInCredentialFromIntent(googleIntent.value)
         link(GoogleAuthProvider.getCredential(googleAccount.googleIdToken, null))
-    }
-    /**
-     * Link the user account to the Facebook Provider
-     */
-    suspend fun link(facebook: AccessToken) = withContext(Dispatchers.IO) {
-        link(FacebookAuthProvider.getCredential(facebook.token))
     }
 
     /**

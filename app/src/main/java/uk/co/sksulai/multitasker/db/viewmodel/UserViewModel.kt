@@ -10,7 +10,6 @@ import androidx.lifecycle.AndroidViewModel
 
 import com.google.firebase.auth.FirebaseAuthException
 import com.google.android.gms.auth.api.identity.*
-import com.facebook.login.LoginResult
 
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.tasks.await
@@ -164,10 +163,6 @@ private fun GoogleIntentLauncher.launch(intent: SavePasswordResult) = launch(int
         password: String,
         saverLauncher: GoogleIntentLauncher
     ) = emailAction(userRepo::authenticate, email, password, saverLauncher)
-    /**
-     * Authenticate a user using the Facebook Login API
-     */
-    suspend fun authenticate(loginResult: LoginResult) { userRepo.authenticate(loginResult.accessToken) }
     /**
      * Authenticate a user given the result of calling the Google Identity API
      * @param googleIntent Intent containing the result of signing in
