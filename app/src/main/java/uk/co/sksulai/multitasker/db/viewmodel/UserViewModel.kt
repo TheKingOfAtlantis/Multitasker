@@ -199,6 +199,21 @@ private fun GoogleIntentLauncher.launch(intent: SavePasswordResult) = launch(int
         Identity.getSignInClient(app).signOut().await()
     }
 
+    /**
+     * Update the users data
+     * @param user The new updated user model
+     */
+    suspend fun update(user: UserModel) = userRepo.update(user)
+
+    /**
+     * Deletes the current user from both the local and remote database
+     */
+    suspend fun delete() {
+        val user = currentUser.last()
+        user?.let { userRepo.delete(it, localOnly = false) }
+        signOut()
+    }
+
     val resetPassword     get() = userRepo.resetPassword
     val emailVerification get() = userRepo.emailVerification
 }

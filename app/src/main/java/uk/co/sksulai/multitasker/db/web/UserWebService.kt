@@ -38,6 +38,8 @@ class UserWebService : IUserWebService {
      */
     private val collection = db.collection("users")
 
+    private val currentUser get() = Firebase.auth.currentUser
+
     /**
      * Helper to convert UserModels to Firestore documents
      */
@@ -130,6 +132,11 @@ class UserWebService : IUserWebService {
      */
     override suspend fun update(user: UserModel) {
         collection.document(user.ID).update(user.toDocument() as Map<String, Any?>).await()
+
+        val requestBuilder = UserProfileChangeRequest.Builder()
+        if(currentUser?.displayName != user.DisplayName) requestBuilder.displayName = user.DisplayName
+        if(currentUser?.photoUrl != user.Avatar) requestBuilder.photoUri = user.Avatar
+        currentUser?.updateProfile(requestBuilder.build())?.await()
     }
 
     /**
