@@ -58,7 +58,10 @@ enum class EmailVerificationState {
                                 setPopUpTo(navController.graph.findStartDestination().id, true)
                                 setLaunchSingleTop(true)
                             }
-                            // TODO: Navigate to verification request page
+                            navController.navigate(
+                                Uri.parse("https://app.multitasker.xyz/user/signup"),
+                                navOption.build()
+                            )
                         }) { Text("Try again") }
                 }
                 EmailVerificationState.Verifying -> {

@@ -17,6 +17,7 @@ import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 
 import uk.co.sksulai.multitasker.R
+import uk.co.sksulai.multitasker.db.model.UserModel
 import uk.co.sksulai.multitasker.db.repo.GoogleIntent
 import uk.co.sksulai.multitasker.db.repo.UserRepository
 
@@ -203,6 +204,13 @@ private fun GoogleIntentLauncher.launch(intent: SavePasswordResult) = launch(int
         userRepo.signOut()
         Identity.getSignInClient(app).signOut().await()
     }
+
+    /**
+     * Update the users data
+     * @param user The new updated user model
+     */
+    suspend fun update(user: UserModel) = userRepo.update(user)
+
 
     val resetPassword     get() = userRepo.resetPassword
     val emailVerification get() = userRepo.emailVerification

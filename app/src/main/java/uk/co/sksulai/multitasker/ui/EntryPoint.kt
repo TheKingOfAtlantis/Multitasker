@@ -49,6 +49,7 @@ const val baseUrl = "app.multitasker.xyz"
         composable("OnBoarding") { OnBoardingScreen(navController) }
         navigation(startDestination = "SignIn", route = "SignInFlow") {
             composable("SignIn", deepLinks = listOf(navDeepLink { uriPattern = "$baseUrl/user/signin" })) { SignInScreen(navController) }
+            composable("SignUp", deepLinks = listOf(navDeepLink { uriPattern = "$baseUrl/user/signup" })) { SignUpScreen(navController) }
             composable(
                 "Forgot?email={email}&submitted={submitted}",
                 arguments = listOf(

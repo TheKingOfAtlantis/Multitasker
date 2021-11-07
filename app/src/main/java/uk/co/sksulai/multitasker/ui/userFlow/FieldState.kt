@@ -11,6 +11,8 @@ class FieldState(
     textInitial:  String = "",
     errorInitial: String = ""
 ) {
+    fun onChange(value: String) { text = value }
+
     var text  by mutableStateOf(textInitial)
     var error by mutableStateOf(errorInitial)
     val valid get() = error.isEmpty()
