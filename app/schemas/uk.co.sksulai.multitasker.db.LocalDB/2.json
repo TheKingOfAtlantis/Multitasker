@@ -1,0 +1,88 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 2,
+    "identityHash": "1cbd2689ca2d0969567f067f469dfc6f",
+    "entities": [
+      {
+        "tableName": "UserModel",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`ID` TEXT NOT NULL, `Creation` TEXT NOT NULL, `LastModified` TEXT NOT NULL, `DisplayName` TEXT, `Email` TEXT, `PreferredHome` TEXT NOT NULL, `Avatar` TEXT, `ActualName` TEXT, `Home` TEXT, `DOB` TEXT, PRIMARY KEY(`ID`))",
+        "fields": [
+          {
+            "fieldPath": "ID",
+            "columnName": "ID",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "Creation",
+            "columnName": "Creation",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "LastModified",
+            "columnName": "LastModified",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "DisplayName",
+            "columnName": "DisplayName",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "Email",
+            "columnName": "Email",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "PreferredHome",
+            "columnName": "PreferredHome",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "Avatar",
+            "columnName": "Avatar",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "ActualName",
+            "columnName": "ActualName",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "Home",
+            "columnName": "Home",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "DOB",
+            "columnName": "DOB",
+            "affinity": "TEXT",
+            "notNull": false
+          }
+        ],
+        "primaryKey": {
+          "columnNames": [
+            "ID"
+          ],
+          "autoGenerate": false
+        },
+        "indices": [],
+        "foreignKeys": []
+      }
+    ],
+    "views": [],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '1cbd2689ca2d0969567f067f469dfc6f')"
+    ]
+  }
+}
