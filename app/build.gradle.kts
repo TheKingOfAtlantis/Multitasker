@@ -7,15 +7,15 @@ plugins {
 }
 
 android {
-    compileSdkVersion(30)
-    buildToolsVersion("30.0.2")
+    compileSdk        = 31
+    buildToolsVersion = "32.0.0-rc1"
 
     defaultConfig {
         applicationId = "uk.co.sksulai.multitasker"
-        minSdkVersion(26)
-        targetSdkVersion(30)
-        versionCode = 2
-        versionName = "0.0.2"
+        minSdk        = 26
+        targetSdk     = 31
+        versionCode   = 2
+        versionName   = "0.0.2"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -44,21 +44,25 @@ android {
         )
     }
     buildFeatures.compose = true
-    composeOptions { kotlinCompilerExtensionVersion = Versions.compose }
-    testOptions { unitTests.isIncludeAndroidResources = true }
+    composeOptions { kotlinCompilerExtensionVersion = "1.1.0-beta02" }
+    testOptions {
+        unitTests.isIncludeAndroidResources = true
+    }
 
     dependenciesInfo {
-        includeInApk = true
+        includeInApk    = true
         includeInBundle = true
     }
     packagingOptions {
-        excludes += "/META-INF/AL2.0"
-        excludes += "/META-INF/LGPL2.1"
+        excludes += setOf(
+            "/META-INF/AL2.0",
+            "/META-INF/LGPL2.1"
+        )
     }
     bundle {
         language { enableSplit = true }
-        density { enableSplit = true }
-        abi { enableSplit = true }
+        density  { enableSplit = true }
+        abi      { enableSplit = true }
     }
 }
 
@@ -75,74 +79,79 @@ dependencies {
     implementation(kotlin("stdlib", version = "1.5.31"))
 
     // Kotlin Coroutine
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.4.1")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.4.1")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.3.6")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.5.2-native-mt")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.5.2-native-mt")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.5.2-native-mt")
 
     // Hilt
     implementation("com.google.dagger:hilt-android:2.38.1")
     kapt("com.google.dagger:hilt-android-compiler:2.38.1")
 
     // Glide
-    implementation("com.github.bumptech.glide:glide:4.11.0")
-    kapt("com.github.bumptech.glide:compiler:4.11.0")
+    implementation("com.github.bumptech.glide:glide:4.12.0")
+    kapt("com.github.bumptech.glide:compiler:4.12.0")
 
     // Androidx
-    implementation("androidx.core:core-ktx:1.5.0-beta02")
-    implementation("androidx.appcompat:appcompat:1.3.0-beta01")
-    implementation("com.google.android.material:material:1.3.0")
+    implementation("androidx.core:core-ktx:1.7.0")
+    implementation("androidx.appcompat:appcompat:1.4.0-rc01")
+    implementation("com.google.android.material:material:1.4.0")
 
     // Jetpack Compose
-    implementation("androidx.compose.runtime:runtime:1.0.0-beta02")
-    implementation("androidx.compose.runtime:runtime-livedata:1.0.0-beta02")
-    implementation("androidx.compose.foundation:foundation:1.0.0-beta02")
-    implementation("androidx.compose.foundation:foundation-layout:1.0.0-beta02")
-    implementation("androidx.compose.material:material:1.0.0-beta02")
-    implementation("androidx.compose.material:material-icons-extended:1.0.0-beta02")
-    implementation("androidx.compose.animation:animation:1.0.0-beta02")
-    implementation("androidx.compose.ui:ui:1.0.0-beta02")
-    implementation("androidx.constraintlayout:constraintlayout-compose:1.0.0-alpha05")
+    implementation("androidx.compose.ui:ui:1.1.0-beta02")
+    implementation("androidx.compose.ui:ui-tooling:1.1.0-beta02")
+    implementation("androidx.compose.foundation:foundation:1.1.0-beta02")
+    implementation("androidx.compose.material:material:1.1.0-beta02")
+    implementation("androidx.compose.material:material-icons-core:1.1.0-beta02")
+    implementation("androidx.compose.material:material-icons-extended:1.1.0-beta02")
+    implementation("androidx.activity:activity-compose:1.4.0")
+    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.4.0")
+    implementation("androidx.compose.runtime:runtime-livedata:1.1.0-beta02")
 
-    implementation("dev.chrisbanes.accompanist:accompanist-glide:0.6.2")
-    implementation("dev.chrisbanes.accompanist:accompanist-insets:0.6.2")
+    implementation("androidx.compose.foundation:foundation-layout:1.1.0-beta02")
+    implementation("androidx.compose.animation:animation:1.1.0-beta02")
 
-    implementation("androidx.compose.ui:ui-tooling:1.0.0-beta02")
-    implementation("androidx.compose.ui:ui-test:1.0.0-beta02")
+    implementation("androidx.constraintlayout:constraintlayout-compose:1.0.0-rc01")
+
+    implementation("com.google.accompanist:accompanist-glide:0.15.0")
+    implementation("com.google.accompanist:accompanist-insets:0.13.0")
+
+    implementation("androidx.compose.ui:ui-tooling:1.1.0-beta02")
+    implementation("androidx.compose.ui:ui-test:1.1.0-beta02")
 
     // Facebook
     implementation("com.facebook.android:facebook-login:[5,6)")
 
     // Firebase & Google
-    implementation("com.google.android.gms:play-services-auth:19.0.0")
+    implementation("com.google.android.gms:play-services-auth:19.2.0")
 
-    implementation(platform("com.google.firebase:firebase-bom:25.3.1"))
+    implementation(platform("com.google.firebase:firebase-bom:29.0.0"))
     implementation("com.google.guava:listenablefuture:9999.0-empty-to-avoid-conflict-with-guava")
     implementation("com.google.firebase:firebase-analytics-ktx")
     implementation("com.google.firebase:firebase-firestore-ktx")
     implementation("com.google.firebase:firebase-auth-ktx")
 
     // Arch: Lifecycle
-    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.3.0")
-    implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.3.0")
-    implementation("androidx.lifecycle:lifecycle-livedata-ktx:2.3.0")
-    implementation("androidx.lifecycle:lifecycle-viewmodel-savedstate:2.3.0")
-    implementation("androidx.lifecycle:lifecycle-common-java8:2.3.0")
-    implementation("androidx.lifecycle:lifecycle-service:2.3.0")
-    implementation("androidx.lifecycle:lifecycle-process:2.3.0")
+    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.4.0")
+    implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.4.0")
+    implementation("androidx.lifecycle:lifecycle-livedata-ktx:2.4.0")
+    implementation("androidx.lifecycle:lifecycle-viewmodel-savedstate:2.4.0")
+    implementation("androidx.lifecycle:lifecycle-common-java8:2.4.0")
+    implementation("androidx.lifecycle:lifecycle-service:2.4.0")
+    implementation("androidx.lifecycle:lifecycle-process:2.4.0")
 
     // Arch: DataStore
-    implementation("androidx.datastore:datastore:1.0.0-alpha07")
-    implementation("androidx.datastore:datastore-preferences:1.0.0-alpha07")
+    implementation("androidx.datastore:datastore:1.0.0")
+    implementation("androidx.datastore:datastore-preferences:1.0.0")
 
     // Arch: Room
-    implementation("androidx.room:room-runtime:2.3.0-beta02")
-    kapt("androidx.room:room-compiler:2.3.0-beta02")
-    implementation("androidx.room:room-ktx:2.3.0-beta02")
+    implementation("androidx.room:room-runtime:2.4.0-beta01")
+    kapt("androidx.room:room-compiler:2.4.0-beta01")
+    implementation("androidx.room:room-ktx:2.4.0-beta01")
 
     // Arch: Navigation
-    implementation("androidx.navigation:navigation-fragment-ktx:2.3.3")
-    implementation("androidx.navigation:navigation-ui-ktx:2.3.3")
-    implementation("androidx.navigation:navigation-compose:1.0.0-alpha08")
+    implementation("androidx.navigation:navigation-fragment-ktx:2.3.5")
+    implementation("androidx.navigation:navigation-ui-ktx:2.3.5")
+    implementation("androidx.navigation:navigation-compose:2.4.0-beta02")
 
     // Arch: WorkManager
     implementation("androidx.work:work-runtime-ktx:2.7.0-alpha01")
