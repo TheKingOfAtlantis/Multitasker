@@ -4,6 +4,7 @@ import java.time.Instant
 
 import com.google.firebase.Timestamp
 import com.google.firebase.auth.FirebaseUser
+import com.google.firebase.auth.ktx.auth
 import com.google.firebase.firestore.DocumentReference
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
@@ -16,12 +17,15 @@ import kotlinx.coroutines.tasks.await
 
 import uk.co.sksulai.multitasker.db.converter.DateConverter
 import uk.co.sksulai.multitasker.db.converter.UriConverter
+import uk.co.sksulai.multitasker.db.datasource.UserDataSource
 import uk.co.sksulai.multitasker.db.model.UserModel
 
 fun Timestamp.toInstance() = Instant.ofEpochSecond(seconds, nanoseconds.toLong())
 
+interface IUserWebService : UserDataSource, WebService
+
 @OptIn(ExperimentalCoroutinesApi::class)
-class UserWebService {
+class UserWebService : IUserWebService {
     private val db = Firebase.firestore
     private val collection = db.collection("users")
 
@@ -49,8 +53,7 @@ class UserWebService {
         Home          = get("Home") as String?
     )
 
-
-    fun fromID(id: String) = callbackFlow {
+    override fun fromID(id: String) = callbackFlow {
         val doc: DocumentReference = collection.document(id)
 
         val listener  = doc.addSnapshotListener { value, error ->
@@ -62,7 +65,7 @@ class UserWebService {
         awaitClose { listener.remove() }
     }
     fun fromFirebase(user: FirebaseUser) = fromID(user.uid)
-    fun fromDisplayName(displayName: String) = callbackFlow {
+    override fun fromDisplayName(displayName: String) = callbackFlow {
         val docs = collection.startAt(displayName).endAt(displayName + "\uf8ff")
 
         val listener = docs.addSnapshotListener { value, error ->
@@ -72,7 +75,7 @@ class UserWebService {
 
         awaitClose { listener.remove() }
     }
-    fun fromActualName(actualName: String) = callbackFlow {
+    override fun fromActualName(actualName: String) = callbackFlow {
         val docs = collection.startAt(actualName).endAt(actualName + "\uf8ff")
 
         val listener = docs.addSnapshotListener { value, error ->
@@ -83,13 +86,17 @@ class UserWebService {
         awaitClose { listener.remove() }
     }
 
-    suspend fun insert(user: UserModel) {
+    override suspend fun insert(user: UserModel) {
         collection.document(user.ID).set(user.toDocument()).await()
     }
-    suspend fun update(user: UserModel) {
+    override suspend fun update(user: UserModel) {
         collection.document(user.ID).update(user.toDocument() as Map<String, Any?>).await()
     }
 
-    suspend fun delete(id: String) { collection.document(id).delete().await() }
-    suspend fun delete(user: UserModel) = delete(user.ID)
+    suspend fun delete(id: String) {
+        collection.document(id).delete().await()
+        Firebase.auth.currentUser?.delete()
+    }
+    override suspend fun delete(user: UserModel) = delete(user.ID)
+
 }
