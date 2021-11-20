@@ -52,15 +52,10 @@ class UserRepository @Inject constructor(
      * @brief Reference to the current user which is signed in
      * The state of this value is automatically managed by the repository
      */
-    val currentUser = flow {
-        val id = context.appStatePref.data.map {
-            it[DatastoreKeys.AppState.CurrentUser] ?: ""
-        }
-        emitAll(id.distinctUntilChanged().flatMapLatest {
-            if(it.isNotEmpty()) fromID(it)
-            else emptyFlow()
-        })
-    }.flowOn(Dispatchers.IO)
+    val currentUser = context.appStatePref.data
+        .map { it[DatastoreKeys.AppState.CurrentUser] ?: "" }
+        .flatMapLatest { fromID(it) }
+        .flowOn(Dispatchers.IO)
 
     private suspend fun setCurrentUser(value: String) = repoScope.launch {
         context.appStatePref.edit { it[DatastoreKeys.AppState.CurrentUser] = value }
