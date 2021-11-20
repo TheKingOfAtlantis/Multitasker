@@ -29,8 +29,7 @@ import com.google.firebase.auth.ktx.auth
 import uk.co.sksulai.multitasker.db.dao.UserDao
 import uk.co.sksulai.multitasker.db.model.UserModel
 import uk.co.sksulai.multitasker.db.web.UserWebService
-import uk.co.sksulai.multitasker.util.DatastoreKeys
-import uk.co.sksulai.multitasker.util.Datastores.appStatePref
+import uk.co.sksulai.multitasker.util.DatastoreLocators.AppState
 
 inline class GoogleIntent(val value: Intent?)
 
@@ -52,13 +51,13 @@ class UserRepository @Inject constructor(
      * @brief Reference to the current user which is signed in
      * The state of this value is automatically managed by the repository
      */
-    val currentUser = context.appStatePref.data
-        .map { it[DatastoreKeys.AppState.CurrentUser] ?: "" }
+    val currentUser = AppState.retrieve(context).data
+        .map { it[AppState.CurrentUser] ?: "" }
         .flatMapLatest { fromID(it) }
         .flowOn(Dispatchers.IO)
 
     private suspend fun setCurrentUser(value: String) = repoScope.launch {
-        context.appStatePref.edit { it[DatastoreKeys.AppState.CurrentUser] = value }
+        AppState.retrieve(context).edit { it[AppState.CurrentUser] = value }
     }
 
     fun getAll() = dao.getAll()
