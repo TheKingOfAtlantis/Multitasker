@@ -1,5 +1,8 @@
 package uk.co.sksulai.multitasker.db.viewmodel
 
+import javax.inject.Inject
+import dagger.hilt.android.lifecycle.HiltViewModel
+
 import android.app.Application
 import android.app.PendingIntent
 import androidx.activity.result.*
@@ -9,9 +12,9 @@ import com.google.firebase.auth.FirebaseAuthException
 import com.google.android.gms.auth.api.identity.*
 import com.facebook.login.LoginResult
 
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 
 import uk.co.sksulai.multitasker.R
 import uk.co.sksulai.multitasker.db.repo.GoogleIntent
@@ -24,9 +27,10 @@ private fun GoogleIntentLauncher.launch(intent: BeginSignInResult)  = launch(int
 private fun GoogleIntentLauncher.launch(intent: SavePasswordResult) = launch(intent.pendingIntent)
 
 @OptIn(ExperimentalCoroutinesApi::class)
-class UserViewModel(private val app: Application) : AndroidViewModel(app) {
-    private val userRepo by lazy { UserRepository(app) }
-
+@HiltViewModel class UserViewModel @Inject constructor(
+    private val app: Application,
+    private val userRepo: UserRepository
+) : AndroidViewModel(app) {
     val currentUser   = userRepo.currentUser
     val preferredHome = currentUser.map { it?.PreferredHome }
 

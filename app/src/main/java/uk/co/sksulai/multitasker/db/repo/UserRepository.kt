@@ -3,6 +3,9 @@ package uk.co.sksulai.multitasker.db.repo
 import java.time.Instant
 import java.time.LocalDate
 
+import javax.inject.Inject
+import dagger.hilt.android.qualifiers.ApplicationContext
+
 import android.net.Uri
 import android.util.Log
 import android.content.Context
@@ -23,11 +26,9 @@ import com.google.firebase.auth.*
 import com.google.firebase.ktx.Firebase
 import com.google.firebase.auth.ktx.auth
 
-import uk.co.sksulai.multitasker.db.LocalDB
 import uk.co.sksulai.multitasker.db.dao.UserDao
 import uk.co.sksulai.multitasker.db.model.UserModel
 import uk.co.sksulai.multitasker.db.web.UserWebService
-import uk.co.sksulai.multitasker.db.createDatabase
 import uk.co.sksulai.multitasker.util.DatastoreKeys
 import uk.co.sksulai.multitasker.util.Datastores.appStatePref
 
@@ -38,12 +39,12 @@ inline class GoogleIntent(val value: Intent?)
  * integration with Jetpack Compose due to the collectAsState()
  */
 @OptIn(ExperimentalCoroutinesApi::class)
-class UserRepository(private val context: Context) {
+class UserRepository @Inject constructor(
+    @ApplicationContext private val context: Context,
+    private val dao: UserDao,
+    private val web: UserWebService
+) {
     private val repoScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
-
-    private val db: LocalDB         = LocalDB.createDatabase(context)
-    private val dao: UserDao        = db.getUserDao()
-    private val web: UserWebService = UserWebService()
 
     // Getters
 
