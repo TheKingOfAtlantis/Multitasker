@@ -31,7 +31,7 @@ import uk.co.sksulai.multitasker.db.model.UserModel
 import uk.co.sksulai.multitasker.db.web.UserWebService
 import uk.co.sksulai.multitasker.util.DatastoreLocators.AppState
 
-inline class GoogleIntent(val value: Intent?)
+@JvmInline value class GoogleIntent(val value: Intent?)
 
 /**
  * The repository exposes all suspended functions as Flow<T>, this allows quick

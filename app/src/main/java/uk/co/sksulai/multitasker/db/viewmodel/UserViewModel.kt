@@ -20,7 +20,7 @@ import uk.co.sksulai.multitasker.R
 import uk.co.sksulai.multitasker.db.repo.GoogleIntent
 import uk.co.sksulai.multitasker.db.repo.UserRepository
 
-inline class GoogleIntentLauncher(val value: ActivityResultLauncher<IntentSenderRequest>)
+@JvmInline value class GoogleIntentLauncher(val value: ActivityResultLauncher<IntentSenderRequest>)
 private fun GoogleIntentLauncher.launch(intent: PendingIntent) =
     value.launch(IntentSenderRequest.Builder(intent).build())
 private fun GoogleIntentLauncher.launch(intent: BeginSignInResult)  = launch(intent.pendingIntent)
@@ -70,7 +70,7 @@ private fun GoogleIntentLauncher.launch(intent: SavePasswordResult) = launch(int
         }
     }
 
-    private suspend fun <T> action(
+    private suspend fun <T> emailAction(
         action: suspend (email: String, password: String) -> T,
         email: String,
         password: String,
@@ -91,7 +91,7 @@ private fun GoogleIntentLauncher.launch(intent: SavePasswordResult) = launch(int
         email: String,
         password: String,
         saverLauncher: GoogleIntentLauncher
-    ) = action(userRepo::create, email, password, saverLauncher)
+    ) = emailAction(userRepo::create, email, password, saverLauncher)
     suspend fun create(launcher: GoogleIntentLauncher) {
         val request = BeginSignInRequest.builder()
             .setGoogleIdTokenRequestOptions(
@@ -111,7 +111,7 @@ private fun GoogleIntentLauncher.launch(intent: SavePasswordResult) = launch(int
         email: String,
         password: String,
         saverLauncher: GoogleIntentLauncher
-    ) = action(userRepo::authenticate, email, password, saverLauncher)
+    ) = emailAction(userRepo::authenticate, email, password, saverLauncher)
     suspend fun authenticate(loginResult: LoginResult) { userRepo.authenticate(loginResult.accessToken) }
     suspend fun authenticate(googleIntent: GoogleIntent) { userRepo.authenticate(googleIntent) }
     suspend fun authenticate(launcher: GoogleIntentLauncher) {
