@@ -2,6 +2,7 @@ plugins {
     id("com.android.application")
     kotlin("android")
     kotlin("kapt")
+    id("dagger.hilt.android.plugin")
     id("com.google.gms.google-services")
 }
 
@@ -61,14 +62,17 @@ android {
     }
 }
 
-kapt.arguments {
-    arg("room.schemaLocation",   "$projectDir/schemas")
-    arg("room.incremental",      "true")
-    arg("room.expandProjection", "true")
+kapt {
+    correctErrorTypes = true
+    arguments {
+        arg("room.schemaLocation",  "$projectDir/schemas")
+        arg("room.incremental",     "true")
+        arg("room.expandProjection","true")
+    }
 }
 
 dependencies {
-    implementation("org.jetbrains.kotlin:kotlin-stdlib:1.4.30")
+    implementation(kotlin("stdlib", version = "1.5.31"))
 
     // Kotlin Coroutine
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.4.1")
