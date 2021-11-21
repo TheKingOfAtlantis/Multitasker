@@ -18,6 +18,10 @@ import uk.co.sksulai.multitasker.db.createDatabase
     @Provides @Singleton fun provideDatabase(
         @ApplicationContext context: Context
     ) = LocalDB.createDatabase(context)
+}
 
+@InstallIn(
+    SingletonComponent::class
+) @Module object DaoModule {
     @Provides fun provideUserDao(db: LocalDB) = db.getUserDao()
 }
