@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="uk.co.sksulai.multitasker">
+
+    <instrumentation
+        android:name="uk.co.sksulai.multitasker.test.Runner"
+        android:targetPackage="uk.co.sksulai.multitasker">
+    </instrumentation>
+
+</manifest>

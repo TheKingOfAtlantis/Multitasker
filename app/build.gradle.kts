@@ -17,7 +17,10 @@ android {
         versionCode   = 2
         versionName   = "0.0.2"
 
-        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        testInstrumentationRunner = "uk.co.sksulai.multitasker.test.Runner"
+        testInstrumentationRunnerArguments += mapOf(
+            "clearPackageData" to "true"
+        )
     }
 
     buildTypes {
