@@ -1,10 +1,9 @@
 package uk.co.sksulai.multitasker.db.converter
 
 import android.net.Uri
+
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.SmallTest
-
-import org.junit.Test
 import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
@@ -18,9 +17,5 @@ import org.junit.runner.RunWith
         "file://localhost/etc/fstab",
         "mailto:John.Doe@example.com",
         "news:comp.infosystems.www.servers.unix"
-    ).let { str -> str.map{ Uri.parse(it).normalizeScheme()!! }.zip(str) }
-) {
-    @Test override fun withNull() = super.withNull()
-    @Test override fun validateConversion() = super.validateConversion()
-    @Test override fun inverse() = super.inverse()
-}
+    ).let { str -> str.map{ Uri.parse(it) }.zip(str) }
+)

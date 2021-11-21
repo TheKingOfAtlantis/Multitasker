@@ -26,8 +26,7 @@ import uk.co.sksulai.multitasker.util.UserTestUtil
 
 import kotlin.random.Random
 
-@RunWith(AndroidJUnit4::class)
-@HiltAndroidTest
+@HiltAndroidTest @RunWith(AndroidJUnit4::class)
 @SmallTest class UserDaoTest {
     @get:Rule var hiltAndroidRule = HiltAndroidRule(this)
 
@@ -35,10 +34,8 @@ import kotlin.random.Random
     @Inject lateinit var db: LocalDB
     @Inject lateinit var dao: UserDao
 
-    @Before fun createDB() {
-        hiltAndroidRule.inject()
-    }
-    @After fun closeDB() { db.close() }
+    @Before fun createDB() = hiltAndroidRule.inject()
+    @After fun closeDB()   = db.close()
 
     @Test fun writeUserAndGetAll(): Unit = runBlocking {
         val user = UserTestUtil.createList(Random.nextInt(10, 100))
@@ -114,7 +111,7 @@ import kotlin.random.Random
     }
 
     @Test fun writeUserAndReadByActualName(): Unit = runBlocking {
-        val users = UserTestUtil.createList(3).map { it.copy(ActualName = "Dave") }.onEach { dao.insert(it) } +
+        val users = UserTestUtil.createList(3).map { it.copy(ActualName = "Dave")  }.onEach { dao.insert(it) } +
                     UserTestUtil.createList(2).map { it.copy(ActualName = "Harry") }.onEach { dao.insert(it) }
 
         assertThat(dao.fromActualName("Dave").first()).apply {
