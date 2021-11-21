@@ -1,5 +1,7 @@
 package uk.co.sksulai.multitasker.db.converter
 
+import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.filters.SmallTest
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.Suite
@@ -12,8 +14,9 @@ import java.time.*
     LocalDateTimeConverterTest::class
 ) class DateTimeConverterSuite
 
-class ZonedDateTimeConverterTest : ConverterTest<ZonedDateTime, String>(
-    ZonedDateTimeConverter(),
+@RunWith(AndroidJUnit4::class)
+@SmallTest class ZonedDateTimeConverterTest : ConverterTest<ZonedDateTime, String>(
+    ZonedDateTimeConverter,
     listOf(
         ZonedDateTime.of(
             LocalDateTime.of(
@@ -29,8 +32,9 @@ class ZonedDateTimeConverterTest : ConverterTest<ZonedDateTime, String>(
     @Test override fun inverse() = super.inverse()
 }
 
-class OffsetDateTimeConverterTest : ConverterTest<OffsetDateTime, String>(
-    OffsetDateTimeConverter(),
+@RunWith(AndroidJUnit4::class)
+@SmallTest class OffsetDateTimeConverterTest : ConverterTest<OffsetDateTime, String>(
+    OffsetDateTimeConverter,
     listOf(
         OffsetDateTime.of(
             LocalDateTime.of(
@@ -46,8 +50,9 @@ class OffsetDateTimeConverterTest : ConverterTest<OffsetDateTime, String>(
     @Test override fun inverse() = super.inverse()
 }
 
-class LocalDateTimeConverterTest : ConverterTest<LocalDateTime, String>(
-    LocalDateTimeConverter(),
+@RunWith(AndroidJUnit4::class)
+@SmallTest class LocalDateTimeConverterTest : ConverterTest<LocalDateTime, String>(
+    LocalDateTimeConverter,
     listOf(
         LocalDateTime.of(
             LocalDate.of(2020, 6, 29),

@@ -1,5 +1,7 @@
 package uk.co.sksulai.multitasker.db.converter
 
+import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.filters.SmallTest
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.Suite
@@ -11,8 +13,9 @@ import java.time.*
     LocalTimeConverterTest::class
 ) class TimeConverterSuite
 
-class OffsetTimeConverterTest : ConverterTest<OffsetTime, String>(
-    OffsetTimeConverter(),
+@RunWith(AndroidJUnit4::class)
+@SmallTest class OffsetTimeConverterTest : ConverterTest<OffsetTime, String>(
+    OffsetTimeConverter,
     listOf(
         OffsetTime.of(
             LocalTime.of(10, 10, 10),
@@ -25,8 +28,9 @@ class OffsetTimeConverterTest : ConverterTest<OffsetTime, String>(
     @Test override fun inverse() = super.inverse()
 }
 
-class LocalTimeConverterTest : ConverterTest<LocalTime, String>(
-    LocalTimeConverter(),
+@RunWith(AndroidJUnit4::class)
+@SmallTest class LocalTimeConverterTest : ConverterTest<LocalTime, String>(
+    LocalTimeConverter,
     listOf(
         LocalTime.of(16, 43, 12) to "16:43:12",
         LocalTime.of(5, 31, 45)  to "05:31:45",

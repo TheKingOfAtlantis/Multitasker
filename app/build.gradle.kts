@@ -157,20 +157,16 @@ dependencies {
     implementation("androidx.work:work-runtime-ktx:2.7.0-alpha01")
     implementation("androidx.work:work-gcm:2.7.0-alpha01")
 
-    // Testing
-    testImplementation("junit:junit:4.13")
-    testImplementation("androidx.test:core:1.3.0")
-    testImplementation("org.robolectric:robolectric:4.3.1")
-    testImplementation("org.mockito:mockito-core:2.19.0")
-    testImplementation("androidx.arch.core:core-testing:2.1.0")
-    testImplementation("androidx.room:room-testing:2.3.0-beta02")
+    // Testing: Instrumentation Testing
 
-    androidTestImplementation("androidx.test.ext:junit:1.1.2")
-    androidTestImplementation("androidx.test:runner:1.3.0")
-    androidTestImplementation("androidx.test:rules:1.3.0")
-    androidTestImplementation("org.hamcrest:hamcrest-library:2.2")
-    androidTestImplementation("androidx.test.espresso:espresso-core:3.3.0")
-    androidTestImplementation("androidx.test.uiautomator:uiautomator:2.2.0")
-    androidTestImplementation("androidx.navigation:navigation-testing:2.3.3")
-	androidTestImplementation("androidx.work:work-testing:2.7.0-alpha01")
+    androidTestImplementation("androidx.test.ext:junit:+")
+    androidTestImplementation("androidx.test.espresso:espresso-core:+")
+    androidTestImplementation("androidx.compose.ui:ui-test-junit4:1.1.0-beta02")
+
+    androidTestImplementation("androidx.test.ext:junit-ktx:1.1.3")
+    androidTestImplementation("androidx.test.ext:truth:1.4.0")
+    androidTestImplementation("com.google.truth:truth:1.1.3")
+
+    androidTestImplementation("com.google.dagger:hilt-android-testing:2.38.1")
+    kaptAndroidTest("com.google.dagger:hilt-android-compiler:2.38.1")
 }
