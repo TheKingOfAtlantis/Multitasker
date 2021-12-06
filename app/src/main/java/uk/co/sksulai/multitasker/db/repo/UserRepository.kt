@@ -342,7 +342,7 @@ class UserRepository @Inject constructor(
     }
     interface EmailVerification {
         val verified: Boolean
-        suspend fun request(email: String)
+        suspend fun request()
         suspend fun confirm(code: String)
     }
 
