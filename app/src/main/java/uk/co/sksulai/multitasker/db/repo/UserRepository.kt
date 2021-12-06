@@ -33,10 +33,11 @@ import uk.co.sksulai.multitasker.util.DatastoreLocators.AppState
 
 @JvmInline value class GoogleIntent(val value: Intent?)
 
-/**
- * The repository exposes all suspended functions as Flow<T>, this allows quick
- * integration with Jetpack Compose due to the collectAsState()
- */
+//
+// The repository exposes all suspended functions as Flow<T>, this allows quick
+// integration with Jetpack Compose due to the collectAsState()
+//
+
 @OptIn(ExperimentalCoroutinesApi::class)
 class UserRepository @Inject constructor(
     @ApplicationContext private val context: Context,
@@ -82,7 +83,7 @@ class UserRepository @Inject constructor(
     fun fromFirebase(user: FirebaseUser) = fromID(user.uid)
     /**
      * Retrieves a list of UserModels given a search string to query against display names
-     * @param id - The display name search string
+     * @param id The display name search string
      * @return Flow containing the list of UserModels
      */
     fun fromDisplayName(displayName: String) = combine(
@@ -93,7 +94,7 @@ class UserRepository @Inject constructor(
     ) { local, web -> local + web }.flowOn(Dispatchers.IO)
     /**
      * Retrieves a list of UserModels given a search string to query against names
-     * @param id - The name search string
+     * @param id The name search string
      * @return Flow containing the list of UserModels
      */
     fun fromActualName(actualName: String) = combine(
@@ -107,8 +108,8 @@ class UserRepository @Inject constructor(
 
     /**
      * Create a user given a email and password
-     * @param email - The email to associate the account with
-     * @param password - The password to use for the account
+     * @param email    The email to associate the account with
+     * @param password The password to use for the account
      * @return The UserModel created for this user
      */
     suspend fun create(
@@ -121,7 +122,7 @@ class UserRepository @Inject constructor(
 
     /**
      * Create a user given a Firebase User object
-     * @param user - FirebaseUser object to create an account for
+     * @param user FirebaseUser object to create an account for
      * @return The UserModel created for this user
      */
     private suspend fun create(user: FirebaseUser) = withContext(Dispatchers.IO) {
@@ -181,7 +182,7 @@ class UserRepository @Inject constructor(
     // Update
     /**
      * Updates the users information
-     * @param model - UserModel with the modifications to make
+     * @param model UserModel with the modifications to make
      */
     suspend fun update(user: UserModel): Unit = withContext(Dispatchers.IO) {
         launch { dao.update(user.copy(LastModified = Instant.now())) }
@@ -228,7 +229,7 @@ class UserRepository @Inject constructor(
     // User authentication & account linking
 
     /**
-     * Authenticate the user against the credentials stored by firebase
+     * Authenticate the user using email & password against the credentials stored by firebase
      * @param email Email to authenticate against
      * @param password Password to check
      */
@@ -335,37 +336,24 @@ class UserRepository @Inject constructor(
 
     // Email & Password Actions
 
-    interface ResetPassword {
-        suspend fun request(email: String)
-        suspend fun isValid(code: String): String
-        suspend fun reset(code: String, email: String, password: String)
-    }
-    interface EmailVerification {
-        val verified: Boolean
-        suspend fun request()
-        suspend fun confirm(code: String)
-    }
-
     /**
      * Provides methods for resetting passwords
      */
-    val resetPassword = object : ResetPassword {
+    inner class ResetPassword {
         /**
          * Sends a request to reset a password to the given email
          * @param email THe email to send the request to/associated with the account
          */
-        override suspend fun request(email: String): Unit = withContext(Dispatchers.IO) {
+        suspend fun request(email: String): Unit = withContext(Dispatchers.IO) {
             Firebase.auth.sendPasswordResetEmail(email).await()
         }
-
         /**
          * Checks that the code from the request is valid
          * @param code Password reset request code from the deeplink
          */
-        override suspend fun isValid(code: String) = withContext(Dispatchers.IO) {
+        suspend fun isValid(code: String): String = withContext(Dispatchers.IO) {
             Firebase.auth.verifyPasswordResetCode(code).await()
         }
-
         /**
          * Performs the resetting of the password
          *
@@ -373,34 +361,39 @@ class UserRepository @Inject constructor(
          * @param email The email associated with the user
          * @param password The new password to use for the user
          */
-        override suspend fun reset(code: String, email: String, password: String): Unit = withContext(Dispatchers.IO) {
+        suspend fun reset(code: String, email: String, password: String): Unit = withContext(Dispatchers.IO) {
             Firebase.auth.confirmPasswordReset(code, password).await()
             authenticate(email, password)
         }
     }
+
     /**
      * Provides methods for verifying the email
      */
-    val emailVerification = object : EmailVerification {
+    inner class EmailVerification {
         /**
          * Whether or not the email of the current user has been verified
          */
-        override val verified = Firebase.auth.currentUser?.isEmailVerified ?: false
-
+        val verified: Boolean = Firebase.auth.currentUser?.isEmailVerified ?: false
         /**
          * Sends an email verification request to the current user's email
          */
-        override suspend fun request() {
-            Firebase.auth.currentUser?.sendEmailVerification()
-        }
+        suspend fun request() = withContext(Dispatchers.IO) { Firebase.auth.currentUser?.sendEmailVerification()?.await() }
         /**
          * Verifies the email verification code retrieved from deeplink and if valid
          * marks the user as verified
          *
          * @param code The email verification code to verify
          */
-        override suspend fun confirm(code: String) {
-            Firebase.auth.applyActionCode(code).await()
-        }
+        suspend fun confirm(code: String) = withContext(Dispatchers.IO) { Firebase.auth.applyActionCode(code).await() }
     }
+
+    /**
+     * Provides methods for resetting passwords
+     */
+    val resetPassword = ResetPassword()
+    /**
+     * Provides methods for verifying the email
+     */
+    val emailVerification = EmailVerification()
 }
