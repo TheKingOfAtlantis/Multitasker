@@ -20,20 +20,45 @@ import uk.co.sksulai.multitasker.R
 import uk.co.sksulai.multitasker.db.repo.GoogleIntent
 import uk.co.sksulai.multitasker.db.repo.UserRepository
 
-@JvmInline value class GoogleIntentLauncher(val value: ActivityResultLauncher<IntentSenderRequest>)
+/**
+ * Wrapper around ActivityResultLauncher to provide type overloading
+ * @param launcher Activity result launcher to start the intent
+ */
+@JvmInline value class GoogleIntentLauncher(val launcher: ActivityResultLauncher<IntentSenderRequest>)
 private fun GoogleIntentLauncher.launch(intent: PendingIntent) =
-    value.launch(IntentSenderRequest.Builder(intent).build())
+    launcher.launch(IntentSenderRequest.Builder(intent).build())
+/**
+ * Launches a BeginSignInResult intent
+ */
 private fun GoogleIntentLauncher.launch(intent: BeginSignInResult)  = launch(intent.pendingIntent)
+/**
+ * Launches a SavePasswordResult intent
+ */
 private fun GoogleIntentLauncher.launch(intent: SavePasswordResult) = launch(intent.pendingIntent)
+
 
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel class UserViewModel @Inject constructor(
     private val app: Application,
     private val userRepo: UserRepository
 ) : AndroidViewModel(app) {
-    val currentUser   = userRepo.currentUser
+    /**
+     * Flow of the current user
+     */
+    val currentUser = userRepo.currentUser
+    /**
+     * The current user's preferred home page
+     */
     val preferredHome = currentUser.map { it?.PreferredHome }
 
+    /**
+     * Used to correctly show Firebase authentication errors to the user
+     *
+     * @param err - Firebase authentication exception to handle
+     * @param onEmailError - Used to expose an error related to the given email
+     * @param onPasswordError - Used to expose an error related to the given password
+     * @param onAuthError - Used to expose a more general authentication error
+     */
     suspend fun handleAuthError(
         err: FirebaseAuthException,
         onEmailError: suspend (String) -> Unit,
@@ -70,6 +95,13 @@ private fun GoogleIntentLauncher.launch(intent: SavePasswordResult) = launch(int
         }
     }
 
+    /**
+     * Common steps with regards to email sign-in/up
+     * @param action - Handles unique sign-in/up details
+     * @param email  - The email to pass to the action handler
+     * @param password - The password to pass to the action handler
+     * @param saverLauncher - Intent launcher to save the password
+     */
     private suspend fun <T> emailAction(
         action: suspend (email: String, password: String) -> T,
         email: String,
@@ -87,11 +119,21 @@ private fun GoogleIntentLauncher.launch(intent: SavePasswordResult) = launch(int
 //        saverLauncher.launch(saver)
     }
 
+    /**
+     * Creates a user given an email and password
+     * @param email         The email to use to create a user
+     * @param password      The password to be used
+     * @param saverLauncher Intent launcher used to save the email/password
+     */
     suspend fun create(
         email: String,
         password: String,
         saverLauncher: GoogleIntentLauncher
     ) = emailAction(userRepo::create, email, password, saverLauncher)
+    /**
+     * Creates a user using the Google Identity API
+     * @param launcher Intent launcher to open the One-tap sign in
+     */
     suspend fun create(launcher: GoogleIntentLauncher) {
         val request = BeginSignInRequest.builder()
             .setGoogleIdTokenRequestOptions(
@@ -107,13 +149,30 @@ private fun GoogleIntentLauncher.launch(intent: SavePasswordResult) = launch(int
         launcher.launch(intent)
     }
 
+    /**
+     * Authenticate a user given an email and password
+     * @param email  - The email to sign in with
+     * @param password - The password to sign in with
+     * @param saverLauncher - Intent launcher to save the password
+     */
     suspend fun authenticate(
         email: String,
         password: String,
         saverLauncher: GoogleIntentLauncher
     ) = emailAction(userRepo::authenticate, email, password, saverLauncher)
+    /**
+     * Authenticate a user using the Facebook Login API
+     */
     suspend fun authenticate(loginResult: LoginResult) { userRepo.authenticate(loginResult.accessToken) }
+    /**
+     * Authenticate a user given the result of calling the Google Identity API
+     * @param googleIntent Intent containing the result of signing in
+     */
     suspend fun authenticate(googleIntent: GoogleIntent) { userRepo.authenticate(googleIntent) }
+    /**
+     * Authenticate a user using the Google Identity API
+     * @param launcher Intent launcher to start the authentication
+     */
     suspend fun authenticate(launcher: GoogleIntentLauncher) {
         val request = BeginSignInRequest.builder()
             .setGoogleIdTokenRequestOptions(
@@ -133,6 +192,9 @@ private fun GoogleIntentLauncher.launch(intent: SavePasswordResult) = launch(int
         launcher.launch(intent)
     }
 
+    /**
+     * Sign out the user
+     */
     suspend fun signOut() {
         userRepo.signOut()
         Identity.getSignInClient(app).signOut().await()

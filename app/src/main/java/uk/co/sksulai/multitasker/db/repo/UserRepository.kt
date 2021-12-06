@@ -48,7 +48,7 @@ class UserRepository @Inject constructor(
     // Getters
 
     /**
-     * @brief Reference to the current user which is signed in
+     * Reference to the current user which is signed in
      * The state of this value is automatically managed by the repository
      */
     val currentUser = AppState.retrieve(context).data
@@ -275,7 +275,11 @@ class UserRepository @Inject constructor(
         }
     }
 
-    suspend fun authenticate(credential: AuthCredential) = withContext(Dispatchers.IO) {
+    /**
+     * Used to perform authentication via firebase
+     * @param credential The credentials which have been retrieves by a credential provider
+     */
+    private suspend fun authenticate(credential: AuthCredential) = withContext(Dispatchers.IO) {
         // Authenticate the user w/ credential using Firebase
         // Once we succeed retrieve user information from database
         // Insert this information into the local database
@@ -342,23 +346,59 @@ class UserRepository @Inject constructor(
         suspend fun confirm(code: String)
     }
 
+    /**
+     * Provides methods for resetting passwords
+     */
     val resetPassword = object : ResetPassword {
+        /**
+         * Sends a request to reset a password to the given email
+         * @param email THe email to send the request to/associated with the account
+         */
         override suspend fun request(email: String): Unit = withContext(Dispatchers.IO) {
             Firebase.auth.sendPasswordResetEmail(email).await()
         }
+
+        /**
+         * Checks that the code from the request is valid
+         * @param code Password reset request code from the deeplink
+         */
         override suspend fun isValid(code: String) = withContext(Dispatchers.IO) {
             Firebase.auth.verifyPasswordResetCode(code).await()
         }
+
+        /**
+         * Performs the resetting of the password
+         *
+         * @param code Password reset request code
+         * @param email The email associated with the user
+         * @param password The new password to use for the user
+         */
         override suspend fun reset(code: String, email: String, password: String): Unit = withContext(Dispatchers.IO) {
             Firebase.auth.confirmPasswordReset(code, password).await()
             authenticate(email, password)
         }
     }
+    /**
+     * Provides methods for verifying the email
+     */
     val emailVerification = object : EmailVerification {
+        /**
+         * Whether or not the email of the current user has been verified
+         */
         override val verified = Firebase.auth.currentUser?.isEmailVerified ?: false
-        override suspend fun request(email: String) {
+
+        /**
+         * Sends an email verification request to the current user's email
+         */
+        override suspend fun request() {
             Firebase.auth.currentUser?.sendEmailVerification()
         }
+        /**
+         * Verifies the email verification code retrieved from deeplink and if valid
+         * marks the user as verified
+         *
+         * @param code The email verification code to verify
+         */
         override suspend fun confirm(code: String) {
             Firebase.auth.applyActionCode(code).await()
         }
