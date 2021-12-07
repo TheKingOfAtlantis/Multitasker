@@ -3,6 +3,9 @@ package uk.co.sksulai.multitasker.db.repo
 import java.time.Instant
 import java.time.LocalDate
 
+import javax.inject.Inject
+import dagger.hilt.android.qualifiers.ApplicationContext
+
 import android.net.Uri
 import android.util.Log
 import android.content.Context
@@ -23,48 +26,55 @@ import com.google.firebase.auth.*
 import com.google.firebase.ktx.Firebase
 import com.google.firebase.auth.ktx.auth
 
-import uk.co.sksulai.multitasker.db.LocalDB
 import uk.co.sksulai.multitasker.db.dao.UserDao
 import uk.co.sksulai.multitasker.db.model.UserModel
 import uk.co.sksulai.multitasker.db.web.UserWebService
-import uk.co.sksulai.multitasker.db.createDatabase
-import uk.co.sksulai.multitasker.util.DatastoreKeys
-import uk.co.sksulai.multitasker.util.Datastores.appStatePref
+import uk.co.sksulai.multitasker.util.DatastoreLocators.AppState
 
-inline class GoogleIntent(val value: Intent?)
+@JvmInline value class GoogleIntent(val value: Intent?)
+
+//
+// The repository exposes all suspended functions as Flow<T>, this allows quick
+// integration with Jetpack Compose due to the collectAsState()
+//
 
 /**
- * The repository exposes all suspended functions as Flow<T>, this allows quick
- * integration with Jetpack Compose due to the collectAsState()
+ * Used to manage access to user data both locally and remotely
+ * @param context Application context
+ * @param dao Local user database access object
+ * @param web Firebase user database
  */
 @OptIn(ExperimentalCoroutinesApi::class)
-class UserRepository(private val context: Context) {
+class UserRepository @Inject constructor(
+    @ApplicationContext private val context: Context,
+    private val dao: UserDao,
+    private val web: UserWebService
+) {
     private val repoScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
-
-    private val db: LocalDB         = LocalDB.createDatabase(context)
-    private val dao: UserDao        = db.getUserDao()
-    private val web: UserWebService = UserWebService()
 
     // Getters
 
     /**
-     * @brief Reference to the current user which is signed in
+     * Reference to the current user which is signed in
      * The state of this value is automatically managed by the repository
      */
-    val currentUser = flow {
-        val id = context.appStatePref.data.map {
-            it[DatastoreKeys.AppState.CurrentUser] ?: ""
-        }
-        emitAll(id.distinctUntilChanged().flatMapLatest {
-            if(it.isNotEmpty()) fromID(it)
-            else emptyFlow()
-        })
-    }.flowOn(Dispatchers.IO)
+    val currentUser = AppState.retrieve(context).data
+        .map { it[AppState.CurrentUser] ?: "" }
+        .flatMapLatest { fromID(it) }
+        .flowOn(Dispatchers.IO)
 
-    private suspend fun setCurrentUser(value: String) = repoScope.launch {
-        context.appStatePref.edit { it[DatastoreKeys.AppState.CurrentUser] = value }
+    /**
+     * Used when authenticating to set the current user
+     * @param id ID of the new current user
+     */
+    private suspend fun setCurrentUser(id: String) = repoScope.launch {
+        AppState.retrieve(context).edit { it[AppState.CurrentUser] = id }
     }
 
+    /**
+     * Retrieves all the users stored locally
+     * @return Flow of users
+     */
     fun getAll() = dao.getAll()
 
     /**
@@ -87,7 +97,7 @@ class UserRepository(private val context: Context) {
     fun fromFirebase(user: FirebaseUser) = fromID(user.uid)
     /**
      * Retrieves a list of UserModels given a search string to query against display names
-     * @param id - The display name search string
+     * @param id The display name search string
      * @return Flow containing the list of UserModels
      */
     fun fromDisplayName(displayName: String) = combine(
@@ -98,7 +108,7 @@ class UserRepository(private val context: Context) {
     ) { local, web -> local + web }.flowOn(Dispatchers.IO)
     /**
      * Retrieves a list of UserModels given a search string to query against names
-     * @param id - The name search string
+     * @param id The name search string
      * @return Flow containing the list of UserModels
      */
     fun fromActualName(actualName: String) = combine(
@@ -112,8 +122,8 @@ class UserRepository(private val context: Context) {
 
     /**
      * Create a user given a email and password
-     * @param email - The email to associate the account with
-     * @param password - The password to use for the account
+     * @param email    The email to associate the account with
+     * @param password The password to use for the account
      * @return The UserModel created for this user
      */
     suspend fun create(
@@ -126,7 +136,7 @@ class UserRepository(private val context: Context) {
 
     /**
      * Create a user given a Firebase User object
-     * @param user - FirebaseUser object to create an account for
+     * @param user FirebaseUser object to create an account for
      * @return The UserModel created for this user
      */
     private suspend fun create(user: FirebaseUser) = withContext(Dispatchers.IO) {
@@ -169,9 +179,9 @@ class UserRepository(private val context: Context) {
      * @return The UserModel passed for this user
      */
     private suspend fun create(model: UserModel) = withContext(Dispatchers.IO) {
-        model.also {
-            insert(it)
-            setCurrentUser(it.ID)
+        model.also { user ->
+            insert(user)
+            setCurrentUser(user.ID)
         }
     }
 
@@ -186,7 +196,7 @@ class UserRepository(private val context: Context) {
     // Update
     /**
      * Updates the users information
-     * @param model - UserModel with the modifications to make
+     * @param model UserModel with the modifications to make
      */
     suspend fun update(user: UserModel): Unit = withContext(Dispatchers.IO) {
         launch { dao.update(user.copy(LastModified = Instant.now())) }
@@ -233,7 +243,7 @@ class UserRepository(private val context: Context) {
     // User authentication & account linking
 
     /**
-     * Authenticate the user against the credentials stored by firebase
+     * Authenticate the user using email & password against the credentials stored by firebase
      * @param email Email to authenticate against
      * @param password Password to check
      */
@@ -280,7 +290,11 @@ class UserRepository(private val context: Context) {
         }
     }
 
-    suspend fun authenticate(credential: AuthCredential) = withContext(Dispatchers.IO) {
+    /**
+     * Used to perform authentication via firebase
+     * @param credential The credentials which have been retrieves by a credential provider
+     */
+    private suspend fun authenticate(credential: AuthCredential) = withContext(Dispatchers.IO) {
         // Authenticate the user w/ credential using Firebase
         // Once we succeed retrieve user information from database
         // Insert this information into the local database
@@ -336,36 +350,64 @@ class UserRepository(private val context: Context) {
 
     // Email & Password Actions
 
-    interface ResetPassword {
-        suspend fun request(email: String)
-        suspend fun isValid(code: String): String
-        suspend fun reset(code: String, email: String, password: String)
-    }
-    interface EmailVerification {
-        val verified: Boolean
-        suspend fun request(email: String)
-        suspend fun confirm(code: String)
-    }
-
-    val resetPassword = object : ResetPassword {
-        override suspend fun request(email: String): Unit = withContext(Dispatchers.IO) {
+    /**
+     * Provides methods for resetting passwords
+     */
+    inner class ResetPassword {
+        /**
+         * Sends a request to reset a password to the given email
+         * @param email THe email to send the request to/associated with the account
+         */
+        suspend fun request(email: String): Unit = withContext(Dispatchers.IO) {
             Firebase.auth.sendPasswordResetEmail(email).await()
         }
-        override suspend fun isValid(code: String) = withContext(Dispatchers.IO) {
+        /**
+         * Checks that the code from the request is valid
+         * @param code Password reset request code from the deeplink
+         */
+        suspend fun isValid(code: String): String = withContext(Dispatchers.IO) {
             Firebase.auth.verifyPasswordResetCode(code).await()
         }
-        override suspend fun reset(code: String, email: String, password: String): Unit = withContext(Dispatchers.IO) {
+        /**
+         * Performs the resetting of the password
+         *
+         * @param code Password reset request code
+         * @param email The email associated with the user
+         * @param password The new password to use for the user
+         */
+        suspend fun reset(code: String, email: String, password: String): Unit = withContext(Dispatchers.IO) {
             Firebase.auth.confirmPasswordReset(code, password).await()
             authenticate(email, password)
         }
     }
-    val emailVerification = object : EmailVerification {
-        override val verified = Firebase.auth.currentUser?.isEmailVerified ?: false
-        override suspend fun request(email: String) {
-            Firebase.auth.currentUser?.sendEmailVerification()
-        }
-        override suspend fun confirm(code: String) {
-            Firebase.auth.applyActionCode(code).await()
-        }
+
+    /**
+     * Provides methods for verifying the email
+     */
+    inner class EmailVerification {
+        /**
+         * Whether or not the email of the current user has been verified
+         */
+        val verified: Boolean = Firebase.auth.currentUser?.isEmailVerified ?: false
+        /**
+         * Sends an email verification request to the current user's email
+         */
+        suspend fun request() = withContext(Dispatchers.IO) { Firebase.auth.currentUser?.sendEmailVerification()?.await() }
+        /**
+         * Verifies the email verification code retrieved from deeplink and if valid
+         * marks the user as verified
+         *
+         * @param code The email verification code to verify
+         */
+        suspend fun confirm(code: String) = withContext(Dispatchers.IO) { Firebase.auth.applyActionCode(code).await() }
     }
+
+    /**
+     * Provides methods for resetting passwords
+     */
+    val resetPassword = ResetPassword()
+    /**
+     * Provides methods for verifying the email
+     */
+    val emailVerification = EmailVerification()
 }

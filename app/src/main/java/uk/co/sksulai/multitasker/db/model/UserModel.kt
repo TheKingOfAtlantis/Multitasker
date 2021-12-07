@@ -1,8 +1,8 @@
 package uk.co.sksulai.multitasker.db.model
 
+import java.time.*
 import android.net.Uri
 import androidx.room.*
-import java.time.*
 
 @Entity data class UserModel(
     @PrimaryKey val ID: String, // ID of the user - Same as Firebase uid
