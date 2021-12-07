@@ -38,6 +38,12 @@ import uk.co.sksulai.multitasker.util.DatastoreLocators.AppState
 // integration with Jetpack Compose due to the collectAsState()
 //
 
+/**
+ * Used to manage access to user data both locally and remotely
+ * @param context Application context
+ * @param dao Local user database access object
+ * @param web Firebase user database
+ */
 @OptIn(ExperimentalCoroutinesApi::class)
 class UserRepository @Inject constructor(
     @ApplicationContext private val context: Context,
@@ -57,10 +63,18 @@ class UserRepository @Inject constructor(
         .flatMapLatest { fromID(it) }
         .flowOn(Dispatchers.IO)
 
-    private suspend fun setCurrentUser(value: String) = repoScope.launch {
-        AppState.retrieve(context).edit { it[AppState.CurrentUser] = value }
+    /**
+     * Used when authenticating to set the current user
+     * @param id ID of the new current user
+     */
+    private suspend fun setCurrentUser(id: String) = repoScope.launch {
+        AppState.retrieve(context).edit { it[AppState.CurrentUser] = id }
     }
 
+    /**
+     * Retrieves all the users stored locally
+     * @return Flow of users
+     */
     fun getAll() = dao.getAll()
 
     /**
@@ -165,9 +179,9 @@ class UserRepository @Inject constructor(
      * @return The UserModel passed for this user
      */
     private suspend fun create(model: UserModel) = withContext(Dispatchers.IO) {
-        model.also {
-            insert(it)
-            setCurrentUser(it.ID)
+        model.also { user ->
+            insert(user)
+            setCurrentUser(user.ID)
         }
     }
 

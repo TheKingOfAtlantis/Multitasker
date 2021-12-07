@@ -36,7 +36,11 @@ private fun GoogleIntentLauncher.launch(intent: BeginSignInResult)  = launch(int
  */
 private fun GoogleIntentLauncher.launch(intent: SavePasswordResult) = launch(intent.pendingIntent)
 
-
+/**
+ * Viewmodel to access user data
+ * @param app      The current application
+ * @param userRepo The user repository to use
+ */
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel class UserViewModel @Inject constructor(
     private val app: Application,
@@ -54,10 +58,10 @@ private fun GoogleIntentLauncher.launch(intent: SavePasswordResult) = launch(int
     /**
      * Used to correctly show Firebase authentication errors to the user
      *
-     * @param err - Firebase authentication exception to handle
-     * @param onEmailError - Used to expose an error related to the given email
-     * @param onPasswordError - Used to expose an error related to the given password
-     * @param onAuthError - Used to expose a more general authentication error
+     * @param err             Firebase authentication exception to handle
+     * @param onEmailError    Used to expose an error related to the given email
+     * @param onPasswordError Used to expose an error related to the given password
+     * @param onAuthError     Used to expose a more general authentication error
      */
     suspend fun handleAuthError(
         err: FirebaseAuthException,
@@ -97,10 +101,10 @@ private fun GoogleIntentLauncher.launch(intent: SavePasswordResult) = launch(int
 
     /**
      * Common steps with regards to email sign-in/up
-     * @param action - Handles unique sign-in/up details
-     * @param email  - The email to pass to the action handler
-     * @param password - The password to pass to the action handler
-     * @param saverLauncher - Intent launcher to save the password
+     * @param action        Handles unique sign-in/up details
+     * @param email         The email to pass to the action handler
+     * @param password      The password to pass to the action handler
+     * @param saverLauncher Intent launcher to save the password
      */
     private suspend fun <T> emailAction(
         action: suspend (email: String, password: String) -> T,
@@ -151,9 +155,9 @@ private fun GoogleIntentLauncher.launch(intent: SavePasswordResult) = launch(int
 
     /**
      * Authenticate a user given an email and password
-     * @param email  - The email to sign in with
-     * @param password - The password to sign in with
-     * @param saverLauncher - Intent launcher to save the password
+     * @param email         The email to sign in with
+     * @param password      The password to sign in with
+     * @param saverLauncher Intent launcher to save the password
      */
     suspend fun authenticate(
         email: String,

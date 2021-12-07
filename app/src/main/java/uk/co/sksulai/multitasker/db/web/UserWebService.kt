@@ -24,10 +24,13 @@ fun Timestamp.toInstance(): Instant = Instant.ofEpochSecond(seconds, nanoseconds
 
 interface IUserWebService : UserDataSource, WebService
 
+/**
+ * Used to access the user documents in Firestore
+ */
 @OptIn(ExperimentalCoroutinesApi::class)
 class UserWebService : IUserWebService {
     /**
-     * The firebase database
+     * The Firestore database
      */
     private val db = Firebase.firestore
     /**
@@ -36,7 +39,7 @@ class UserWebService : IUserWebService {
     private val collection = db.collection("users")
 
     /**
-     * Helper to convert UserModels to Firebase documents
+     * Helper to convert UserModels to Firestore documents
      */
     private fun UserModel.toDocument() = hashMapOf(
         "Email"         to Email,
@@ -50,7 +53,7 @@ class UserWebService : IUserWebService {
         "Home"          to Home
     )
     /**
-     * Helper to convert Firebase documents to UserModels
+     * Helper to convert Firestore documents to UserModels
      */
     private fun MutableMap<String, Any?>.fromDocument(id: String) = UserModel(
         ID            = id,
