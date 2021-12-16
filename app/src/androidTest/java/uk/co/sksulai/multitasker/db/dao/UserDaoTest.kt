@@ -145,4 +145,36 @@ import kotlin.random.Random
             isEmpty()
         }
     }
+
+    @Test fun searchByDisplayName(): Unit = runBlocking {
+        val users = UserTestUtil.createList(5)
+            .mapIndexed { i, user -> user.copy(DisplayName = "Username$i") }
+            .onEach { dao.insert(it) }
+
+        // Should contain all the users which start with Username (which is all of them)
+        assertThat(dao.fromDisplayName("Username").first())
+            .containsExactlyElementsIn(users)
+
+        (0..users.lastIndex).forEach { index ->
+            assertThat(dao.fromDisplayName("$index").first())
+                .containsExactly(users[index])
+        }
+    }
+    @Test fun searchByActualName(): Unit = runBlocking {
+        val users = UserTestUtil.createList(5)
+            .mapIndexed { i, user -> user.copy(ActualName = "Actual Name$i") }
+            .onEach { dao.insert(it) }
+
+        // Should contain all the users which start with 'Actual' (which is all of them)
+        assertThat(dao.fromActualName(searchQuery("Actual") { any = true }).first())
+            .containsExactlyElementsIn(users)
+        // Should contain all the users which start with 'Name' (which is all of them)
+        assertThat(dao.fromActualName(searchQuery("Name") { any = true }).first())
+            .containsExactlyElementsIn(users)
+
+        (0..users.lastIndex).forEach { index ->
+            assertThat(dao.fromActualName("$index").first())
+                .containsExactly(users[index])
+        }
+    }
 }

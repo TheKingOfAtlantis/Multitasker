@@ -7,7 +7,6 @@ import javax.inject.Inject
 import dagger.hilt.android.qualifiers.ApplicationContext
 
 import android.net.Uri
-import android.util.Log
 import android.content.Context
 import android.content.Intent
 import androidx.datastore.preferences.core.edit
@@ -22,8 +21,8 @@ import com.google.firebase.auth.ktx.auth
 
 import com.google.android.gms.auth.api.identity.Identity
 
+import uk.co.sksulai.multitasker.db.dao.*
 import uk.co.sksulai.multitasker.db.model.UserModel
-import uk.co.sksulai.multitasker.db.dao.UserDao
 import uk.co.sksulai.multitasker.db.web.UserWebService
 import uk.co.sksulai.multitasker.util.DatastoreLocators.AppState
 
@@ -100,22 +99,22 @@ class UserRepository @Inject constructor(
      * @param id The display name search string
      * @return Flow containing the list of UserModels
      */
-    fun fromDisplayName(displayName: String) = combine(
+    fun fromDisplayName(displayName: String, queryParams: QueryBuilder.() -> Unit) = combine(
         // Check the local database and the internet
         // Combine the resulting lists
-        dao.fromDisplayName(displayName),
-        web.fromDisplayName(displayName)
+        dao.fromDisplayName(SearchQuery.local(displayName, queryParams)),
+        web.fromDisplayName(SearchQuery.remote(displayName, queryParams))
     ) { local, web -> local + web }.flowOn(Dispatchers.IO)
     /**
      * Retrieves a list of UserModels given a search string to query against names
      * @param id The name search string
      * @return Flow containing the list of UserModels
      */
-    fun fromActualName(actualName: String) = combine(
+    fun fromActualName(actualName: String, queryParams: QueryBuilder.() -> Unit) = combine(
         // Check the local database and the internet
         // Combine the resulting lists
-        dao.fromActualName(actualName),
-        web.fromActualName(actualName)
+        dao.fromActualName(SearchQuery.local(actualName, queryParams)),
+        web.fromActualName(SearchQuery.remote(actualName, queryParams))
     ) { local, web -> local + web }.flowOn(Dispatchers.IO)
 
     // Creation: Used when user creates an account

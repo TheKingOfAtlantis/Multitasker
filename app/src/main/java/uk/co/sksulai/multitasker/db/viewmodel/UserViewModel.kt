@@ -16,6 +16,8 @@ import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 
 import uk.co.sksulai.multitasker.R
+import uk.co.sksulai.multitasker.db.dao.QueryBuilder
+import uk.co.sksulai.multitasker.db.model.UserModel
 import uk.co.sksulai.multitasker.db.repo.GoogleIntent
 import uk.co.sksulai.multitasker.db.repo.UserRepository
 
@@ -213,6 +215,11 @@ private fun GoogleIntentLauncher.launch(intent: SavePasswordResult) = launch(int
         user?.let { userRepo.delete(it, localOnly = false) }
         signOut()
     }
+
+    fun fromDisplayName(displayName: String, queryParam: QueryBuilder.() -> Unit = {}) =
+        userRepo.fromDisplayName(displayName, queryParam)
+    fun fromActualName(displayName: String, queryParam: QueryBuilder.() -> Unit = {}) =
+        userRepo.fromActualName(displayName, queryParam)
 
     val resetPassword     get() = userRepo.resetPassword
     val emailVerification get() = userRepo.emailVerification
