@@ -152,12 +152,12 @@ import kotlin.random.Random
             .onEach { dao.insert(it) }
 
         // Should contain all the users which start with Username (which is all of them)
-        assertThat(dao.fromDisplayName("Username").first())
+        assertThat(dao.fromDisplayName(SearchQuery.local("Username") { any = true }).first())
             .containsExactlyElementsIn(users)
 
-        (0..users.lastIndex).forEach { index ->
-            assertThat(dao.fromDisplayName("$index").first())
-                .containsExactly(users[index])
+        users.forEachIndexed { index, user ->
+            assertThat(dao.fromDisplayName(SearchQuery.local("$index") { any = true }).first())
+                .containsExactly(user)
         }
     }
     @Test fun searchByActualName(): Unit = runBlocking {
@@ -166,15 +166,15 @@ import kotlin.random.Random
             .onEach { dao.insert(it) }
 
         // Should contain all the users which start with 'Actual' (which is all of them)
-        assertThat(dao.fromActualName(searchQuery("Actual") { any = true }).first())
+        assertThat(dao.fromActualName(SearchQuery.local("Actual") { any = true }).first())
             .containsExactlyElementsIn(users)
         // Should contain all the users which start with 'Name' (which is all of them)
-        assertThat(dao.fromActualName(searchQuery("Name") { any = true }).first())
+        assertThat(dao.fromActualName(SearchQuery.local("Name") { any = true }).first())
             .containsExactlyElementsIn(users)
 
-        (0..users.lastIndex).forEach { index ->
-            assertThat(dao.fromActualName("$index").first())
-                .containsExactly(users[index])
+        users.forEachIndexed { index, user ->
+            assertThat(dao.fromActualName(SearchQuery.local("$index") { any = true }).first())
+                .containsExactly(user)
         }
     }
 }
