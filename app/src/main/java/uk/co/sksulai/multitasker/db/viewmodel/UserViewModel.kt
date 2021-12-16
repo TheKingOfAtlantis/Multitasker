@@ -215,6 +215,13 @@ private fun GoogleIntentLauncher.launch(intent: SavePasswordResult) = launch(int
         user?.let { userRepo.delete(it, localOnly = false) }
         signOut()
     }
+
+    /**
+     * Retrieves a UserModel given the user ID
+     * @param id ID associated with the user to retrieve
+     * @return Flow containing the UserModel (if found) or null
+     */
+    fun fromID(id: String) = userRepo.fromID(id)
     /**
      * Retrieves a list of UserModels given a search string to query against display names
      * @param displayName The display name search string
