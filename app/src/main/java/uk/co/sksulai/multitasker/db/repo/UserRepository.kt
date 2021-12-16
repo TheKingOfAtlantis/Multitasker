@@ -96,7 +96,8 @@ class UserRepository @Inject constructor(
     fun fromFirebase(user: FirebaseUser) = fromID(user.uid)
     /**
      * Retrieves a list of UserModels given a search string to query against display names
-     * @param id The display name search string
+     * @param displayName The display name search string
+     * @param queryParams Builder to set the various query parameters
      * @return Flow containing the list of UserModels
      */
     fun fromDisplayName(displayName: String, queryParams: QueryBuilder.() -> Unit) = combine(
@@ -107,7 +108,8 @@ class UserRepository @Inject constructor(
     ) { local, web -> local + web }.flowOn(Dispatchers.IO)
     /**
      * Retrieves a list of UserModels given a search string to query against names
-     * @param id The name search string
+     * @param actualName  The name search string
+     * @param queryParams Builder to set the various query parameters
      * @return Flow containing the list of UserModels
      */
     fun fromActualName(actualName: String, queryParams: QueryBuilder.() -> Unit) = combine(
@@ -280,7 +282,6 @@ class UserRepository @Inject constructor(
 
         val authResult = Firebase.auth.signInWithCredential(credential).await()
         authResult.user!!.let {
-
             // Fixed: Appears that this flow was never returning a value
             // So using StateFlow to ensure that it is hot and thus has a value
             web.fromFirebase(it).first()?.also { user ->

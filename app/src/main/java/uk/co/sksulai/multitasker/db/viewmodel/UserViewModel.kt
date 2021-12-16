@@ -215,12 +215,28 @@ private fun GoogleIntentLauncher.launch(intent: SavePasswordResult) = launch(int
         user?.let { userRepo.delete(it, localOnly = false) }
         signOut()
     }
-
+    /**
+     * Retrieves a list of UserModels given a search string to query against display names
+     * @param displayName The display name search string
+     * @param queryParams Builder to set the various query parameters
+     * @return Flow containing the list of UserModels
+     */
     fun fromDisplayName(displayName: String, queryParam: QueryBuilder.() -> Unit = {}) =
         userRepo.fromDisplayName(displayName, queryParam)
+    /**
+     * Retrieves a UserModel given the FirebaseUser object
+     * @param user Firebase user to retrieve the associated UserModel
+     * @return Flow containing the UserModel (if found) or null
+     */
     fun fromActualName(displayName: String, queryParam: QueryBuilder.() -> Unit = {}) =
         userRepo.fromActualName(displayName, queryParam)
 
-    val resetPassword     get() = userRepo.resetPassword
+    /**
+     * Provides methods for resetting passwords
+     */
+    val resetPassword get() = userRepo.resetPassword
+    /**
+     * Provides methods for verifying the email
+     */
     val emailVerification get() = userRepo.emailVerification
 }
