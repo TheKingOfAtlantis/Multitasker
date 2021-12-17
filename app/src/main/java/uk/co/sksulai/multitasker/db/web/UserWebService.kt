@@ -3,10 +3,12 @@ package uk.co.sksulai.multitasker.db.web
 import java.time.Instant
 
 import com.google.firebase.Timestamp
+import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.auth.UserProfileChangeRequest
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.firestore.DocumentReference
+import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
 
@@ -20,6 +22,7 @@ import uk.co.sksulai.multitasker.db.converter.DateConverter
 import uk.co.sksulai.multitasker.db.converter.UriConverter
 import uk.co.sksulai.multitasker.db.datasource.UserDataSource
 import uk.co.sksulai.multitasker.db.model.UserModel
+import javax.inject.Inject
 
 fun Timestamp.toInstance(): Instant = Instant.ofEpochSecond(seconds, nanoseconds.toLong())
 
@@ -27,19 +30,18 @@ interface IUserWebService : UserDataSource, WebService
 
 /**
  * Used to access the user documents in Firestore
+ * @param db The Firestore database
  */
 @OptIn(ExperimentalCoroutinesApi::class)
-class UserWebService : IUserWebService {
-    /**
-     * The Firestore database
-     */
-    private val db = Firebase.firestore
+class UserWebService @Inject constructor(
+    private val db: FirebaseFirestore,
+    private val auth: FirebaseAuth
+) : IUserWebService {
     /**
      * Root collection containing user data
      */
     private val collection = db.collection("users")
-
-    private val currentUser get() = Firebase.auth.currentUser
+    private val currentUser get() = auth.currentUser
 
     /**
      * Helper to convert UserModels to Firestore documents
@@ -146,7 +148,7 @@ class UserWebService : IUserWebService {
      */
     suspend fun delete(id: String) {
         collection.document(id).delete().await()
-        Firebase.auth.currentUser?.delete()
+        auth.currentUser?.delete()
     }
     /**
      * Deletes a user to the database

@@ -16,9 +16,6 @@ import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.tasks.await
 
 import com.google.firebase.auth.*
-import com.google.firebase.ktx.Firebase
-import com.google.firebase.auth.ktx.auth
-
 import com.google.android.gms.auth.api.identity.Identity
 
 import uk.co.sksulai.multitasker.db.dao.*
@@ -43,7 +40,8 @@ import uk.co.sksulai.multitasker.util.DatastoreLocators.AppState
 class UserRepository @Inject constructor(
     @ApplicationContext private val context: Context,
     private val dao: UserDao,
-    private val web: UserWebService
+    private val web: UserWebService,
+    private val firebaseAuth: FirebaseAuth,
 ) {
     private val repoScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
@@ -131,7 +129,7 @@ class UserRepository @Inject constructor(
         email: String,
         password: String
     ) = withContext(Dispatchers.IO) {
-        val authResult = Firebase.auth.createUserWithEmailAndPassword(email, password).await()
+        val authResult = firebaseAuth.createUserWithEmailAndPassword(email, password).await()
         create(authResult.user!!)
     }
 
@@ -280,7 +278,7 @@ class UserRepository @Inject constructor(
         // Set the current user value
         // return the user ID
 
-        val authResult = Firebase.auth.signInWithCredential(credential).await()
+        val authResult = firebaseAuth.signInWithCredential(credential).await()
         authResult.user!!.let {
             // Fixed: Appears that this flow was never returning a value
             // So using StateFlow to ensure that it is hot and thus has a value
@@ -303,13 +301,13 @@ class UserRepository @Inject constructor(
      * Link the user account to the Facebook Provider
      */
     private suspend fun link(credential: AuthCredential) {
-        Firebase.auth.currentUser?.linkWithCredential(credential)?.await()
+        firebaseAuth.currentUser?.linkWithCredential(credential)?.await()
     }
     /**
      * Dissociate the user account from a login provider
      */
     private suspend fun unlink(provider: String) {
-        Firebase.auth.currentUser?.unlink(provider)?.await()
+        firebaseAuth.currentUser?.unlink(provider)?.await()
     }
 
     /**
@@ -317,7 +315,7 @@ class UserRepository @Inject constructor(
      */
     suspend fun signOut() {
         setCurrentUser("")
-        Firebase.auth.signOut()
+        firebaseAuth.signOut()
     }
 
     // Email & Password Actions
@@ -331,14 +329,14 @@ class UserRepository @Inject constructor(
          * @param email THe email to send the request to/associated with the account
          */
         suspend fun request(email: String): Unit = withContext(Dispatchers.IO) {
-            Firebase.auth.sendPasswordResetEmail(email).await()
+            firebaseAuth.sendPasswordResetEmail(email).await()
         }
         /**
          * Checks that the code from the request is valid
          * @param code Password reset request code from the deeplink
          */
         suspend fun isValid(code: String): String = withContext(Dispatchers.IO) {
-            Firebase.auth.verifyPasswordResetCode(code).await()
+            firebaseAuth.verifyPasswordResetCode(code).await()
         }
         /**
          * Performs the resetting of the password
@@ -348,7 +346,7 @@ class UserRepository @Inject constructor(
          * @param password The new password to use for the user
          */
         suspend fun reset(code: String, email: String, password: String): Unit = withContext(Dispatchers.IO) {
-            Firebase.auth.confirmPasswordReset(code, password).await()
+            firebaseAuth.confirmPasswordReset(code, password).await()
             authenticate(email, password)
         }
     }
@@ -360,18 +358,18 @@ class UserRepository @Inject constructor(
         /**
          * Whether or not the email of the current user has been verified
          */
-        val verified: Boolean = Firebase.auth.currentUser?.isEmailVerified ?: false
+        val verified: Boolean = firebaseAuth.currentUser?.isEmailVerified ?: false
         /**
          * Sends an email verification request to the current user's email
          */
-        suspend fun request() = withContext(Dispatchers.IO) { Firebase.auth.currentUser?.sendEmailVerification()?.await() }
+        suspend fun request() = withContext(Dispatchers.IO) { firebaseAuth.currentUser?.sendEmailVerification()?.await() }
         /**
          * Verifies the email verification code retrieved from deeplink and if valid
          * marks the user as verified
          *
          * @param code The email verification code to verify
          */
-        suspend fun confirm(code: String) = withContext(Dispatchers.IO) { Firebase.auth.applyActionCode(code).await() }
+        suspend fun confirm(code: String) = withContext(Dispatchers.IO) { firebaseAuth.applyActionCode(code).await() }
     }
 
     /**
