@@ -18,6 +18,7 @@ import kotlinx.coroutines.tasks.await
 import com.google.firebase.auth.*
 import com.google.android.gms.auth.api.identity.Identity
 
+import uk.co.sksulai.multitasker.di.DispatcherIO
 import uk.co.sksulai.multitasker.db.dao.*
 import uk.co.sksulai.multitasker.db.model.UserModel
 import uk.co.sksulai.multitasker.db.web.UserWebService
@@ -42,8 +43,9 @@ class UserRepository @Inject constructor(
     private val dao: UserDao,
     private val web: UserWebService,
     private val firebaseAuth: FirebaseAuth,
+    @DispatcherIO private val ioDispatcher: CoroutineDispatcher
 ) {
-    private val repoScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+    private val repoScope = CoroutineScope(ioDispatcher + SupervisorJob())
 
     // Getters
 
@@ -84,7 +86,7 @@ class UserRepository @Inject constructor(
         // If we haven't found the user try polling the internet
         dao.fromID(id),
         web.fromID(id)
-    ) { db, web -> db ?: web }.flowOn(Dispatchers.IO)
+    ) { db, web -> db ?: web }.flowOn(ioDispatcher)
 
     /**
      * Retrieves a UserModel given the FirebaseUser object
@@ -103,7 +105,7 @@ class UserRepository @Inject constructor(
         // Combine the resulting lists
         dao.fromDisplayName(SearchQuery.local(displayName, queryParams)),
         web.fromDisplayName(SearchQuery.remote(displayName, queryParams))
-    ) { local, web -> local + web }.flowOn(Dispatchers.IO)
+    ) { local, web -> local + web }.flowOn(ioDispatcher)
     /**
      * Retrieves a list of UserModels given a search string to query against names
      * @param actualName  The name search string
@@ -115,7 +117,7 @@ class UserRepository @Inject constructor(
         // Combine the resulting lists
         dao.fromActualName(SearchQuery.local(actualName, queryParams)),
         web.fromActualName(SearchQuery.remote(actualName, queryParams))
-    ) { local, web -> local + web }.flowOn(Dispatchers.IO)
+    ) { local, web -> local + web }.flowOn(ioDispatcher)
 
     // Creation: Used when user creates an account
 
@@ -128,7 +130,7 @@ class UserRepository @Inject constructor(
     suspend fun create(
         email: String,
         password: String
-    ) = withContext(Dispatchers.IO) {
+    ) = withContext(ioDispatcher) {
         val authResult = firebaseAuth.createUserWithEmailAndPassword(email, password).await()
         create(authResult.user!!)
     }
@@ -138,7 +140,7 @@ class UserRepository @Inject constructor(
      * @param user FirebaseUser object to create an account for
      * @return The UserModel created for this user
      */
-    private suspend fun create(user: FirebaseUser) = withContext(Dispatchers.IO) {
+    private suspend fun create(user: FirebaseUser) = withContext(ioDispatcher) {
         create(
             id          = user.uid,
             email       = user.email,
@@ -159,7 +161,7 @@ class UserRepository @Inject constructor(
         actualName: String?   = null,
         homeLocation: String? = null,
         dob: LocalDate?       = null
-    ): UserModel = withContext(Dispatchers.IO) {
+    ): UserModel = withContext(ioDispatcher) {
         create(UserModel(
             ID            = id,
             Creation      = Instant.now(),
@@ -177,7 +179,7 @@ class UserRepository @Inject constructor(
      * Create a user given a UserModel object
      * @return The UserModel passed for this user
      */
-    private suspend fun create(model: UserModel) = withContext(Dispatchers.IO) {
+    private suspend fun create(model: UserModel) = withContext(ioDispatcher) {
         model.also { user ->
             insert(user)
             setCurrentUser(user.ID)
@@ -187,7 +189,7 @@ class UserRepository @Inject constructor(
     /**
      * Insert the UserModel value into the local database + Firestore
      */
-    suspend fun insert(user: UserModel): Unit = withContext(Dispatchers.IO) {
+    suspend fun insert(user: UserModel): Unit = withContext(ioDispatcher) {
         launch { dao.insert(user) }
         launch { web.insert(user) }
     }
@@ -197,7 +199,7 @@ class UserRepository @Inject constructor(
      * Updates the users information
      * @param model UserModel with the modifications to make
      */
-    suspend fun update(user: UserModel): Unit = withContext(Dispatchers.IO) {
+    suspend fun update(user: UserModel): Unit = withContext(ioDispatcher) {
         launch { dao.update(user.copy(LastModified = Instant.now())) }
         launch { web.update(user.copy(LastModified = Instant.now())) }
     }
@@ -208,7 +210,7 @@ class UserRepository @Inject constructor(
      * @param user user to be deleted (UserModel#ID)
      * @param localOnly Whether to just delete from local database or propagate to Firebase
      */
-    suspend fun delete(user: UserModel, localOnly: Boolean = true) = withContext(Dispatchers.IO) {
+    suspend fun delete(user: UserModel, localOnly: Boolean = true) = withContext(ioDispatcher) {
         launch { dao.delete(user) }
         if(!localOnly) launch {
             // TODO: Should only be done by owner of account
@@ -221,7 +223,7 @@ class UserRepository @Inject constructor(
      * @param id ID of the user to be deleted (UserModel#ID)
      * @param localOnly Whether to just delete from local database or propagate to Firebase
      */
-    suspend fun delete(id: String, localOnly: Boolean = true) = withContext(Dispatchers.IO) {
+    suspend fun delete(id: String, localOnly: Boolean = true) = withContext(ioDispatcher) {
         launch {
             val user = dao.fromID(id)
             user.single()?.let { dao.delete(it) }
@@ -233,7 +235,7 @@ class UserRepository @Inject constructor(
      * @param id ID of the user to be deleted (UserModel#ID)
      * @param localOnly Whether to just delete from local database or propagate to Firebase
      */
-    suspend fun delete(user: FirebaseUser, localOnly: Boolean = true) = withContext(Dispatchers.IO) {
+    suspend fun delete(user: FirebaseUser, localOnly: Boolean = true) = withContext(ioDispatcher) {
         fromFirebase(user).collectLatest { user ->
             user?.let { delete(it, localOnly) }
         }
@@ -252,7 +254,7 @@ class UserRepository @Inject constructor(
     /**
      * Authenticate the user using the Google Sign In APIs
      */
-    suspend fun authenticate(googleIntent: GoogleIntent) = withContext(Dispatchers.IO) {
+    suspend fun authenticate(googleIntent: GoogleIntent) = withContext(ioDispatcher) {
         val googleUser = Identity.getSignInClient(context)
             .getSignInCredentialFromIntent(googleIntent.value)
 
@@ -271,7 +273,7 @@ class UserRepository @Inject constructor(
      * Used to perform authentication via firebase
      * @param credential The credentials which have been retrieves by a credential provider
      */
-    private suspend fun authenticate(credential: AuthCredential) = withContext(Dispatchers.IO) {
+    private suspend fun authenticate(credential: AuthCredential) = withContext(ioDispatcher) {
         // Authenticate the user w/ credential using Firebase
         // Once we succeed retrieve user information from database
         // Insert this information into the local database
@@ -292,7 +294,7 @@ class UserRepository @Inject constructor(
     /**
      * Link the user account to the Google Provider
      */
-    suspend fun link(googleIntent: GoogleIntent) = withContext(Dispatchers.IO) {
+    suspend fun link(googleIntent: GoogleIntent) = withContext(ioDispatcher) {
         val googleAccount = Identity.getSignInClient(context).getSignInCredentialFromIntent(googleIntent.value)
         link(GoogleAuthProvider.getCredential(googleAccount.googleIdToken, null))
     }
@@ -328,14 +330,14 @@ class UserRepository @Inject constructor(
          * Sends a request to reset a password to the given email
          * @param email THe email to send the request to/associated with the account
          */
-        suspend fun request(email: String): Unit = withContext(Dispatchers.IO) {
+        suspend fun request(email: String): Unit = withContext(ioDispatcher) {
             firebaseAuth.sendPasswordResetEmail(email).await()
         }
         /**
          * Checks that the code from the request is valid
          * @param code Password reset request code from the deeplink
          */
-        suspend fun isValid(code: String): String = withContext(Dispatchers.IO) {
+        suspend fun isValid(code: String): String = withContext(ioDispatcher) {
             firebaseAuth.verifyPasswordResetCode(code).await()
         }
         /**
@@ -345,7 +347,7 @@ class UserRepository @Inject constructor(
          * @param email The email associated with the user
          * @param password The new password to use for the user
          */
-        suspend fun reset(code: String, email: String, password: String): Unit = withContext(Dispatchers.IO) {
+        suspend fun reset(code: String, email: String, password: String): Unit = withContext(ioDispatcher) {
             firebaseAuth.confirmPasswordReset(code, password).await()
             authenticate(email, password)
         }
@@ -362,14 +364,14 @@ class UserRepository @Inject constructor(
         /**
          * Sends an email verification request to the current user's email
          */
-        suspend fun request() = withContext(Dispatchers.IO) { firebaseAuth.currentUser?.sendEmailVerification()?.await() }
+        suspend fun request() = withContext(ioDispatcher) { firebaseAuth.currentUser?.sendEmailVerification()?.await() }
         /**
          * Verifies the email verification code retrieved from deeplink and if valid
          * marks the user as verified
          *
          * @param code The email verification code to verify
          */
-        suspend fun confirm(code: String) = withContext(Dispatchers.IO) { firebaseAuth.applyActionCode(code).await() }
+        suspend fun confirm(code: String) = withContext(ioDispatcher) { firebaseAuth.applyActionCode(code).await() }
     }
 
     /**

@@ -1,28 +1,23 @@
 package uk.co.sksulai.multitasker.db.web
 
+import javax.inject.Inject
+
 import java.time.Instant
 
 import com.google.firebase.Timestamp
-import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.auth.FirebaseUser
-import com.google.firebase.auth.UserProfileChangeRequest
-import com.google.firebase.auth.ktx.auth
-import com.google.firebase.firestore.DocumentReference
-import com.google.firebase.firestore.FirebaseFirestore
-import com.google.firebase.firestore.ktx.firestore
-import com.google.firebase.ktx.Firebase
+import com.google.firebase.auth.*
+import com.google.firebase.firestore.*
 
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.cancel
-import kotlinx.coroutines.channels.awaitClose
-import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.channels.awaitClose
 
 import uk.co.sksulai.multitasker.db.converter.DateConverter
 import uk.co.sksulai.multitasker.db.converter.UriConverter
 import uk.co.sksulai.multitasker.db.datasource.UserDataSource
 import uk.co.sksulai.multitasker.db.model.UserModel
-import javax.inject.Inject
 
 fun Timestamp.toInstance(): Instant = Instant.ofEpochSecond(seconds, nanoseconds.toLong())
 
@@ -80,7 +75,7 @@ class UserWebService @Inject constructor(
     override fun fromID(id: String) = callbackFlow {
         val doc: DocumentReference = collection.document(id)
 
-        val listener  = doc.addSnapshotListener { value, error ->
+        val listener = doc.addSnapshotListener { value, error ->
             error?.let { cancel(it.message.toString(), it) }
             if(value!!.exists())
                 trySend(value.data?.fromDocument(value.id))
