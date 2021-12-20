@@ -77,7 +77,7 @@ class UserWebService @Inject constructor(
 
         val listener = doc.addSnapshotListener { value, error ->
             error?.let { cancel(it.message.toString(), it) }
-            if(value!!.exists())
+            if(value?.exists() == true)
                 trySend(value.data?.fromDocument(value.id))
         }
 

@@ -3,6 +3,10 @@ package uk.co.sksulai.multitasker.db.repo
 import java.time.Instant
 import java.time.LocalDate
 
+import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.tasks.await
+
 import javax.inject.Inject
 import dagger.hilt.android.qualifiers.ApplicationContext
 
@@ -11,17 +15,13 @@ import android.content.Context
 import android.content.Intent
 import androidx.datastore.preferences.core.edit
 
-import kotlinx.coroutines.*
-import kotlinx.coroutines.flow.*
-import kotlinx.coroutines.tasks.await
-
 import com.google.firebase.auth.*
 import com.google.android.gms.auth.api.identity.Identity
 
-import uk.co.sksulai.multitasker.di.DispatcherIO
 import uk.co.sksulai.multitasker.db.dao.*
-import uk.co.sksulai.multitasker.db.model.UserModel
-import uk.co.sksulai.multitasker.db.web.UserWebService
+import uk.co.sksulai.multitasker.db.web.*
+import uk.co.sksulai.multitasker.db.model.*
+import uk.co.sksulai.multitasker.di.DispatcherIO
 import uk.co.sksulai.multitasker.util.DatastoreLocators.AppState
 
 @JvmInline value class GoogleIntent(val value: Intent?)
@@ -29,6 +29,7 @@ import uk.co.sksulai.multitasker.util.DatastoreLocators.AppState
 //
 // The repository exposes all suspended functions as Flow<T>, this allows quick
 // integration with Jetpack Compose due to the collectAsState()
+// Also integrates data from both local and remote data
 //
 
 /**
@@ -54,27 +55,24 @@ class UserRepository @Inject constructor(
      * The state of this value is automatically managed by the repository
      */
     val currentUser = AppState.retrieve(context).data
-        .map { it[AppState.CurrentUser] ?: "" }
-        .flatMapLatest { fromID(it) }
-        .stateIn(
-            repoScope,
-            started = SharingStarted.WhileSubscribed(),
-            initialValue = null
-        )
+        .map { it[AppState.CurrentUser] }
+        .transformLatest { id -> id?.let { emitAll(fromID(it)) } ?: emit(null) }
 
     /**
      * Used when authenticating to set the current user
      * @param id ID of the new current user
      */
-    private suspend fun setCurrentUser(id: String) = repoScope.launch {
-        AppState.retrieve(context).edit { it[AppState.CurrentUser] = id }
+    private suspend fun setCurrentUser(id: String?) = AppState.retrieve(context).edit {
+        if(id.isNullOrEmpty())
+            it.remove(AppState.CurrentUser)
+        else it[AppState.CurrentUser] = id
     }
 
     /**
      * Retrieves all the users stored locally
      * @return Flow of users
      */
-    fun getAll() = dao.getAll()
+    fun getAll() = dao.getAll().flowOn(ioDispatcher)
 
     /**
      * Retrieves a UserModel given the user ID
@@ -140,14 +138,13 @@ class UserRepository @Inject constructor(
      * @param user FirebaseUser object to create an account for
      * @return The UserModel created for this user
      */
-    private suspend fun create(user: FirebaseUser) = withContext(ioDispatcher) {
-        create(
-            id          = user.uid,
-            email       = user.email,
-            displayName = user.displayName,
-            avatar      = user.photoUrl
-        )
-    }
+    private suspend fun create(user: FirebaseUser) = create(
+        id          = user.uid,
+        email       = user.email,
+        displayName = user.displayName,
+        avatar      = user.photoUrl
+    )
+
     /**
      * Create a user given the values for various UserModel fields
      * @return The UserModel created for this user
@@ -161,29 +158,26 @@ class UserRepository @Inject constructor(
         actualName: String?   = null,
         homeLocation: String? = null,
         dob: LocalDate?       = null
-    ): UserModel = withContext(ioDispatcher) {
-        create(UserModel(
-            ID            = id,
-            Creation      = Instant.now(),
-            LastModified  = Instant.now(),
-            Email         = email,
-            DisplayName   = displayName,
-            PreferredHome = preferredHome,
-            Avatar        = avatar,
-            ActualName    = actualName,
-            Home          = homeLocation,
-            DOB           = dob
-        ))
-    }
+    ) = create(UserModel(
+        ID            = id,
+        Creation      = Instant.now(),
+        LastModified  = Instant.now(),
+        Email         = email,
+        DisplayName   = displayName,
+        PreferredHome = preferredHome,
+        Avatar        = avatar,
+        ActualName    = actualName,
+        Home          = homeLocation,
+        DOB           = dob
+    ))
+
     /**
      * Create a user given a UserModel object
      * @return The UserModel passed for this user
      */
-    private suspend fun create(model: UserModel) = withContext(ioDispatcher) {
-        model.also { user ->
-            insert(user)
-            setCurrentUser(user.ID)
-        }
+    private suspend fun create(user: UserModel) = user.also {
+        setCurrentUser(user.ID)
+        insert(user)
     }
 
     /**
@@ -225,8 +219,9 @@ class UserRepository @Inject constructor(
      */
     suspend fun delete(id: String, localOnly: Boolean = true) = withContext(ioDispatcher) {
         launch {
-            val user = dao.fromID(id)
-            user.single()?.let { dao.delete(it) }
+            dao.fromID(id)
+                .first()
+                ?.let { dao.delete(it) }
         }
         if(!localOnly) launch { web.delete(id) }
     }
@@ -263,8 +258,8 @@ class UserRepository @Inject constructor(
         val password = googleUser.password
 
         authenticate(when {
-            idToken  != null -> GoogleAuthProvider.getCredential(idToken, null)
-            password != null -> EmailAuthProvider.getCredential(email, password)
+            !idToken.isNullOrEmpty()  -> GoogleAuthProvider.getCredential(idToken, null)
+            !password.isNullOrEmpty() -> EmailAuthProvider.getCredential(email, password)
             else -> throw Exception("We received neither a Id Token or Email/Password")
         })
     }
@@ -282,12 +277,9 @@ class UserRepository @Inject constructor(
 
         val authResult = firebaseAuth.signInWithCredential(credential).await()
         authResult.user!!.let {
-            // Fixed: Appears that this flow was never returning a value
-            // So using StateFlow to ensure that it is hot and thus has a value
-            web.fromFirebase(it).first()?.also { user ->
-                dao.insert(user)
-                setCurrentUser(user.ID)
-            }?.ID ?: ""
+            web.fromFirebase(it).first()?.let { user -> dao.insert(user) }
+            setCurrentUser(it.uid)
+            it.uid
         }
     }
 
@@ -316,7 +308,7 @@ class UserRepository @Inject constructor(
      * Signs the current user out
      */
     suspend fun signOut() {
-        setCurrentUser("")
+        setCurrentUser(null)
         firebaseAuth.signOut()
     }
 
