@@ -1,5 +1,10 @@
 package uk.co.sksulai.multitasker.db.dao
 
+import javax.inject.Inject
+import dagger.hilt.android.testing.HiltAndroidRule
+import dagger.hilt.android.testing.HiltAndroidTest
+import dagger.hilt.android.qualifiers.ApplicationContext
+
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 
@@ -11,11 +16,6 @@ import org.junit.runner.RunWith
 
 import androidx.test.filters.SmallTest
 import androidx.test.ext.junit.runners.AndroidJUnit4
-
-import javax.inject.Inject
-import dagger.hilt.android.qualifiers.ApplicationContext
-import dagger.hilt.android.testing.HiltAndroidRule
-import dagger.hilt.android.testing.HiltAndroidTest
 
 import com.google.common.truth.Truth.assertThat
 

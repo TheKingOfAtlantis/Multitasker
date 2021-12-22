@@ -1,5 +1,6 @@
 package uk.co.sksulai.multitasker.di
 
+import javax.inject.Singleton
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.testing.TestInstallIn
@@ -7,7 +8,6 @@ import dagger.hilt.components.SingletonComponent
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.CoroutineDispatcher
-import javax.inject.Singleton
 
 @TestInstallIn(
     components = [SingletonComponent::class],
