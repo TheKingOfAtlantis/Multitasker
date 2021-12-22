@@ -93,32 +93,6 @@ class UserRepositoryTest {
             isNotEqualTo(user)
         }
     }
-    @Test fun updateIndirectViaDao(): Unit = runBlocking {
-        val user = repo.create(AuthParam.random())
-
-        val userFlow = repo.fromID(user.ID)
-        assertThat(userFlow.first()).isEqualTo(user)
-
-        // When we update the local database directly
-        dao.update(user.copy(DisplayName = "Username"))
-
-        // Our flow from the repository should have been updated
-        assertThat(userFlow.first()?.copy(LastModified = user.LastModified)).apply {
-            isEqualTo(user.copy(DisplayName = "Username"))
-            isNotEqualTo(user)
-        }
-
-        // Additionally if we retrieve from the database it should be changed
-        assertThat(dao.fromID(user.ID).first()?.copy(LastModified = user.LastModified)).apply {
-            isEqualTo(user.copy(DisplayName = "Username"))
-            isNotEqualTo(user)
-        }
-        // However, if we retrieve from the web database it should not have changed
-        assertThat(web.fromID(user.ID).first()?.copy(LastModified = user.LastModified)).apply {
-            isNotEqualTo(userFlow.first())
-            isEqualTo(user)
-        }
-    }
     @Test fun updateIndirectViaWeb(): Unit = runBlocking {
         val user = repo.create(AuthParam.random())
 
