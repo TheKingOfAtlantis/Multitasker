@@ -124,9 +124,7 @@ import uk.co.sksulai.multitasker.util.UserTestUtil
             containsExactlyElementsIn(users.slice(3..4))
             containsNoneIn(users.slice(0..2))
         }
-        assertThat(dao.fromActualName("Bob").first()).apply {
-            isEmpty()
-        }
+        assertThat(dao.fromActualName("Bob").first()).isEmpty()
     }
     @Test fun writeUserAndReadByDisplayName(): Unit = runBlocking {
         val users = UserTestUtil.createList(5)
@@ -160,6 +158,8 @@ import uk.co.sksulai.multitasker.util.UserTestUtil
         // Should contain all the users which start with 'Actual' (which is all of them)
         assertThat(dao.fromActualName(SearchQuery.local("Actual") { any = true }).first())
             .containsExactlyElementsIn(users)
+        assertThat(dao.fromActualName(SearchQuery.local("Actual") { anyEnd = true }).first())
+            .containsExactlyElementsIn(users)
         // Should contain all the users which contain with 'Name' (which is all of them)
         assertThat(dao.fromActualName(SearchQuery.local("Name") { any = true }).first())
             .containsExactlyElementsIn(users)
@@ -167,6 +167,8 @@ import uk.co.sksulai.multitasker.util.UserTestUtil
         // Should contain only the user which ends with that particular index value
         users.forEachIndexed { index, user ->
             assertThat(dao.fromActualName(SearchQuery.local("$index") { any = true }).first())
+                .containsExactly(user)
+            assertThat(dao.fromActualName(SearchQuery.local("$index") { anyStart = true }).first())
                 .containsExactly(user)
         }
     }

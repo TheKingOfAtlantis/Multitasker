@@ -193,4 +193,76 @@ class UserRepositoryTest {
         repo.signOut()
         runAsserts()
     }
+
+    @Test fun writeUserAndReadByActualName(): Unit = runBlocking {
+        List(3) { repo.create(AuthParam.random()) }
+            .map { it.copy(ActualName = "Dave")  }
+            .onEach { dao.insert(it) }
+        List(2) { repo.create(AuthParam.random()) }
+            .map { it.copy(ActualName = "Harry") }
+            .onEach { dao.insert(it) }
+
+        val users = dao.getAll().first() // Should be the same so we can get around LastModified not being the same
+
+        assertThat(repo.fromActualName("Dave").first()).apply {
+            hasSize(3)
+            containsExactlyElementsIn(users.slice(0..2))
+            containsNoneIn(users.slice(3..4))
+        }
+        assertThat(repo.fromActualName("Harry").first()).apply {
+            hasSize(2)
+            containsExactlyElementsIn(users.slice(3..4))
+            containsNoneIn(users.slice(0..2))
+        }
+        assertThat(repo.fromActualName("Bob").first()).isEmpty()
+    }
+    @Test fun writeUserAndReadByDisplayName(): Unit = runBlocking {
+        List(5) { repo.create(AuthParam.random()) }
+            .mapIndexed { index, user -> user.copy(DisplayName = "Username$index") }
+            .onEach { repo.update(it) }
+        val users = dao.getAll().first() // Should be the same so we can get around LastModified not being the same
+
+        (0..4).forEach { assertThat(repo.fromDisplayName("Username$it").first()).containsExactly(users[it]) }
+        assertThat(repo.fromDisplayName("Username5").first()).isEmpty()
+    }
+
+    @Test fun searchByDisplayName(): Unit = runBlocking {
+        List(5) { repo.create(AuthParam.random()) }
+            .mapIndexed { index, user -> user.copy(DisplayName = "Username$index") }
+            .onEach { dao.update(it) }
+        val users = dao.getAll().first() // Should be the same so we can get around LastModified not being the same
+
+        // Should contain all the users which start with Username (which is all of them)
+        assertThat(repo.fromDisplayName("Username") { any = true }.first())
+            .containsExactlyElementsIn(users)
+
+        // Should contain only the user which ends with that particular index value
+        users.forEachIndexed { index, user ->
+            assertThat(repo.fromDisplayName("$index") { any = true }.first())
+                .containsExactly(user)
+        }
+    }
+    @Test fun searchByActualName(): Unit = runBlocking {
+        List(5) { repo.create(AuthParam.random()) }
+            .mapIndexed { index, user -> user.copy(ActualName = "Actual Name$index")  }
+            .onEach { repo.update(it) }
+        val users = dao.getAll().first() // Should be the same so we can get around LastModified not being the same
+
+        // Should contain all the users which start with 'Actual' (which is all of them)
+        assertThat(repo.fromActualName("Actual") { any = true }.first())
+            .containsExactlyElementsIn(users)
+        assertThat(repo.fromActualName("Actual") { anyEnd = true }.first())
+            .containsExactlyElementsIn(users)
+        // Should contain all the users which contain with 'Name' (which is all of them)
+        assertThat(repo.fromActualName("Name") { any = true }.first())
+            .containsExactlyElementsIn(users)
+
+        // Should contain only the user which ends with that particular index value
+        users.forEachIndexed { index, user ->
+            assertThat(repo.fromActualName("$index") { any = true }.first())
+                .containsExactly(user)
+            assertThat(repo.fromActualName("$index") { anyStart = true }.first())
+                .containsExactly(user)
+        }
+    }
 }

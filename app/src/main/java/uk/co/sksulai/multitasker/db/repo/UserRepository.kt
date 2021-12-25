@@ -94,24 +94,24 @@ class UserRepository @Inject constructor(
      * @param queryParams Builder to set the various query parameters
      * @return Flow containing the list of UserModels
      */
-    fun fromDisplayName(displayName: String, queryParams: QueryBuilder.() -> Unit) = combine(
+    fun fromDisplayName(displayName: String, queryParams: QueryBuilder.() -> Unit = {}) = combine(
         // Check the local database and the internet
         // Combine the resulting lists
         dao.fromDisplayName(SearchQuery.local(displayName, queryParams)),
         web.fromDisplayName(SearchQuery.remote(displayName, queryParams))
-    ) { local, web -> local + web }.flowOn(ioDispatcher)
+    ) { local, web -> (local + web).distinctBy { it.ID }  }.flowOn(ioDispatcher)
     /**
      * Retrieves a list of UserModels given a search string to query against names
      * @param actualName  The name search string
      * @param queryParams Builder to set the various query parameters
      * @return Flow containing the list of UserModels
      */
-    fun fromActualName(actualName: String, queryParams: QueryBuilder.() -> Unit) = combine(
+    fun fromActualName(actualName: String, queryParams: QueryBuilder.() -> Unit = {}) = combine(
         // Check the local database and the internet
         // Combine the resulting lists
         dao.fromActualName(SearchQuery.local(actualName, queryParams)),
         web.fromActualName(SearchQuery.remote(actualName, queryParams))
-    ) { local, web -> local + web }.flowOn(ioDispatcher)
+    ) { local, web -> (local + web).distinctBy { it.ID } }.flowOn(ioDispatcher)
 
     // Creation: Used when user creates an account
 
