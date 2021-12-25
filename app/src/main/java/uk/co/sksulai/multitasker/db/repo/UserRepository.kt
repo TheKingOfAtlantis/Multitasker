@@ -46,8 +46,6 @@ class UserRepository @Inject constructor(
     private val firebaseAuth: FirebaseAuth,
     @DispatcherIO private val ioDispatcher: CoroutineDispatcher
 ) {
-    private val repoScope = CoroutineScope(ioDispatcher + SupervisorJob())
-
     // Getters
 
     /**
@@ -79,12 +77,10 @@ class UserRepository @Inject constructor(
      * @param id ID associated with the user to retrieve
      * @return Flow containing the UserModel (if found) or null
      */
-    fun fromID(id: String) = combine(
-        // Check the local database first
-        // If we haven't found the user try polling the internet
-        dao.fromID(id),
-        web.fromID(id)
-    ) { db, web -> db ?: web }.flowOn(ioDispatcher)
+    fun fromID(id: String) = web.fromID(id)
+        .onEach { user -> user?.let { dao.insert(it) } }
+        .catch { emitAll(dao.fromID(id)) }
+        .flowOn(ioDispatcher)
 
     /**
      * Retrieves a UserModel given the FirebaseUser object
@@ -184,8 +180,8 @@ class UserRepository @Inject constructor(
      * Insert the UserModel value into the local database + Firestore
      */
     suspend fun insert(user: UserModel): Unit = withContext(ioDispatcher) {
-        launch { dao.insert(user) }
-        launch { web.insert(user) }
+        dao.insert(user)
+        web.insert(user)
     }
 
     // Update
@@ -194,8 +190,10 @@ class UserRepository @Inject constructor(
      * @param model UserModel with the modifications to make
      */
     suspend fun update(user: UserModel): Unit = withContext(ioDispatcher) {
-        launch { dao.update(user.copy(LastModified = Instant.now())) }
-        launch { web.update(user.copy(LastModified = Instant.now())) }
+        user.copy(LastModified = Instant.now()).also { user ->
+            dao.update(user)
+            web.update(user)
+        }
     }
 
     // Delete
@@ -204,37 +202,29 @@ class UserRepository @Inject constructor(
      * @param user user to be deleted (UserModel#ID)
      * @param localOnly Whether to just delete from local database or propagate to Firebase
      */
-    suspend fun delete(user: UserModel, localOnly: Boolean = true) = withContext(ioDispatcher) {
-        launch { dao.delete(user) }
-        if(!localOnly) launch {
-            // TODO: Should only be done by owner of account
-            //       Do we need to check this here?
+    suspend fun delete(user: UserModel, localOnly: Boolean = true): Unit = withContext(ioDispatcher) {
+        val current = currentUser.first()
+
+        dao.delete(user)
+        if(!localOnly) {
             web.delete(user)
-        }
+            setCurrentUser(null)
+        } else if(current == user) signOut()
     }
     /**
      * Deletes the user given the user ID
      * @param id ID of the user to be deleted (UserModel#ID)
      * @param localOnly Whether to just delete from local database or propagate to Firebase
      */
-    suspend fun delete(id: String, localOnly: Boolean = true) = withContext(ioDispatcher) {
-        launch {
-            dao.fromID(id)
-                .first()
-                ?.let { dao.delete(it) }
-        }
-        if(!localOnly) launch { web.delete(id) }
-    }
+    suspend fun delete(id: String, localOnly: Boolean = true) =
+        fromID(id).first()?.let { delete(it, localOnly) }
     /**
      * Deletes the user given the Firebase user object
      * @param id ID of the user to be deleted (UserModel#ID)
      * @param localOnly Whether to just delete from local database or propagate to Firebase
      */
-    suspend fun delete(user: FirebaseUser, localOnly: Boolean = true) = withContext(ioDispatcher) {
-        fromFirebase(user).collectLatest { user ->
-            user?.let { delete(it, localOnly) }
-        }
-    }
+    suspend fun delete(user: FirebaseUser, localOnly: Boolean = true) =
+        fromFirebase(user).first()?.let { delete(it, localOnly) }
 
     // User authentication & account linking
 
