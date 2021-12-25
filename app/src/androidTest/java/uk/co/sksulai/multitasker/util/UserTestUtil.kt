@@ -4,6 +4,10 @@ import java.util.*
 import java.time.Instant
 
 import kotlin.random.Random
+import kotlinx.coroutines.tasks.await
+
+import com.google.firebase.ktx.Firebase
+import com.google.firebase.auth.ktx.auth
 
 import uk.co.sksulai.multitasker.db.model.UserModel
 
@@ -19,13 +23,32 @@ object RandomUtil {
     fun nextEmail(domain: String = "domain.com") = "${nextString(4, 12)}@$domain"
 }
 
+data class AuthParam(
+    val email: String,
+    val password: String
+) {
+    companion object {
+        fun random() = AuthParam(
+            email    = RandomUtil.nextEmail(),
+            password = RandomUtil.nextString(8, 12)
+        )
+    }
+}
+
 object UserTestUtil {
-    fun createSingle() = UserModel(
+    suspend fun createSingle(useAuth: Boolean = false): UserModel = if(!useAuth) UserModel(
         ID = UUID.randomUUID().toString(),
         Creation = Instant.now(),
         LastModified = Instant.now(),
         null, null, "", null, null, null, null
-    )
+    ) else AuthParam.random().let { auth -> Firebase.auth.createUserWithEmailAndPassword(auth.email, auth.password).await().let {
+        createSingle().copy(
+            ID     = it.user!!.uid,
+            Email  = it.user?.email,
+            Avatar = it.user?.photoUrl,
+            DisplayName = it.user?.displayName,
+        )
+    } }
 
-    fun createList(size: Int) = List(size) { createSingle() }
+    suspend fun createList(size: Int, useAuth: Boolean = false) = List(size) { createSingle(useAuth) }
 }

@@ -14,7 +14,6 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule
 
 import android.content.Context
-import com.google.firebase.FirebaseException
 import com.google.firebase.auth.FirebaseAuthException
 
 import kotlinx.coroutines.*
@@ -25,9 +24,12 @@ import uk.co.sksulai.multitasker.db.dao.UserDao
 import uk.co.sksulai.multitasker.db.web.UserWebService
 import uk.co.sksulai.multitasker.db.model.UserModel
 
-import uk.co.sksulai.multitasker.util.RandomUtil
+import uk.co.sksulai.multitasker.util.AuthParam
 import uk.co.sksulai.multitasker.util.FirebaseEmulatorUtil
 import uk.co.sksulai.multitasker.util.DatastoreLocators.AppState
+
+private suspend fun UserRepository.create(auth: AuthParam)       = create(auth.email, auth.password)
+private suspend fun UserRepository.authenticate(auth: AuthParam) = authenticate(auth.email, auth.password)
 
 @HiltAndroidTest @RunWith(AndroidJUnit4::class)
 class UserRepositoryTest {
@@ -47,20 +49,6 @@ class UserRepositoryTest {
         FirebaseEmulatorUtil.db.deleteDocuments()
         db.close()
     }
-
-    data class AuthParam(
-        val email: String,
-        val password: String
-    ) {
-        companion object {
-            fun random() = AuthParam(
-                email    = RandomUtil.nextEmail(),
-                password = RandomUtil.nextString(8, 12)
-            )
-        }
-    }
-    private suspend fun UserRepository.create(auth: AuthParam) = create(auth.email, auth.password)
-    private suspend fun UserRepository.authenticate(auth: AuthParam) = authenticate(auth.email, auth.password)
 
     @Test fun createAndRetrieve(): Unit = runBlocking {
         // Create a user then assert that we get the same thing from both the local and web database
