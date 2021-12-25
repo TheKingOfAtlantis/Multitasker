@@ -29,7 +29,7 @@ import uk.co.sksulai.multitasker.db.datasource.UserDataSource
     /**
      * Retrieves a list of the users in the database
      */
-    @Query("Select * From UserModel") fun getAll() : Flow<List<UserModel>>
+    @Query("Select * From UserModel") override fun getAll() : Flow<List<UserModel>>
 
     /**
      * Retrieve a user given their unique ID

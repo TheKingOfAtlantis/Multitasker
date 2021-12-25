@@ -1,5 +1,7 @@
 package uk.co.sksulai.multitasker.db.web
 
+import org.jetbrains.annotations.TestOnly
+
 import javax.inject.Inject
 
 import java.time.Instant
@@ -68,6 +70,14 @@ class UserWebService @Inject constructor(
         Home          = get("Home") as String?
     )
 
+    @TestOnly override fun getAll() = callbackFlow {
+        val listener = collection.addSnapshotListener { value, error ->
+            error?.let { cancel(it.message ?: "", it) }
+            trySend(value?.map { it.data.fromDocument(it.id) } ?: listOf<UserModel>())
+        }
+        awaitClose { listener.remove() }
+    }
+
     /**
      * Retrieves users given an id
      * @param id The ID to be used for the query
@@ -76,9 +86,10 @@ class UserWebService @Inject constructor(
         val doc: DocumentReference = collection.document(id)
 
         val listener = doc.addSnapshotListener { value, error ->
-            error?.let { cancel(it.message.toString(), it) }
+            error?.let { cancel(it.message ?: "", it) }
             if(value?.exists() == true)
                 trySend(value.data?.fromDocument(value.id))
+            else trySend(null)
         }
 
         awaitClose { listener.remove() }
@@ -88,12 +99,25 @@ class UserWebService @Inject constructor(
      * @param user The user to be used for the query
      */
     fun fromFirebase(user: FirebaseUser) = fromID(user.uid)
+
+    fun CollectionReference.queryHandler(field: String, parameter: String): Query {
+        var searchQuery: String = parameter
+
+        val anyEnd = searchQuery.endsWith('%')
+        if(anyEnd) searchQuery = searchQuery.removeSuffix("%")
+
+        return when {
+            anyEnd -> orderBy(field).startAt(searchQuery).endAt("$searchQuery\uf8ff")
+            else -> whereEqualTo(field, searchQuery)
+        }
+    }
+
     /**
      * Retrieves users given the display name to query
      * @param user The display name to be used for the query
      */
     override fun fromDisplayName(displayName: String) = callbackFlow {
-        val docs = collection.startAt(displayName).endAt(displayName + "\uf8ff")
+        val docs = collection.queryHandler("DisplayName", displayName)
 
         val listener = docs.addSnapshotListener { value, error ->
             error?.let { cancel(it.message.toString(), it) }
@@ -107,7 +131,7 @@ class UserWebService @Inject constructor(
      * @param user The actual name to be used for the query
      */
     override fun fromActualName(actualName: String) = callbackFlow {
-        val docs = collection.startAt(actualName).endAt(actualName + "\uf8ff")
+        val docs = collection.queryHandler("ActualName", actualName)
 
         val listener = docs.addSnapshotListener { value, error ->
             error?.let { cancel(it.message.toString(), it) }
@@ -142,8 +166,12 @@ class UserWebService @Inject constructor(
      * @param id The id of the user to be removed
      */
     suspend fun delete(id: String) {
+        // Need to delete from Firestore database first while we still have w/r access
         collection.document(id).delete().await()
-        auth.currentUser?.delete()
+
+        // If we are deleting the current user then we need to delete authentication details
+        if (auth.currentUser?.uid == id)
+            auth.currentUser?.delete()?.await()
     }
     /**
      * Deletes a user to the database
