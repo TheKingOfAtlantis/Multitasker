@@ -279,6 +279,7 @@ class UserRepository @Inject constructor(
     /**
      * Used to perform authentication via firebase
      * @param credential The credentials which have been retrieves by a credential provider
+     * @return The ID of the newly authenticated user
      */
     suspend fun authenticate(credential: AuthCredential): String {
         // Authenticate the user w/ credential using Firebase
@@ -304,16 +305,31 @@ class UserRepository @Inject constructor(
     suspend fun reauthenticate(credential: AuthCredential) {
         firebaseAuth.currentUser?.reauthenticate(credential)?.await()
     }
-    /**
-     * Link the user account to the Google Provider
-     */
-    suspend fun link(googleIntent: GoogleIntent) = withContext(ioDispatcher) {
-        val googleAccount = Identity.getSignInClient(context).getSignInCredentialFromIntent(googleIntent.value)
-        GoogleAuthProvider.getCredential(googleAccount.googleIdToken, null)
+
+    enum class AuthProvider(val id: String) {
+        Email(EmailAuthProvider.PROVIDER_ID),
+        Phone(PhoneAuthProvider.PROVIDER_ID),
+        Google(GoogleAuthProvider.PROVIDER_ID),
+        Twitter(TwitterAuthProvider.PROVIDER_ID),
+        Facebook(FacebookAuthProvider.PROVIDER_ID),
+        PlayGames(PlayGamesAuthProvider.PROVIDER_ID),
+        Github(GithubAuthProvider.PROVIDER_ID),
+    }
+
+    suspend fun getProviders() = withContext(ioDispatcher) {
+        val providers = AuthProvider.values().associateBy { it.id }
+        val userProviders = firebaseAuth.currentUser
+            ?.providerData
+            ?.map { it.providerId } ?: emptyList()
+        providers
+            .filterKeys { userProviders.contains(it) }
+            .values
+            .toList()
     }
 
     /**
-     * Link the user account to the Facebook Provider
+     * Links the current user account to a new provider
+     * @param credential Credentials associated with the new provider
      */
     suspend fun link(credential: AuthCredential) {
         firebaseAuth.currentUser
@@ -322,10 +338,11 @@ class UserRepository @Inject constructor(
     }
     /**
      * Dissociate the user account from a login provider
+     * @param provider The provider to unlink from the current account
      */
-    suspend fun unlink(provider: String) {
+    suspend fun unlink(provider: AuthProvider) {
         firebaseAuth.currentUser
-            ?.unlink(provider)
+            ?.unlink(provider.id)
             ?.await()
     }
 

@@ -207,6 +207,8 @@ private fun GoogleIntentLauncher.launch(intent: SavePasswordResult) = launch(int
         password: String
     ) = userRepo.apply { reauthenticate(getCredentials(email, password)) }
 
+    suspend fun getProviders() = userRepo.getProviders()
+
     /**
      * Sign out the user
      */
@@ -253,6 +255,8 @@ private fun GoogleIntentLauncher.launch(intent: SavePasswordResult) = launch(int
      */
     fun fromActualName(displayName: String, queryParam: QueryBuilder.() -> Unit = {}) =
         userRepo.fromActualName(displayName, queryParam)
+
+    suspend fun unlink(provider: UserRepository.AuthProvider) = userRepo.unlink(provider)
 
     /**
      * Provides methods for resetting passwords
