@@ -224,9 +224,8 @@ private fun GoogleIntentLauncher.launch(intent: SavePasswordResult) = launch(int
     /**
      * Deletes the current user from both the local and remote database
      */
-    suspend fun delete() {
-        val user = currentUser.last()
-        user?.let { userRepo.delete(it, localOnly = false) }
+    suspend fun delete() = currentUser.first()?.let {
+        userRepo.delete(it, localOnly = false)
         signOut()
     }
 

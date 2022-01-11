@@ -172,8 +172,8 @@ class UserRepository @Inject constructor(
      * @return The UserModel passed for this user
      */
     private suspend fun create(user: UserModel) = user.also {
-        setCurrentUser(user.ID)
         insert(user)
+        setCurrentUser(user.ID)
     }
 
     /**
@@ -216,13 +216,14 @@ class UserRepository @Inject constructor(
      * @param localOnly Whether to just delete from local database or propagate to Firebase
      */
     suspend fun delete(user: UserModel, localOnly: Boolean = true): Unit = withContext(ioDispatcher) {
-        val current = currentUser.first()
+        val isCurrent = (currentUser.first()?.ID == user.ID)
 
         dao.delete(user)
         if(!localOnly) {
             web.delete(user)
-            setCurrentUser(null)
-        } else if(current == user) signOut()
+            if(isCurrent) firebaseAuth.currentUser?.delete()?.await()
+        }
+        if(isCurrent) setCurrentUser(null)
     }
     /**
      * Deletes the user given the user ID
@@ -278,8 +279,10 @@ class UserRepository @Inject constructor(
         // return the user ID
 
         val authResult = firebaseAuth.signInWithCredential(credential).await()
-        authResult.user!!.let {
-            web.fromFirebase(it).first()?.let { user -> dao.insert(user) }
+        return authResult.user!!.let {
+            if(!web.doesExist(it.uid)) create(it)
+            else web.fromFirebase(it).first()?.let { user -> dao.insert(user) }
+
             setCurrentUser(it.uid)
             it.uid
         }

@@ -81,6 +81,11 @@ class UserWebService @Inject constructor(
         awaitClose { listener.remove() }
     }
 
+    suspend fun doesExist(id: String): Boolean {
+        val doc = collection.document(id).get().await()
+        return doc.exists()
+    }
+
     /**
      * Retrieves users given an id
      * @param id The ID to be used for the query
