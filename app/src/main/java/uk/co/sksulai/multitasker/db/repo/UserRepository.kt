@@ -307,16 +307,32 @@ class UserRepository @Inject constructor(
         firebaseAuth.currentUser?.reauthenticate(credential)?.await()
     }
 
+    /**
+     * The various authentication providers available to sign-in via
+     * @param id The firebase provider ID
+     * @note Most are not used yet (or likely ever)
+     */
     enum class AuthProvider(val id: String) {
+        /** @see [EmailAuthProvider]] **/
         Email(EmailAuthProvider.PROVIDER_ID),
+        /** @see [PhoneAuthProvider]] **/
         Phone(PhoneAuthProvider.PROVIDER_ID),
+        /** @see [GoogleAuthProvider]] **/
         Google(GoogleAuthProvider.PROVIDER_ID),
+        /** @see [TwitterAuthProvider]] **/
         Twitter(TwitterAuthProvider.PROVIDER_ID),
+        /** @see [FacebookAuthProvider]] **/
         Facebook(FacebookAuthProvider.PROVIDER_ID),
+        /** @see [PlayGamesAuthProvider]] **/
         PlayGames(PlayGamesAuthProvider.PROVIDER_ID),
+        /** @see [GithubAuthProvider]] **/
         Github(GithubAuthProvider.PROVIDER_ID),
     }
 
+    /**
+     * Retrieves the providers associated with the current user
+     * @return List of [AuthProvider]s
+     */
     suspend fun getProviders() = withContext(ioDispatcher) {
         val providers = AuthProvider.values().associateBy { it.id }
         val userProviders = firebaseAuth.currentUser
