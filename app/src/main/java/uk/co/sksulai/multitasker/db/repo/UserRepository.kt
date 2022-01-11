@@ -246,13 +246,12 @@ class UserRepository @Inject constructor(
      * @param email Email to authenticate against
      * @param password Password to check
      */
-    suspend fun authenticate(email: String, password: String) =
-        authenticate(EmailAuthProvider.getCredential(email, password))
-
+    fun getCredentials(email: String, password: String) =
+        EmailAuthProvider.getCredential(email, password)
     /**
      * Authenticate the user using the Google Sign In APIs
      */
-    suspend fun authenticate(googleIntent: GoogleIntent) = withContext(ioDispatcher) {
+    suspend fun getCredentials(googleIntent: GoogleIntent) = withContext(ioDispatcher) {
         val googleUser = Identity.getSignInClient(context)
             .getSignInCredentialFromIntent(googleIntent.value)
 
@@ -260,18 +259,18 @@ class UserRepository @Inject constructor(
         val email    = googleUser.id
         val password = googleUser.password
 
-        authenticate(when {
+        when {
             !idToken.isNullOrEmpty()  -> GoogleAuthProvider.getCredential(idToken, null)
             !password.isNullOrEmpty() -> EmailAuthProvider.getCredential(email, password)
             else -> throw Exception("We received neither a Id Token or Email/Password")
-        })
+        }
     }
 
     /**
      * Used to perform authentication via firebase
      * @param credential The credentials which have been retrieves by a credential provider
      */
-    private suspend fun authenticate(credential: AuthCredential) = withContext(ioDispatcher) {
+    suspend fun authenticate(credential: AuthCredential): String {
         // Authenticate the user w/ credential using Firebase
         // Once we succeed retrieve user information from database
         // Insert this information into the local database
@@ -287,24 +286,35 @@ class UserRepository @Inject constructor(
     }
 
     /**
+     * Reauthenticates a user - To be user prior to performing sensitive operations
+     * @param credential The credentials to be used for reauthentication
+     */
+    suspend fun reauthenticate(credential: AuthCredential) {
+        firebaseAuth.currentUser?.reauthenticate(credential)?.await()
+    }
+    /**
      * Link the user account to the Google Provider
      */
     suspend fun link(googleIntent: GoogleIntent) = withContext(ioDispatcher) {
         val googleAccount = Identity.getSignInClient(context).getSignInCredentialFromIntent(googleIntent.value)
-        link(GoogleAuthProvider.getCredential(googleAccount.googleIdToken, null))
+        GoogleAuthProvider.getCredential(googleAccount.googleIdToken, null)
     }
 
     /**
      * Link the user account to the Facebook Provider
      */
-    private suspend fun link(credential: AuthCredential) {
-        firebaseAuth.currentUser?.linkWithCredential(credential)?.await()
+    suspend fun link(credential: AuthCredential) {
+        firebaseAuth.currentUser
+            ?.linkWithCredential(credential)
+            ?.await()
     }
     /**
      * Dissociate the user account from a login provider
      */
-    private suspend fun unlink(provider: String) {
-        firebaseAuth.currentUser?.unlink(provider)?.await()
+    suspend fun unlink(provider: String) {
+        firebaseAuth.currentUser
+            ?.unlink(provider)
+            ?.await()
     }
 
     /**
@@ -344,7 +354,7 @@ class UserRepository @Inject constructor(
          */
         suspend fun reset(code: String, email: String, password: String): Unit = withContext(ioDispatcher) {
             firebaseAuth.confirmPasswordReset(code, password).await()
-            authenticate(email, password)
+            authenticate(getCredentials(email, password))
         }
     }
 

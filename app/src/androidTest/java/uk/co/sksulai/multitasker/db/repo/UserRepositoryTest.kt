@@ -29,7 +29,7 @@ import uk.co.sksulai.multitasker.util.FirebaseEmulatorUtil
 import uk.co.sksulai.multitasker.util.DatastoreLocators.AppState
 
 private suspend fun UserRepository.create(auth: AuthParam)       = create(auth.email, auth.password)
-private suspend fun UserRepository.authenticate(auth: AuthParam) = authenticate(auth.email, auth.password)
+private suspend fun UserRepository.authenticate(auth: AuthParam) = authenticate(getCredentials(auth.email, auth.password))
 
 @HiltAndroidTest @RunWith(AndroidJUnit4::class)
 class UserRepositoryTest {

@@ -164,12 +164,16 @@ private fun GoogleIntentLauncher.launch(intent: SavePasswordResult) = launch(int
         email: String,
         password: String,
         saverLauncher: GoogleIntentLauncher
-    ) = emailAction(userRepo::authenticate, email, password, saverLauncher)
+    ) = emailAction(
+        { email, password -> userRepo.apply { authenticate(getCredentials(email, password)) } },
+        email, password, saverLauncher
+    )
     /**
      * Authenticate a user given the result of calling the Google Identity API
      * @param googleIntent Intent containing the result of signing in
      */
-    suspend fun authenticate(googleIntent: GoogleIntent) { userRepo.authenticate(googleIntent) }
+    suspend fun authenticate(googleIntent: GoogleIntent) =
+        userRepo.apply { authenticate(getCredentials(googleIntent)) }
     /**
      * Authenticate a user using the Google Identity API
      * @param launcher Intent launcher to start the authentication
@@ -192,6 +196,16 @@ private fun GoogleIntentLauncher.launch(intent: SavePasswordResult) = launch(int
             .await()
         launcher.launch(intent)
     }
+
+    /**
+     * Reauthenticate a user using their email & password
+     * @param email The users email
+     * @param password The users password
+     */
+    suspend fun reauthenticate(
+        email: String,
+        password: String
+    ) = userRepo.apply { reauthenticate(getCredentials(email, password)) }
 
     /**
      * Sign out the user
