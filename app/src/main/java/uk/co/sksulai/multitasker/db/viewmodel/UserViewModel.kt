@@ -221,6 +221,9 @@ private fun GoogleIntentLauncher.launch(intent: SavePasswordResult) = launch(int
      */
     suspend fun update(user: UserModel) = userRepo.update(user)
 
+    suspend fun updatePassword(oldPassword: String, newPassword: String) =
+        userRepo.updatePassword(oldPassword, newPassword)
+
     /**
      * Deletes the current user from both the local and remote database
      */

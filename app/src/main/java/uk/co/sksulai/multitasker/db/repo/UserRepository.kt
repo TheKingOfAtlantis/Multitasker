@@ -209,6 +209,15 @@ class UserRepository @Inject constructor(
             if(user.Avatar != null) web.uploadAvatar(user.ID, user.Avatar)
             else web.deleteAvatar(user.ID).let { null }
         } else user.Avatar
+
+
+    suspend fun updatePassword(oldPassword: String, newPassword: String) {
+        firebaseAuth.currentUser?.apply {
+            reauthenticate(EmailAuthProvider.getCredential(email!!, oldPassword)).await()
+            updatePassword(newPassword).await()
+        }
+    }
+
     // Delete
     /**
      * Deletes the user given the UserModel user object
