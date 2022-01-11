@@ -18,9 +18,9 @@ buildscript {
 allprojects {
     repositories {
         google()
+        mavenLocal()
         mavenCentral()
         maven { url = uri("https://jitpack.io") }
-        maven { url = uri("https://kotlin.bintray.com/kotlinx") }
     }
 }
 
