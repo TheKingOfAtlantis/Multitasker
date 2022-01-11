@@ -1,104 +1,13 @@
 package uk.co.sksulai.multitasker.ui
 
-import android.content.Context
+import androidx.compose.runtime.Composable
 
-import androidx.compose.runtime.*
-import androidx.compose.animation.Crossfade
-import androidx.compose.ui.platform.LocalContext
-import androidx.datastore.preferences.core.preferencesOf
+import androidx.navigation.compose.rememberNavController
 
 import androidx.navigation.*
-import androidx.navigation.compose.*
-
-import androidx.lifecycle.viewmodel.compose.viewModel
-import com.google.firebase.dynamiclinks.ktx.dynamicLinks
-import com.google.firebase.ktx.Firebase
-
-import uk.co.sksulai.multitasker.util.*
-import uk.co.sksulai.multitasker.ui.userFlow.*
-import uk.co.sksulai.multitasker.db.viewmodel.UserViewModel
-import uk.co.sksulai.multitasker.util.Datastores.appStatePref
-
-const val baseUrl = "app.multitasker.xyz"
 
 @Composable fun EntryPoint(
     navController: NavHostController = rememberNavController(),
-    userViewModel: UserViewModel     = viewModel(),
-    context: Context                 = LocalContext.current,
 ) {
-    Firebase.dynamicLinks.getDynamicLink(LocalActivity.current.intent).addOnSuccessListener {
-        val deepLink = it?.link
-        if(deepLink != null)
-            navController.handleDeepLink(Intent().apply { data = deepLink })
-    }
 
-    val statePref   by context.appStatePref.data.collectAsState(initial = preferencesOf())
-    val currentUser by userViewModel.currentUser.collectAsState(initial = null)
-
-    val initialState = remember(statePref, currentUser) {
-        when {
-            // Check if this is the first launch
-            statePref[DatastoreKeys.AppState.OnBoarded]?.not() ?: true -> "OnBoarding"
-            // Check if a user is currently signed in, if not direct to sign in/sign up
-            !statePref[DatastoreKeys.AppState.CurrentUser].isNullOrEmpty() -> "SignInFlow"
-            // Otherwise direct to calendar view
-            else -> "CalendarView"
-        }
-    }
-    NavHost(navController, initialState) {
-        composable("OnBoarding") { OnBoardingScreen(navController) }
-        navigation(startDestination = "SignIn", route = "SignInFlow") {
-            composable("SignIn", deepLinks = listOf(navDeepLink { uriPattern = "$baseUrl/user/signin" })) { SignInScreen(navController) }
-            composable("SignUp", deepLinks = listOf(navDeepLink { uriPattern = "$baseUrl/user/signup" })) { SignUpScreen(navController) }
-            composable(
-                "Forgot?email={email}&submitted={submitted}",
-                arguments = listOf(
-                    navArgument("email")     { defaultValue = "" },
-                    navArgument("submitted") { defaultValue = false }
-                )
-            ) {
-                it.arguments?.let { bundle ->
-                    val email:     String  by bundle
-                    val submitted: Boolean by bundle
-                    Crossfade(targetState = submitted) {
-                        ForgotPasswordScreen(
-                            navController,
-                            email     = rememberFieldState(email),
-                            submitted = it
-                        )
-                    }
-                }
-            }
-        }
-        composable(
-            "Action?mode={mode}&oobCode={oobCode}&apiKey={apiKey}&continueUrl={continueUrl}&lang={lang}",
-            deepLinks = listOf(
-                navDeepLink { uriPattern = "$baseUrl/user/action?mode={mode}&oobCode={oobCode}&apiKey={apiKey}&continueUrl={continueUrl}&lang={lang}" },
-            ),
-            arguments = listOf(
-                navArgument("mode")        { },
-                navArgument("oobCode")     { nullable = true },
-                navArgument("apiKey")      { nullable = true },
-                navArgument("lang")        { nullable = true },
-                navArgument("continueUrl") {
-                    defaultValue = null
-                    nullable     = true
-                },
-            )
-        ) {
-            it.arguments?.let { bundle ->
-                val mode:        String by bundle
-                val oobCode:     String by bundle
-                val apiKey:      String by bundle
-                val continueUrl: String by bundle
-                val lang:        String by bundle
-
-                when(mode) {
-                    "resetPassword" -> ForgotPasswordScreen(navController, oobCode, continueUrl)
-                    "recoverEmail"  -> TODO()
-                    "verifyEmail"   -> EmailVerificationScreen(navController, oobCode, continueUrl)
-                }
-            }
-        }
-    }
 }
