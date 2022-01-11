@@ -9,6 +9,7 @@ import com.google.firebase.auth.ktx.auth
 import com.google.firebase.firestore.FirebaseFirestoreSettings
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
+import com.google.firebase.storage.ktx.storage
 
 import uk.co.sksulai.multitasker.util.FirebaseEmulatorUtil
 import javax.inject.Singleton
@@ -18,19 +19,19 @@ import javax.inject.Singleton
     components = [SingletonComponent::class],
     replaces   = [FirebaseModule::class]
 ) @Module object FakeFirebaseModule {
-    private var authEmulatorSet = false
+    private val emulatorSet = mutableMapOf<String, Boolean>()
+
     @Provides fun provideFirebaseAuth() = Firebase.auth.apply {
-        if(!authEmulatorSet) {
+        if(emulatorSet["auth"] != true) {
             useEmulator(
                 FirebaseEmulatorUtil.ip,
                 FirebaseEmulatorUtil.port.auth
             )
-            authEmulatorSet = true
+            emulatorSet["auth"] = true
         }
     }
-    private var dbEmulateSet = false
     @Provides fun provideFirestoreDB() = Firebase.firestore.apply {
-        if(!dbEmulateSet) {
+        if(emulatorSet["db"] != true) {
             useEmulator(
                 FirebaseEmulatorUtil.ip,
                 FirebaseEmulatorUtil.port.db
@@ -38,7 +39,16 @@ import javax.inject.Singleton
             firestoreSettings = FirebaseFirestoreSettings.Builder()
                 .setPersistenceEnabled(false)
                 .build()
-            dbEmulateSet = true
+            emulatorSet["db"] = true
+        }
+    }
+    @Provides fun provideFirebaseStorage() = Firebase.storage.apply {
+        if(emulatorSet["storage"] != true) {
+            useEmulator(
+                FirebaseEmulatorUtil.ip,
+                FirebaseEmulatorUtil.port.storage
+            )
+            emulatorSet["storage"] = true
         }
     }
 }

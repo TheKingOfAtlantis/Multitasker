@@ -5,10 +5,12 @@ import org.jetbrains.annotations.TestOnly
 import javax.inject.Inject
 
 import java.time.Instant
+import android.net.Uri
 
 import com.google.firebase.Timestamp
 import com.google.firebase.auth.*
 import com.google.firebase.firestore.*
+import com.google.firebase.storage.FirebaseStorage
 
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.cancel
@@ -32,7 +34,8 @@ interface IUserWebService : UserDataSource, WebService
 @OptIn(ExperimentalCoroutinesApi::class)
 class UserWebService @Inject constructor(
     private val db: FirebaseFirestore,
-    private val auth: FirebaseAuth
+    private val auth: FirebaseAuth,
+    private val storage: FirebaseStorage
 ) : IUserWebService {
     /**
      * Root collection containing user data
@@ -157,6 +160,28 @@ class UserWebService @Inject constructor(
         if(currentUser?.displayName != user.DisplayName) requestBuilder.displayName = user.DisplayName
         if(currentUser?.photoUrl != user.Avatar) requestBuilder.photoUri = user.Avatar
         currentUser?.updateProfile(requestBuilder.build())?.await()
+    }
+
+    /**
+     * Uploads a profile picture for the specified user
+     *
+     * @param userId ID of the user
+     * @param avatar Uri to the new picture
+     *
+     * @return The url to download the profile picture in future
+     */
+    suspend fun uploadAvatar(userId: String, avatar: Uri): Uri {
+        val ref  = storage.getReference("$userId/profilePicture")
+        ref.putFile(avatar).await()
+        return ref.downloadUrl.await()
+    }
+    /**
+     * Deletes the profile picture for the specified user
+     * @param userId ID of the user
+     */
+    suspend fun deleteAvatar(userId: String) {
+        val ref = storage.getReference("$userId/profilePicture")
+        ref.delete().await()
     }
 
     /**

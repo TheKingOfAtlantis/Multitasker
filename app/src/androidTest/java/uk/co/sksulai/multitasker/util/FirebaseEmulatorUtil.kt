@@ -21,8 +21,9 @@ object FirebaseEmulatorUtil {
 
     const val ip = "10.0.2.2"
     object port {
-        const val db   = 8080
-        const val auth = 9099
+        const val auth    = 9099
+        const val db      = 8080
+        const val storage = 9199
     }
 
     object baseUrl {

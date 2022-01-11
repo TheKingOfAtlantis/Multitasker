@@ -133,6 +133,7 @@ dependencies {
     implementation("com.google.firebase:firebase-analytics-ktx")
     implementation("com.google.firebase:firebase-firestore-ktx")
     implementation("com.google.firebase:firebase-auth-ktx")
+    implementation("com.google.firebase:firebase-storage-ktx")
 
     // Arch: Lifecycle
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.4.0")

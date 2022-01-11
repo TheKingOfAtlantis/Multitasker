@@ -190,12 +190,25 @@ class UserRepository @Inject constructor(
      * @param model UserModel with the modifications to make
      */
     suspend fun update(user: UserModel): Unit = withContext(ioDispatcher) {
-        user.copy(LastModified = Instant.now()).also { user ->
+        user.copy(
+            LastModified = Instant.now(),
+            Avatar       = updateAvatar(user)
+        ).also { user ->
             dao.update(user)
             web.update(user)
         }
     }
 
+    /**
+     *
+     * @param user User with the updated avatar
+     * @return The Uri for the avatar
+     */
+    suspend fun updateAvatar(user: UserModel) =
+        if(currentUser.first()?.Avatar != user.Avatar) {
+            if(user.Avatar != null) web.uploadAvatar(user.ID, user.Avatar)
+            else web.deleteAvatar(user.ID).let { null }
+        } else user.Avatar
     // Delete
     /**
      * Deletes the user given the UserModel user object
