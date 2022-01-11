@@ -18,6 +18,7 @@ import androidx.datastore.preferences.core.edit
 import com.google.firebase.auth.*
 import com.google.android.gms.auth.api.identity.Identity
 
+import uk.co.sksulai.multitasker.BuildConfig
 import uk.co.sksulai.multitasker.db.dao.*
 import uk.co.sksulai.multitasker.db.web.*
 import uk.co.sksulai.multitasker.db.model.*
@@ -357,15 +358,33 @@ class UserRepository @Inject constructor(
     // Email & Password Actions
 
     /**
+     * Creates an [ActionCodeSettings] to a given [continueUrl]
+     * @param continueUrl Whether to send to the user to once they have finished
+     * @return An [ActionCodeSettings] object to [continueUrl]
+     */
+    private fun createActionCode(continueUrl: String) = ActionCodeSettings.newBuilder().apply {
+        url = "https://$continueUrl"
+
+        setAndroidPackageName(
+            BuildConfig.APPLICATION_ID,
+            true,
+            BuildConfig.VERSION_NAME
+        )
+        // iosBundleId = "" // TODO: In future if ever I do an iOS version
+
+        handleCodeInApp = true
+    }.build()
+
+    /**
      * Provides methods for resetting passwords
      */
     inner class ResetPassword {
         /**
          * Sends a request to reset a password to the given email
-         * @param email THe email to send the request to/associated with the account
+         * @param email The email to send the request to/associated with the account
          */
-        suspend fun request(email: String): Unit = withContext(ioDispatcher) {
-            firebaseAuth.sendPasswordResetEmail(email).await()
+        suspend fun request(email: String, continueUrl: String): Unit = withContext(ioDispatcher) {
+            firebaseAuth.sendPasswordResetEmail(email, createActionCode(continueUrl)).await()
         }
         /**
          * Checks that the code from the request is valid
@@ -382,6 +401,10 @@ class UserRepository @Inject constructor(
          * @param password The new password to use for the user
          */
         suspend fun reset(code: String, email: String, password: String): Unit = withContext(ioDispatcher) {
+            val check = firebaseAuth.checkActionCode(code).await()
+            if(check.operation != ActionCodeResult.PASSWORD_RESET)
+                throw IllegalArgumentException("Action code given is not for resetting passwords (operation: ${check.operation}")
+
             firebaseAuth.confirmPasswordReset(code, password).await()
             authenticate(getCredentials(email, password))
         }
@@ -398,14 +421,22 @@ class UserRepository @Inject constructor(
         /**
          * Sends an email verification request to the current user's email
          */
-        suspend fun request() = withContext(ioDispatcher) { firebaseAuth.currentUser?.sendEmailVerification()?.await() }
+        suspend fun request(continueUrl: String) = withContext(ioDispatcher) {
+            firebaseAuth.currentUser?.sendEmailVerification(createActionCode(continueUrl))?.await()
+        }
         /**
          * Verifies the email verification code retrieved from deeplink and if valid
          * marks the user as verified
          *
          * @param code The email verification code to verify
          */
-        suspend fun confirm(code: String) = withContext(ioDispatcher) { firebaseAuth.applyActionCode(code).await() }
+        suspend fun confirm(code: String) = withContext(ioDispatcher) {
+            val check = firebaseAuth.checkActionCode(code).await()
+            if(check.operation != ActionCodeResult.VERIFY_EMAIL)
+                throw IllegalArgumentException("Action code given is not for verifying emails (operation: ${check.operation}")
+
+            firebaseAuth.applyActionCode(code).await()
+        }
     }
 
     /**
