@@ -90,6 +90,10 @@ dependencies {
     implementation("com.google.dagger:hilt-android:2.38.1")
     kapt("com.google.dagger:hilt-android-compiler:2.38.1")
 
+    // Retrofit
+    implementation("com.squareup.retrofit2:retrofit:2.9.0")
+    implementation("com.squareup.retrofit2:converter-gson:2.9.0")
+
     // Glide
     implementation("com.github.bumptech.glide:glide:4.12.0")
     kapt("com.github.bumptech.glide:compiler:4.12.0")
@@ -121,9 +125,6 @@ dependencies {
     implementation("androidx.compose.ui:ui-tooling:1.1.0-beta02")
     implementation("androidx.compose.ui:ui-test:1.1.0-beta02")
 
-    // Facebook
-    implementation("com.facebook.android:facebook-login:[5,6)")
-
     // Firebase & Google
     implementation("com.google.android.gms:play-services-auth:19.2.0")
 
@@ -134,6 +135,8 @@ dependencies {
     implementation("com.google.firebase:firebase-firestore-ktx")
     implementation("com.google.firebase:firebase-auth-ktx")
     implementation("com.google.firebase:firebase-dynamic-links-ktx")
+    implementation("com.google.firebase:firebase-storage-ktx")
+
 
     // Arch: Lifecycle
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.4.0")

@@ -10,13 +10,13 @@ import androidx.lifecycle.AndroidViewModel
 
 import com.google.firebase.auth.FirebaseAuthException
 import com.google.android.gms.auth.api.identity.*
-import com.facebook.login.LoginResult
 
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 
 import uk.co.sksulai.multitasker.R
+import uk.co.sksulai.multitasker.db.dao.QueryBuilder
 import uk.co.sksulai.multitasker.db.model.UserModel
 import uk.co.sksulai.multitasker.db.repo.GoogleIntent
 import uk.co.sksulai.multitasker.db.repo.UserRepository
@@ -164,16 +164,16 @@ private fun GoogleIntentLauncher.launch(intent: SavePasswordResult) = launch(int
         email: String,
         password: String,
         saverLauncher: GoogleIntentLauncher
-    ) = emailAction(userRepo::authenticate, email, password, saverLauncher)
-    /**
-     * Authenticate a user using the Facebook Login API
-     */
-    suspend fun authenticate(loginResult: LoginResult) { userRepo.authenticate(loginResult.accessToken) }
+    ) = emailAction(
+        { email, password -> userRepo.apply { authenticate(getCredentials(email, password)) } },
+        email, password, saverLauncher
+    )
     /**
      * Authenticate a user given the result of calling the Google Identity API
      * @param googleIntent Intent containing the result of signing in
      */
-    suspend fun authenticate(googleIntent: GoogleIntent) { userRepo.authenticate(googleIntent) }
+    suspend fun authenticate(googleIntent: GoogleIntent) =
+        userRepo.apply { authenticate(getCredentials(googleIntent)) }
     /**
      * Authenticate a user using the Google Identity API
      * @param launcher Intent launcher to start the authentication
@@ -198,6 +198,18 @@ private fun GoogleIntentLauncher.launch(intent: SavePasswordResult) = launch(int
     }
 
     /**
+     * Reauthenticate a user using their email & password
+     * @param email The users email
+     * @param password The users password
+     */
+    suspend fun reauthenticate(
+        email: String,
+        password: String
+    ) = userRepo.apply { reauthenticate(getCredentials(email, password)) }
+
+    suspend fun getProviders() = userRepo.getProviders()
+
+    /**
      * Sign out the user
      */
     suspend fun signOut() {
@@ -211,7 +223,47 @@ private fun GoogleIntentLauncher.launch(intent: SavePasswordResult) = launch(int
      */
     suspend fun update(user: UserModel) = userRepo.update(user)
 
+    suspend fun updatePassword(oldPassword: String, newPassword: String) =
+        userRepo.updatePassword(oldPassword, newPassword)
 
-    val resetPassword     get() = userRepo.resetPassword
+    /**
+     * Deletes the current user from both the local and remote database
+     */
+    suspend fun delete() = currentUser.first()?.let {
+        userRepo.delete(it, localOnly = false)
+        signOut()
+    }
+
+    /**
+     * Retrieves a UserModel given the user ID
+     * @param id ID associated with the user to retrieve
+     * @return Flow containing the UserModel (if found) or null
+     */
+    fun fromID(id: String) = userRepo.fromID(id)
+    /**
+     * Retrieves a list of UserModels given a search string to query against display names
+     * @param displayName The display name search string
+     * @param queryParams Builder to set the various query parameters
+     * @return Flow containing the list of UserModels
+     */
+    fun fromDisplayName(displayName: String, queryParam: QueryBuilder.() -> Unit = {}) =
+        userRepo.fromDisplayName(displayName, queryParam)
+    /**
+     * Retrieves a UserModel given the FirebaseUser object
+     * @param user Firebase user to retrieve the associated UserModel
+     * @return Flow containing the UserModel (if found) or null
+     */
+    fun fromActualName(displayName: String, queryParam: QueryBuilder.() -> Unit = {}) =
+        userRepo.fromActualName(displayName, queryParam)
+
+    suspend fun unlink(provider: UserRepository.AuthProvider) = userRepo.unlink(provider)
+
+    /**
+     * Provides methods for resetting passwords
+     */
+    val resetPassword get() = userRepo.resetPassword
+    /**
+     * Provides methods for verifying the email
+     */
     val emailVerification get() = userRepo.emailVerification
 }

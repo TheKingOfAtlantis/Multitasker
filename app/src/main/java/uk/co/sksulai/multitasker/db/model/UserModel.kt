@@ -4,20 +4,35 @@ import java.time.*
 import android.net.Uri
 import androidx.room.*
 
+/**
+ *
+ * @param ID            ID of the user - Same as Firebase uid
+ * @param Creation      User creation timestamp
+ * @param LastModified  When user data was last modified
+ *
+ * @param DisplayName   User display name
+ * @param Email         Email associated with the account
+ *
+ * @param PreferredHome User's preferred "home" screen
+ * @param Avatar        Avatar icon
+ * @param ActualName    User's IRL name
+ * @param Home          Address of the user's home
+ * @param DOB           Date of Birth
+ */
 @Entity data class UserModel(
-    @PrimaryKey val ID: String, // ID of the user - Same as Firebase uid
+    @PrimaryKey val ID: String,
 
     // Metadata
-    val Creation: Instant,      // User creation timestamp
-    val LastModified: Instant,  // When user last modified
+    val Creation: Instant,
+    val LastModified: Instant,
 
-    val DisplayName: String?,   // User display name
-    val Email: String?,         // Email associated with the account
+    val DisplayName: String?,
+    val Email: String?,
 
     // Additional user info
-    val PreferredHome: String,  // User's preferred "home" screen
-    val Avatar: Uri?,           // Avatar icon
-    val ActualName: String?,    // User's IRL name
-    val Home: String?,          // Address of the user's home
-    val DOB: LocalDate?         // Date of Birth
+    val PreferredHome: String,
+    val Avatar: Uri?,
+    val ActualName: String?,
+    val Home: String?,
+    val DOB: LocalDate?
 )

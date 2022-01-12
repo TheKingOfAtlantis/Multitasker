@@ -1,5 +1,12 @@
 package uk.co.sksulai.multitasker.db.dao
 
+import kotlin.random.Random
+
+import javax.inject.Inject
+import dagger.hilt.android.testing.HiltAndroidRule
+import dagger.hilt.android.testing.HiltAndroidTest
+import dagger.hilt.android.qualifiers.ApplicationContext
+
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 
@@ -12,19 +19,12 @@ import org.junit.runner.RunWith
 import androidx.test.filters.SmallTest
 import androidx.test.ext.junit.runners.AndroidJUnit4
 
-import javax.inject.Inject
-import dagger.hilt.android.qualifiers.ApplicationContext
-import dagger.hilt.android.testing.HiltAndroidRule
-import dagger.hilt.android.testing.HiltAndroidTest
-
 import com.google.common.truth.Truth.assertThat
 
 import android.content.Context
 
 import uk.co.sksulai.multitasker.db.LocalDB
 import uk.co.sksulai.multitasker.util.UserTestUtil
-
-import kotlin.random.Random
 
 @HiltAndroidTest @RunWith(AndroidJUnit4::class)
 @SmallTest class UserDaoTest {
@@ -124,25 +124,52 @@ import kotlin.random.Random
             containsExactlyElementsIn(users.slice(3..4))
             containsNoneIn(users.slice(0..2))
         }
-        assertThat(dao.fromActualName("Bob").first()).apply {
-            isEmpty()
-        }
+        assertThat(dao.fromActualName("Bob").first()).isEmpty()
     }
     @Test fun writeUserAndReadByDisplayName(): Unit = runBlocking {
         val users = UserTestUtil.createList(5)
             .mapIndexed { i, user -> user.copy(DisplayName = "Username$i") }
             .onEach { dao.insert(it) }
 
-        (0..4).forEach {
-            assertThat(dao.fromDisplayName("Username$it").first()).apply {
-                contains(users[it])
-                users.filterIndexed { i,_ -> i != it }
-                     .forEach { user -> doesNotContain(user) }
-            }
-        }
+        (0..4).forEach { assertThat(dao.fromDisplayName("Username$it").first()).containsExactly(users[it]) }
+        assertThat(dao.fromDisplayName("Username5").first()).isEmpty()
+    }
 
-        assertThat(dao.fromDisplayName("Username5").first()).apply {
-            isEmpty()
+    @Test fun searchByDisplayName(): Unit = runBlocking {
+        val users = UserTestUtil.createList(5)
+            .mapIndexed { i, user -> user.copy(DisplayName = "Username$i") }
+            .onEach { dao.insert(it) }
+
+        // Should contain all the users which start with Username (which is all of them)
+        assertThat(dao.fromDisplayName(SearchQuery.local("Username") { any = true }).first())
+            .containsExactlyElementsIn(users)
+
+        // Should contain only the user which ends with that particular index value
+        users.forEachIndexed { index, user ->
+            assertThat(dao.fromDisplayName(SearchQuery.local("$index") { any = true }).first())
+                .containsExactly(user)
+        }
+    }
+    @Test fun searchByActualName(): Unit = runBlocking {
+        val users = UserTestUtil.createList(5)
+            .mapIndexed { i, user -> user.copy(ActualName = "Actual Name$i") }
+            .onEach { dao.insert(it) }
+
+        // Should contain all the users which start with 'Actual' (which is all of them)
+        assertThat(dao.fromActualName(SearchQuery.local("Actual") { any = true }).first())
+            .containsExactlyElementsIn(users)
+        assertThat(dao.fromActualName(SearchQuery.local("Actual") { anyEnd = true }).first())
+            .containsExactlyElementsIn(users)
+        // Should contain all the users which contain with 'Name' (which is all of them)
+        assertThat(dao.fromActualName(SearchQuery.local("Name") { any = true }).first())
+            .containsExactlyElementsIn(users)
+
+        // Should contain only the user which ends with that particular index value
+        users.forEachIndexed { index, user ->
+            assertThat(dao.fromActualName(SearchQuery.local("$index") { any = true }).first())
+                .containsExactly(user)
+            assertThat(dao.fromActualName(SearchQuery.local("$index") { anyStart = true }).first())
+                .containsExactly(user)
         }
     }
 }
