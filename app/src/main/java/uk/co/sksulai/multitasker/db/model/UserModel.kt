@@ -3,6 +3,7 @@ package uk.co.sksulai.multitasker.db.model
 import java.time.*
 import android.net.Uri
 import androidx.room.*
+import androidx.compose.runtime.Immutable
 
 /**
  *
@@ -19,6 +20,7 @@ import androidx.room.*
  * @param Home          Address of the user's home
  * @param DOB           Date of Birth
  */
+@Immutable
 @Entity data class UserModel(
     @PrimaryKey val ID: String,
 
