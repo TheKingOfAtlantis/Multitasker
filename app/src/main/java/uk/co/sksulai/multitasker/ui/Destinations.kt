@@ -42,4 +42,9 @@ sealed class ExtendedDestination(
 }
 
 object Destinations {
+    object SignInFlow : Destination("SignInFlow") // Sign in flow subgraph
+    object OnBoarding : Destination("OnBoarding") // Onboarding screen
+    object SignIn     : Destination("SignIn")     // Sign in screen
+    object SignUp     : Destination("SignUp")     // Sign up screen
+    object Forgot     : Destination("Forgot")     // Forgot password screen
 }
