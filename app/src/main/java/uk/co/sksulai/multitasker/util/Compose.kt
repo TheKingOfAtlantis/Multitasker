@@ -1,19 +1,29 @@
 package uk.co.sksulai.multitasker.util
 
+import kotlinx.coroutines.*
 import androidx.compose.runtime.*
 import androidx.appcompat.app.AppCompatActivity
 
-
+/**
+ * Provides the [AppCompatActivity] in which this composition is taking place in
+ * @see ProvideActivity
+ */
 val LocalActivity = staticCompositionLocalOf<AppCompatActivity> {
     error("CompositionLocal LocalActivity not present")
 }
 
+/**
+ * Used to provide the current activity to be used as and when it is needed
+ *
+ * @param activity The activity to be provided to the composition
+ * @param content  The contents of the composition which will be able to access the value of [activity]
+ */
 @Composable fun ProvideActivity(
     activity: AppCompatActivity,
-    block: @Composable () -> Unit
+    content: @Composable () -> Unit
 ) = CompositionLocalProvider(
     LocalActivity provides activity,
-    content = block
+    content = content,
 )
 
 /**
@@ -44,3 +54,17 @@ val LocalActivity = staticCompositionLocalOf<AppCompatActivity> {
     value: T,
     policy: SnapshotMutationPolicy<T> = structuralEqualityPolicy()
 ) = remember(key) { mutableStateOf(value, policy) }
+
+/**
+ * Binds another lambda which can be launched in the given [CoroutineScope]
+ *
+ * @param scope Coroutine scope to be used to run [invocable]
+ * @param invocable Function/lambda to run in the coroutine
+ *
+ * @return Lambda which calls [launch] with will run the given [invocable]
+ *         using the given [scope]
+ */
+inline fun provideInScope(
+    scope: CoroutineScope,
+    crossinline invocable: suspend () -> Unit
+): () -> Unit = { scope.launch { invocable() } }
