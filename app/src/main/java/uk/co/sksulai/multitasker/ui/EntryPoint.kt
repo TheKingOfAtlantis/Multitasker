@@ -13,7 +13,6 @@ import uk.co.sksulai.multitasker.ui.screen.signin.*
 import uk.co.sksulai.multitasker.util.DatastoreLocators.AppState
 
 @Composable fun EntryPoint(
-    windowSize: WindowSize,
     navController: NavHostController = rememberNavController(),
 ) {
     val appState by AppState.retrieve().data.collectAsState(emptyPreferences())

@@ -5,6 +5,8 @@ import dagger.hilt.android.AndroidEntryPoint
 import android.os.Bundle
 import androidx.activity.compose.setContent
 import androidx.appcompat.app.AppCompatActivity
+import androidx.compose.runtime.Composable
+import com.google.accompanist.insets.ProvideWindowInsets
 
 import uk.co.sksulai.multitasker.ui.*
 import uk.co.sksulai.multitasker.util.ProvideActivity
@@ -13,10 +15,14 @@ import uk.co.sksulai.multitasker.util.ProvideActivity
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        setContent {
-            ProvideActivity(this) {
-                MultitaskerTheme { EntryPoint() }
-            }
+        setContent { MultitaskerApp(this) }
+    }
+}
+
+@Composable fun MultitaskerApp(activity: AppCompatActivity) = ProvideActivity(activity) {
+    ProvideWindowSizeClass {
+        ProvideWindowInsets {
+            MultitaskerTheme { EntryPoint() }
         }
     }
 }

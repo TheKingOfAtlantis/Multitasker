@@ -13,7 +13,7 @@ val LocalActivity = staticCompositionLocalOf<AppCompatActivity> {
 }
 
 /**
- * Used to provide the current activity to be used as and when it is needed
+ * Used to provide the current activity to make it accessible during composition
  *
  * @param activity The activity to be provided to the composition
  * @param content  The contents of the composition which will be able to access the value of [activity]

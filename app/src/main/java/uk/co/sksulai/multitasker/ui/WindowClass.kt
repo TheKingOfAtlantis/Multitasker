@@ -10,6 +10,7 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
+import uk.co.sksulai.multitasker.util.LocalActivity
 
 /**
  * Represent different device sizes
@@ -38,21 +39,34 @@ private fun getWindowSizeClass(windowDpSize: DpSize): WindowSize = when {
  * Remembers the [Size] in pixels of the window corresponding to the current window metrics.
  * @return The size of the window
  */
-@Composable private fun Activity.rememberWindowSize(): Size {
+@Composable private fun Activity.rememberWindowSize(): DpSize = with(LocalDensity.current) {
     // WindowMetricsCalculator implicitly depends on the configuration through the activity,
     // so re-calculate it upon changes.
     val windowMetrics = remember(LocalConfiguration.current) {
-        WindowMetricsCalculator.getOrCreate().computeCurrentWindowMetrics(this)
+        WindowMetricsCalculator.getOrCreate().computeCurrentWindowMetrics(this@rememberWindowSize)
     }
-    return windowMetrics.bounds.toComposeRect().size
+    windowMetrics.bounds.toComposeRect().size.toDpSize()
 }
 
 /**
  * Remembers the [WindowSize] class for the window corresponding to the current window metrics.
  */
-@Composable fun Activity.rememberWindowSizeClass(): WindowSize {
-    val windowSize = rememberWindowSize()                  // Get the size (in pixels) of the window
-    return getWindowSizeClass(with(LocalDensity.current) { // Calculate the window size class
-        windowSize.toDpSize()                              // Convert the window size to [Dp]
-    })
+@Composable private fun Activity.rememberWindowSizeClass(): WindowSize =
+    getWindowSizeClass(rememberWindowSize())
+
+val LocalWindowSize = staticCompositionLocalOf<WindowSize> {
+    error("LocalComposition LocalWindowSize was not provided")
 }
+
+/**
+ * Provides the current [WindowSize] which is used to adapt the UI layout
+ * @param activity The activity in which the composition is taking place
+ * @param content  The content to be displayed
+ */
+@Composable fun ProvideWindowSizeClass(
+    activity: Activity = LocalActivity.current,
+    content: @Composable () -> Unit
+) = CompositionLocalProvider(
+    LocalWindowSize provides activity.rememberWindowSizeClass(),
+    content = content
+)
