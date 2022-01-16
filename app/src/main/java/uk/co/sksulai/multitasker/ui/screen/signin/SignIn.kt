@@ -1,7 +1,9 @@
 package uk.co.sksulai.multitasker.ui.screen.signin
 
-import android.util.Log
+import kotlin.math.max
 import kotlinx.coroutines.launch
+
+import android.util.Log
 
 import android.content.IntentSender
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -20,12 +22,13 @@ import androidx.compose.ui.focus.*
 import androidx.compose.ui.text.input.*
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
-import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.layout.Layout
+import androidx.compose.ui.layout.Placeable
+import androidx.compose.ui.layout.layoutId
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.window.Popup
-import androidx.compose.ui.tooling.preview.Preview
 
 import androidx.navigation.NavHostController
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -41,16 +44,8 @@ import uk.co.sksulai.multitasker.ui.component.*
 import uk.co.sksulai.multitasker.db.repo.GoogleIntent
 import uk.co.sksulai.multitasker.db.viewmodel.GoogleIntentLauncher
 import uk.co.sksulai.multitasker.db.viewmodel.UserViewModel
+import uk.co.sksulai.multitasker.util.provideInScope
 import uk.co.sksulai.multitasker.util.rememberMutableState
-
-
-
-fun Modifier.getWidth(onWidthMeasured: (width: Dp) -> Unit): Modifier = composed {
-    val density = LocalDensity.current
-    this.onGloballyPositioned {
-        onWidthMeasured(with(density) { it.size.width.toDp() })
-    }
-}
 
 /**
  * Form containing fields for the user's email and password that can be used to
@@ -274,6 +269,83 @@ fun Modifier.getWidth(onWidthMeasured: (width: Dp) -> Unit): Modifier = composed
         preamble = googlePreamble
     )
 }
+
+@Composable fun SignInScreenLayout(
+    logo: @Composable () -> Unit,
+    emailForm: @Composable () -> Unit,
+    emailActions: @Composable () -> Unit,
+    authProvider: @Composable () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val layoutDirection = LocalLayoutDirection.current
+
+    Layout(
+        modifier = modifier,
+        content = {
+            Box(Modifier.layoutId("logo")) { logo() }
+            Box(Modifier.layoutId("emailForm")) { emailForm() }
+            Box(Modifier.layoutId("emailActions")) { emailActions() }
+            Box(Modifier.layoutId("authProvider")) { authProvider() }
+        }
+    ) { measurables, constraints ->
+        val relax = constraints.copy(minWidth = 0, minHeight = 0)
+
+        val header = measurables
+            .first { it.layoutId == "logo" }
+            .measure(relax)
+
+        // Measure email form first so we can use its with to constrain everything else
+        val emailFormPlaceable = measurables
+            .first { it.layoutId == "emailForm" }
+            .measure(relax)
+
+        val emailActionsPlaceable = measurables
+            .first { it.layoutId == "emailActions" }
+            .measure(Constraints.fixedWidth(emailFormPlaceable.width))
+
+        val authProviderPlaceable = measurables
+            .first { it.layoutId == "authProvider" }
+            .measure(Constraints.fixedWidth(emailFormPlaceable.width))
+
+        val width = maxOf(
+            constraints.minWidth,
+            emailFormPlaceable.width,
+            header.width,
+            emailFormPlaceable.width,
+            emailFormPlaceable.width,
+            authProviderPlaceable.width,
+        )
+        val height = max(
+            constraints.minHeight,
+            header.height +
+                emailFormPlaceable.height +
+                emailFormPlaceable.height +
+                authProviderPlaceable.height
+        )
+        layout(width, height) {
+            var consumedHeight = 0
+
+            fun Placeable.place() {
+                placeRelative(
+                    Alignment.CenterHorizontally.align(
+                        this.width,
+                        width,
+                        layoutDirection
+                    ),
+                    consumedHeight
+                )
+                consumedHeight += this.height
+            }
+
+            header.place()
+            emailFormPlaceable.place()
+            emailActionsPlaceable.place()
+            authProviderPlaceable.place()
+        }
+    }
+}
+
+
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable fun SignInScreen(
     navController: NavHostController,
@@ -287,135 +359,140 @@ fun Modifier.getWidth(onWidthMeasured: (width: Dp) -> Unit): Modifier = composed
         CircularProgressIndicator()
     }
 
-    Scaffold(scaffoldState = scaffoldState) { Column(
-        Modifier.fillMaxSize(),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+    var email    by rememberSaveable { mutableStateOf("") }
+    var password by rememberSaveable { mutableStateOf("") }
+    var emailError: String?    by rememberSaveable { mutableStateOf(null) }
+    var passwordError: String? by rememberSaveable { mutableStateOf(null) }
+
+    val passwordSaver = rememberLauncherForActivityResult(ActivityResultContracts.StartIntentSenderForResult()) { }
+    fun emailAction(
+        route: Destination,
+        action: suspend (email: String, password: String) -> Unit
     ) {
-        var email    by rememberSaveable { mutableStateOf("") }
-        var password by rememberSaveable { mutableStateOf("") }
-        var emailError: String?    by rememberSaveable { mutableStateOf(null) }
-        var passwordError: String? by rememberSaveable { mutableStateOf(null) }
-
-        var width: Modifier by remember { mutableStateOf(Modifier) }
-
-        val passwordSaver = rememberLauncherForActivityResult(ActivityResultContracts.StartIntentSenderForResult()) { }
-        fun emailAction(
-            route: Destination,
-            action: suspend (email: String, password: String) -> Unit
-        ) {
-            scope.launch {
-                emailError    = null
-                passwordError = null
-                when {
-                    email.isEmpty() -> {
-                        emailError = "No email provided"
-                        return@launch
-                    }
-                    password.isEmpty() -> {
-                        passwordError = "No password provided"
-                        return@launch
-                    }
+        scope.launch {
+            emailError    = null
+            passwordError = null
+            when {
+                email.isEmpty() -> {
+                    emailError = "No email provided"
+                    return@launch
                 }
-                try {
-                    showProgressIndicator = true
-                    action(email, password)
-                    route.navigate(navController) {
-                        popUpTo(navController.graph.findStartDestination().id) {
-                            inclusive = true
-                        }
-                    }
-                } catch (err: FirebaseAuthException) {
-                    user.handleAuthError(err,
-                        onEmailError    = { emailError = it },
-                        onPasswordError = { passwordError = it },
-                        onAuthError     = { scaffoldState.snackbarHostState.showSnackbar(it) }
-                    )
-                } catch (e: ApiException) {
-                    // If the saver fails isn't critical
-                    // May fail if we just used autofill to get details
-                    Log.e("Sign in/up", "Failed to save the email/password", e)
-                    route.navigate(navController) {
-                        popUpTo(navController.graph.findStartDestination().id) {
-                            inclusive = true
-                        }
-                    }
-                } finally {
-                    showProgressIndicator = false
+                password.isEmpty() -> {
+                    passwordError = "No password provided"
+                    return@launch
                 }
             }
-        }
-
-        fun signInAction() = emailAction(Destinations.CalendarView) { email, password ->
-            user.authenticate(email, password, GoogleIntentLauncher(passwordSaver))
-        }
-        fun signUpAction() = emailAction(Destinations.SignUp) { email, password ->
-            user.create(email, password, GoogleIntentLauncher(passwordSaver))
-        }
-
-        var limitOneTap by rememberSaveable { mutableStateOf(3) }
-        @Composable fun googleLauncher(route: Destination) = rememberLauncherForActivityResult(
-            ActivityResultContracts.StartIntentSenderForResult()
-        ) { scope.launch {
             try {
-                user.authenticate(GoogleIntent(it.data))
+                showProgressIndicator = true
+                action(email, password)
                 route.navigate(navController) {
                     popUpTo(navController.graph.findStartDestination().id) {
                         inclusive = true
                     }
                 }
+            } catch (err: FirebaseAuthException) {
+                user.handleAuthError(err,
+                    onEmailError    = { emailError = it },
+                    onPasswordError = { passwordError = it },
+                    onAuthError     = { scaffoldState.snackbarHostState.showSnackbar(it) }
+                )
             } catch (e: ApiException) {
-                when(e.statusCode) {
-                    CommonStatusCodes.CANCELED -> {
-                        Log.d("Sign In", "User cancelled sign in w/ One-Tap")
-                        limitOneTap--
+                // If the saver fails isn't critical
+                // May fail if we just used autofill to get details
+                Log.e("Sign in/up", "Failed to save the email/password", e)
+                route.navigate(navController) {
+                    popUpTo(navController.graph.findStartDestination().id) {
+                        inclusive = true
                     }
-                    else -> Log.d("Sign In", "Failed to sign in w/ One-Tap", e)
                 }
+            } finally {
+                showProgressIndicator = false
             }
-        } }
-        val googleSignInLauncher = googleLauncher(Destinations.CalendarView)
-        val googleSignUpLauncher = googleLauncher(Destinations.SignUp)
+        }
+    }
 
-        AppLogo(width)
+    fun signInAction() = emailAction(Destinations.CalendarView) { email, password ->
+        user.authenticate(email, password, GoogleIntentLauncher(passwordSaver))
+    }
+    fun signUpAction() = emailAction(Destinations.SignUp) { email, password ->
+        user.create(email, password, GoogleIntentLauncher(passwordSaver))
+    }
 
-        SignInForm(
+    Scaffold(scaffoldState = scaffoldState) {
+        SignInScreenLayout(
             modifier = Modifier
-                .getWidth { width = Modifier.width(it) }
-                .padding(bottom = 16.dp),
-            email    = email,
-            password = password,
-            onEmailChanged    = { email = it },
-            onPasswordChanged = { password = it },
-            emailError    = emailError,
-            passwordError = passwordError,
-            onFilled      = ::signInAction
-        )
+                .fillMaxSize()
+                .wrapContentHeight()
+            ,
+            logo = {
+                AppLogo(
+                    useLarge = true,
+                    modifier = Modifier
+                        .padding(32.dp)
+                )
+            },
+            emailForm = {
+                SignInForm(
+                    modifier = Modifier.padding(bottom = 16.dp),
+                    email    = email,
+                    password = password,
+                    onEmailChanged    = { email = it },
+                    onPasswordChanged = { password = it },
+                    emailError    = emailError,
+                    passwordError = passwordError,
+                    onFilled      = ::signInAction
+                )
+            },
+            emailActions = {
+                EmailActions(
+                    modifier = Modifier.padding(8.dp),
+                    onSignIn = ::signInAction,
+                    onSignUp = ::signUpAction,
+                    onForgot = { Destinations.Forgot.navigate(navController) }
+                )
+            },
+            authProvider = {
+                var limitOneTap by rememberSaveable { mutableStateOf(3) }
+                @Composable fun googleLauncher(route: Destination) = rememberLauncherForActivityResult(
+                    ActivityResultContracts.StartIntentSenderForResult()
+                ) { scope.launch {
+                    try {
+                        user.authenticate(GoogleIntent(it.data))
+                        route.navigate(navController) {
+                            popUpTo(navController.graph.findStartDestination().id) {
+                                inclusive = true
+                            }
+                        }
+                    } catch (e: ApiException) {
+                        when(e.statusCode) {
+                            CommonStatusCodes.CANCELED -> {
+                                Log.d("Sign In", "User cancelled sign in w/ One-Tap")
+                                limitOneTap--
+                            }
+                            else -> Log.d("Sign In", "Failed to sign in w/ One-Tap", e)
+                        }
+                    }
+                } }
+                val googleSignInLauncher = googleLauncher(Destinations.CalendarView)
+                val googleSignUpLauncher = googleLauncher(Destinations.SignUp)
 
-        EmailActions(
-            modifier = width.padding(8.dp),
-            onSignIn = ::signInAction,
-            onSignUp = ::signUpAction,
-            onForgot = { Destinations.Forgot.navigate(navController) }
+                AuthProviders(
+                    modifier = Modifier.padding(8.dp),
+                    onGoogle = provideInScope(scope) {
+                        try {
+                            Log.d("Sign In", "Current limit count: $limitOneTap")
+                            if(limitOneTap > 0) user.authenticate(GoogleIntentLauncher(googleSignInLauncher))
+                            else scaffoldState.snackbarHostState.showSnackbar("Apologises, usage of Google sign in has been limited")
+                        } catch(e: IntentSender.SendIntentException) {
+                            Log.e("Sign in", "Failed to start One Tap UI", e)
+                        } catch(e: ApiException) {
+                            Log.d("Sign in", "No saved credentials found", e)
+                            user.create(GoogleIntentLauncher(googleSignUpLauncher))
+                        }
+                    },
+                    googleText = { Text("Continue with Google") }
+                )
+            }
         )
-
-        Divider(width)
-
-        AuthProviders(
-            modifier = width.padding(8.dp),
-            onGoogle = { scope.launch {
-                try {
-                    Log.d("Sign In", "Current limit count: $limitOneTap")
-                    if(limitOneTap > 0) user.authenticate(GoogleIntentLauncher(googleSignInLauncher))
-                    else scaffoldState.snackbarHostState.showSnackbar("Apologises, usage of Google sign in has been limited")
-                } catch(e: IntentSender.SendIntentException) {
-                    Log.e("Sign in", "Failed to start One Tap UI", e)
-                } catch(e: ApiException) {
-                    Log.d("Sign in", "No saved credentials found", e)
-                    user.create(GoogleIntentLauncher(googleSignUpLauncher))
-                }
-            } },
-            googleText = { Text("Continue with Google") }
-        )
-    } }
+    }
 }
