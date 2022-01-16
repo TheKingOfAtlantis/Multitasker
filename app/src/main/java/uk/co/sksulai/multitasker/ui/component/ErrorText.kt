@@ -26,3 +26,14 @@ import androidx.compose.ui.text.TextStyle
         modifier = modifier.semantics { error(message) },
     )
 }
+
+/**
+ * Used to mark labels if the contents of a text field contain an error
+ *
+ * @param label Text to put in the label
+ * @param isError Whether the value of the text field contains an error
+ */
+@Composable fun ErrorLabel(
+    label: String,
+    isError: Boolean
+) = Text(label + if(isError) " *" else "")
