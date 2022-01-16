@@ -8,6 +8,8 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 
 import androidx.datastore.preferences.core.emptyPreferences
+
+import uk.co.sksulai.multitasker.ui.screen.signin.*
 import uk.co.sksulai.multitasker.util.DatastoreLocators.AppState
 
 @Composable fun EntryPoint(
@@ -28,7 +30,7 @@ import uk.co.sksulai.multitasker.util.DatastoreLocators.AppState
                 else -> Destinations.SignIn.route
             }
         ) {
-            composable(Destinations.OnBoarding.route) { /*OnBoardingScreen(navController)*/ }
+            composable(Destinations.OnBoarding.route) { OnBoardingScreen(navController) }
             composable(Destinations.SignIn.route) { /*SignInScreen(navController)*/ }
             composable(Destinations.SignUp.route) { /*SignUpScreen(navController)*/ }
             composable(Destinations.Forgot.route) { /*ForgotScreen(navController)*/ }
