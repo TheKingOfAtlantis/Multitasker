@@ -124,6 +124,60 @@ import uk.co.sksulai.multitasker.util.rememberMutableState
         textStyle = MaterialTheme.typography.caption
     )
 }
+
+/**
+ * Provides a series of buttons to handle operations involving email-based
+ * credentials. While the naming is prejudiced towards handling operations
+ * involved in the sign-in flow, the labels can be reassigned and buttons
+ * will dynamically be added if the appropriate callback has been added.
+ *
+ * @param modifier Modifier to be applied to this component
+ *
+ * @param onSignIn Used to handle sign in requests
+ * @param onSignUp Used to handle sign up requests. If marked as null the
+ *                 button adjacent to the sign in button will be removed
+ *                 and the sign in button will take up the remaining space
+ * @param onForgot Used to handle forgotten password request. If marked
+ *                 as null the button below the sign in (and sign up if
+ *                 present) will be removed
+ *
+ * @param signInLabel The sign in button label (default: [R.string.signin])
+ * @param signUpLabel The sign up button label (default: [R.string.signup])
+ * @param forgotPasswordLabel The forgotten password button label (default:
+ *                            [R.string.forgot_password])
+ */
+@Composable fun EmailActions(
+    onSignIn: () -> Unit,
+    onSignUp: (() -> Unit)? = null,
+    onForgot: (() -> Unit)? = null,
+    modifier: Modifier = Modifier,
+    signInLabel: String = stringResource(R.string.signin),
+    signUpLabel: String = stringResource(R.string.signup),
+    forgotPasswordLabel: String = stringResource(R.string.forgot_password)
+) = Column(modifier) {
+    Row {
+        Button(
+            modifier = Modifier.weight(1f),
+            onClick  = onSignIn,
+            content  = { Text(signInLabel) }
+        )
+        if(onSignUp != null) {
+            Spacer(Modifier.width(8.dp))
+            Button(
+                modifier = Modifier.weight(1f),
+                onClick = onSignUp,
+                content = { Text(signUpLabel) }
+            )
+        }
+    }
+    if(onForgot != null) {
+        TextButton(
+            modifier = Modifier.fillMaxWidth(),
+            onClick  = onForgot,
+            content  = { Text(forgotPasswordLabel) }
+        )
+    }
+}
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable fun SignInScreen(
     navController: NavHostController,
