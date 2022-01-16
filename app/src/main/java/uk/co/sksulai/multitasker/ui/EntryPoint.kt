@@ -17,6 +17,7 @@ import uk.co.sksulai.multitasker.util.DatastoreLocators.AppState
 ) {
     val appState by AppState.retrieve().data.collectAsState(emptyPreferences())
     val initialRoute = when {
+        !appState[AppState.CurrentUser].isNullOrEmpty() -> Destinations.CalendarView.route
         !(appState[AppState.OnBoarded] ?: false) -> Destinations.SignInFlow.route
         else -> Destinations.SignInFlow.route
     }
@@ -34,5 +35,7 @@ import uk.co.sksulai.multitasker.util.DatastoreLocators.AppState
             composable(Destinations.SignUp.route) { /*SignUpScreen(navController)*/ }
             composable(Destinations.Forgot.route) { /*ForgotScreen(navController)*/ }
         }
+
+        composable(Destinations.CalendarView.route) { }
     }
 }

@@ -47,4 +47,6 @@ object Destinations {
     object SignIn     : Destination("SignIn")     // Sign in screen
     object SignUp     : Destination("SignUp")     // Sign up screen
     object Forgot     : Destination("Forgot")     // Forgot password screen
+
+    object CalendarView : Destination("Calendar") // The calendar view screen
 }
