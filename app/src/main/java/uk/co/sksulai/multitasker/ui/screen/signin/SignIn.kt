@@ -11,6 +11,8 @@ import androidx.compose.ui.*
 import androidx.compose.ui.res.*
 import androidx.compose.ui.focus.*
 import androidx.compose.ui.text.input.*
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.tooling.preview.Preview
 
@@ -177,6 +179,72 @@ import uk.co.sksulai.multitasker.util.rememberMutableState
             content  = { Text(forgotPasswordLabel) }
         )
     }
+}
+
+/**
+ * Provides a list of buttons for each of the supported authentication methods.
+ * It supports adding a preamble and modifying the button's text so that, if
+ * required, additional context can be provided (such as the benefits of linking
+ * a authentication provider) and that the buttons action can be specified (such
+ * as linking or unlinking an account)
+ *
+ * @param modifier       Modifier to be applied to this component
+ * @param onGoogle       Callback for when the user clicks the google button
+ * @param googleText     The text to display in the google button
+ * @param googlePreamble Text to be show before the google button that can be optionally
+ *                       used to provide rational to the user (e.g. the benefit of
+ *                       linking their google account)
+ */
+@Composable fun AuthProviders(
+    modifier: Modifier = Modifier,
+    onGoogle: () -> Unit,
+    googleText: @Composable () -> Unit,
+    googlePreamble: @Composable (() -> Unit)? = null
+) = Column(modifier) {
+
+    /**
+     * Helper to provide the same layout for each authentication provider
+     *
+     * @param onClick The relevent onClick handler
+     * @param icon The icon/logo associated with the authenticator's button
+     * @param text The text to place on the button
+     * @param preamble Preamble to place before the text
+     */
+    @Composable fun ProviderLayout(
+        onClick: () -> Unit,
+        icon: Painter,
+        text: @Composable () -> Unit,
+        preamble: @Composable (() -> Unit)? = null
+    ) = Column {
+        preamble?.let {
+            Box(Modifier.padding(vertical = 4.dp)) {
+                // TODO: Potentially pick a particular text style and content
+                //       alpha (potentially set it to medium)
+                preamble()
+            }
+        }
+        Button(
+            modifier = Modifier.fillMaxWidth(),
+            onClick  = onClick
+        ) {
+            Icon(
+                icon,
+                contentDescription = null,
+                modifier = Modifier
+                    .padding(end = ButtonDefaults.IconSpacing)
+                    .size(ButtonDefaults.IconSize),
+                tint = Color.Unspecified
+            )
+            text()
+        }
+    }
+
+    ProviderLayout( // Google
+        onClick  = onGoogle,
+        icon     = painterResource(R.drawable.ic_google_g_logo),
+        text     = googleText,
+        preamble = googlePreamble
+    )
 }
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable fun SignInScreen(
