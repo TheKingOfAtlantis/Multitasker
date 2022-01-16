@@ -1,7 +1,14 @@
 package uk.co.sksulai.multitasker.ui.screen.signin
 
-import androidx.compose.runtime.*
+import android.util.Log
+import kotlinx.coroutines.launch
 
+import android.content.IntentSender
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+
+import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.foundation.text.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.*
@@ -13,16 +20,37 @@ import androidx.compose.ui.focus.*
 import androidx.compose.ui.text.input.*
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.window.Popup
 import androidx.compose.ui.tooling.preview.Preview
 
 import androidx.navigation.NavHostController
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.NavGraph.Companion.findStartDestination
+
+import com.google.android.gms.common.api.ApiException
+import com.google.android.gms.common.api.CommonStatusCodes
+import com.google.firebase.auth.FirebaseAuthException
 
 import uk.co.sksulai.multitasker.R
+import uk.co.sksulai.multitasker.ui.*
 import uk.co.sksulai.multitasker.ui.component.*
+import uk.co.sksulai.multitasker.db.repo.GoogleIntent
+import uk.co.sksulai.multitasker.db.viewmodel.GoogleIntentLauncher
 import uk.co.sksulai.multitasker.db.viewmodel.UserViewModel
 import uk.co.sksulai.multitasker.util.rememberMutableState
+
+
+
+fun Modifier.getWidth(onWidthMeasured: (width: Dp) -> Unit): Modifier = composed {
+    val density = LocalDensity.current
+    this.onGloballyPositioned {
+        onWidthMeasured(with(density) { it.size.width.toDp() })
+    }
+}
 
 /**
  * Form containing fields for the user's email and password that can be used to
@@ -251,5 +279,143 @@ import uk.co.sksulai.multitasker.util.rememberMutableState
     navController: NavHostController,
     user: UserViewModel = hiltViewModel()
 ) {
+    val scope = rememberCoroutineScope()
+    val scaffoldState = rememberScaffoldState()
 
+    var showProgressIndicator by remember { mutableStateOf(false) }
+    if(showProgressIndicator) Popup(alignment = Alignment.Center) {
+        CircularProgressIndicator()
+    }
+
+    Scaffold(scaffoldState = scaffoldState) { Column(
+        Modifier.fillMaxSize(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        var email    by rememberSaveable { mutableStateOf("") }
+        var password by rememberSaveable { mutableStateOf("") }
+        var emailError: String?    by rememberSaveable { mutableStateOf(null) }
+        var passwordError: String? by rememberSaveable { mutableStateOf(null) }
+
+        var width: Modifier by remember { mutableStateOf(Modifier) }
+
+        val passwordSaver = rememberLauncherForActivityResult(ActivityResultContracts.StartIntentSenderForResult()) { }
+        fun emailAction(
+            route: Destination,
+            action: suspend (email: String, password: String) -> Unit
+        ) {
+            scope.launch {
+                emailError    = null
+                passwordError = null
+                when {
+                    email.isEmpty() -> {
+                        emailError = "No email provided"
+                        return@launch
+                    }
+                    password.isEmpty() -> {
+                        passwordError = "No password provided"
+                        return@launch
+                    }
+                }
+                try {
+                    showProgressIndicator = true
+                    action(email, password)
+                    route.navigate(navController) {
+                        popUpTo(navController.graph.findStartDestination().id) {
+                            inclusive = true
+                        }
+                    }
+                } catch (err: FirebaseAuthException) {
+                    user.handleAuthError(err,
+                        onEmailError    = { emailError = it },
+                        onPasswordError = { passwordError = it },
+                        onAuthError     = { scaffoldState.snackbarHostState.showSnackbar(it) }
+                    )
+                } catch (e: ApiException) {
+                    // If the saver fails isn't critical
+                    // May fail if we just used autofill to get details
+                    Log.e("Sign in/up", "Failed to save the email/password", e)
+                    route.navigate(navController) {
+                        popUpTo(navController.graph.findStartDestination().id) {
+                            inclusive = true
+                        }
+                    }
+                } finally {
+                    showProgressIndicator = false
+                }
+            }
+        }
+
+        fun signInAction() = emailAction(Destinations.CalendarView) { email, password ->
+            user.authenticate(email, password, GoogleIntentLauncher(passwordSaver))
+        }
+        fun signUpAction() = emailAction(Destinations.SignUp) { email, password ->
+            user.create(email, password, GoogleIntentLauncher(passwordSaver))
+        }
+
+        var limitOneTap by rememberSaveable { mutableStateOf(3) }
+        @Composable fun googleLauncher(route: Destination) = rememberLauncherForActivityResult(
+            ActivityResultContracts.StartIntentSenderForResult()
+        ) { scope.launch {
+            try {
+                user.authenticate(GoogleIntent(it.data))
+                route.navigate(navController) {
+                    popUpTo(navController.graph.findStartDestination().id) {
+                        inclusive = true
+                    }
+                }
+            } catch (e: ApiException) {
+                when(e.statusCode) {
+                    CommonStatusCodes.CANCELED -> {
+                        Log.d("Sign In", "User cancelled sign in w/ One-Tap")
+                        limitOneTap--
+                    }
+                    else -> Log.d("Sign In", "Failed to sign in w/ One-Tap", e)
+                }
+            }
+        } }
+        val googleSignInLauncher = googleLauncher(Destinations.CalendarView)
+        val googleSignUpLauncher = googleLauncher(Destinations.SignUp)
+
+        AppLogo(width)
+
+        SignInForm(
+            modifier = Modifier
+                .getWidth { width = Modifier.width(it) }
+                .padding(bottom = 16.dp),
+            email    = email,
+            password = password,
+            onEmailChanged    = { email = it },
+            onPasswordChanged = { password = it },
+            emailError    = emailError,
+            passwordError = passwordError,
+            onFilled      = ::signInAction
+        )
+
+        EmailActions(
+            modifier = width.padding(8.dp),
+            onSignIn = ::signInAction,
+            onSignUp = ::signUpAction,
+            onForgot = { Destinations.Forgot.navigate(navController) }
+        )
+
+        Divider(width)
+
+        AuthProviders(
+            modifier = width.padding(8.dp),
+            onGoogle = { scope.launch {
+                try {
+                    Log.d("Sign In", "Current limit count: $limitOneTap")
+                    if(limitOneTap > 0) user.authenticate(GoogleIntentLauncher(googleSignInLauncher))
+                    else scaffoldState.snackbarHostState.showSnackbar("Apologises, usage of Google sign in has been limited")
+                } catch(e: IntentSender.SendIntentException) {
+                    Log.e("Sign in", "Failed to start One Tap UI", e)
+                } catch(e: ApiException) {
+                    Log.d("Sign in", "No saved credentials found", e)
+                    user.create(GoogleIntentLauncher(googleSignUpLauncher))
+                }
+            } },
+            googleText = { Text("Continue with Google") }
+        )
+    } }
 }
