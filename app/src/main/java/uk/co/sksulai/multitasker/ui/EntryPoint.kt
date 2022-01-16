@@ -30,7 +30,7 @@ import uk.co.sksulai.multitasker.util.DatastoreLocators.AppState
             }
         ) {
             composable(Destinations.OnBoarding.route) { OnBoardingScreen(navController) }
-            composable(Destinations.SignIn.route) { /*SignInScreen(navController)*/ }
+            composable(Destinations.SignIn.route) { SignInScreen(navController) }
             composable(Destinations.SignUp.route) { /*SignUpScreen(navController)*/ }
             composable(Destinations.Forgot.route) { /*ForgotScreen(navController)*/ }
         }

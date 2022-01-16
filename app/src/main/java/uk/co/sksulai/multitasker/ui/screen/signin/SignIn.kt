@@ -2,14 +2,11 @@ package uk.co.sksulai.multitasker.ui.screen.signin
 
 import androidx.compose.runtime.*
 
+import androidx.compose.foundation.text.*
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.foundation.text.KeyboardOptions
-
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
-
 import androidx.compose.ui.*
 import androidx.compose.ui.res.*
 import androidx.compose.ui.focus.*
@@ -17,9 +14,12 @@ import androidx.compose.ui.text.input.*
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.tooling.preview.Preview
 
+import androidx.navigation.NavHostController
+import androidx.hilt.navigation.compose.hiltViewModel
+
 import uk.co.sksulai.multitasker.R
-import uk.co.sksulai.multitasker.ui.component.ErrorLabel
-import uk.co.sksulai.multitasker.ui.component.ErrorText
+import uk.co.sksulai.multitasker.ui.component.*
+import uk.co.sksulai.multitasker.db.viewmodel.UserViewModel
 import uk.co.sksulai.multitasker.util.rememberMutableState
 
 /**
@@ -123,4 +123,11 @@ import uk.co.sksulai.multitasker.util.rememberMutableState
             .padding(start = 16.dp),
         textStyle = MaterialTheme.typography.caption
     )
+}
+@OptIn(ExperimentalComposeUiApi::class)
+@Composable fun SignInScreen(
+    navController: NavHostController,
+    user: UserViewModel = hiltViewModel()
+) {
+
 }
