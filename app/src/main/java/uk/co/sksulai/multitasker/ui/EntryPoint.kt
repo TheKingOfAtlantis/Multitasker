@@ -6,6 +6,7 @@ import android.net.Uri
 import android.app.Activity
 import android.content.Intent
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.emptyPreferences
 
@@ -27,10 +28,12 @@ enum class GraphLevel {
     SignInFlow
 }
 
-fun determineInitialRoute(
+@Composable fun rememberInitialRoute(
     level: GraphLevel,
     appState: Preferences
-) = when(level) {
+) = rememberSaveable(
+    level, appState
+) { when(level) {
     GraphLevel.Root -> when {
         !appState[AppState.CurrentUser].isNullOrEmpty() -> Destinations.CalendarView.route
         !(appState[AppState.OnBoarded] ?: false) -> Destinations.SignInFlow.route
@@ -40,7 +43,7 @@ fun determineInitialRoute(
         !(appState[AppState.OnBoarded] ?: false) -> Destinations.OnBoarding.route
         else -> Destinations.SignIn.route
     }
-}
+} }
 
 @Composable private fun handleDynamicLinks(
     navController: NavHostController,
@@ -56,11 +59,15 @@ fun determineInitialRoute(
     navController: NavHostController = rememberNavController(),
 ) {
     val appState by AppState.retrieveData(emptyPreferences())
+
+    val rootInitialRoot = rememberInitialRoute(GraphLevel.Root, appState)
+    val signinFlowInitialRoot = rememberInitialRoute(GraphLevel.SignInFlow, appState)
+
     handleDynamicLinks(navController)
-    NavHost(navController, determineInitialRoute(GraphLevel.Root, appState)) {
+    NavHost(navController, rootInitialRoot) {
         navigation(
             route = Destinations.SignInFlow.route,
-            startDestination = determineInitialRoute(GraphLevel.SignInFlow, appState)
+            startDestination = signinFlowInitialRoot
         ) {
             composable(Destinations.OnBoarding.route) { OnBoardingScreen(navController) }
             composable(
