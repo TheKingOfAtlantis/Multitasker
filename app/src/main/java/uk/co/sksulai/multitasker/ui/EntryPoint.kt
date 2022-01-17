@@ -1,5 +1,7 @@
 package uk.co.sksulai.multitasker.ui
 
+import java.lang.IllegalArgumentException
+
 import android.net.Uri
 import android.app.Activity
 import android.content.Intent
@@ -69,7 +71,14 @@ fun determineInitialRoute(
                 Destinations.SignUp.route,
                 deepLinks = listOf(NavDeepLink("$MultitaskerBaseUrl/signup"))
             ) { /*SignUpScreen(navController)*/ }
-            composable(Destinations.Forgot.route) { /*ForgotScreen(navController)*/ }
+            composable(
+                Destinations.Forgot.route + "?email={email}",
+            ) {
+                it.arguments?.let { args ->
+                    val email: String? by args
+                    ResetPassword(navController, email ?: "")
+                }
+            }
         }
 
         composable(Destinations.CalendarView.route) { }

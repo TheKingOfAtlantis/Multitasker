@@ -512,7 +512,11 @@ fun Modifier.addAutofillNode(
                     modifier = Modifier.padding(8.dp),
                     onSignIn = ::signInAction,
                     onSignUp = ::signUpAction,
-                    onForgot = { Destinations.Forgot.navigate(navController) }
+                    onForgot = {
+                        Destinations.Forgot.navigate(navController, mapOf(
+                            "email" to email
+                        ))
+                    }
                 )
             },
             authProvider = {
