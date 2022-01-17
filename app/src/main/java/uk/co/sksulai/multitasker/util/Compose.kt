@@ -3,6 +3,9 @@ package uk.co.sksulai.multitasker.util
 import kotlinx.coroutines.*
 import androidx.compose.runtime.*
 import androidx.appcompat.app.AppCompatActivity
+import androidx.compose.runtime.saveable.Saver
+import androidx.compose.runtime.saveable.autoSaver
+import androidx.compose.runtime.saveable.rememberSaveable
 
 /**
  * Provides the [AppCompatActivity] in which this composition is taking place in
@@ -25,6 +28,24 @@ val LocalActivity = staticCompositionLocalOf<AppCompatActivity> {
     LocalActivity provides activity,
     content = content,
 )
+
+@Composable fun <T> rememberSaveableMutableState(
+    value: T,
+    stateSaver: Saver<T, out Any> = autoSaver(),
+    policy: SnapshotMutationPolicy<T> = structuralEqualityPolicy()
+) = rememberSaveable(stateSaver = stateSaver) { mutableStateOf(value, policy) }
+
+@Composable fun <T> rememberSaveableMutableState(
+    vararg inputs: Any?,
+    value: T,
+    policy: SnapshotMutationPolicy<T> = structuralEqualityPolicy(),
+    stateSaver: Saver<T, out Any> = autoSaver(),
+    key: String? = null,
+) = rememberSaveable(
+    inputs = inputs,
+    stateSaver = stateSaver,
+    key = key
+) { mutableStateOf(value, policy) }
 
 /**
  * Simple wrapper to [remember] a [MutableState]
