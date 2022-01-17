@@ -79,6 +79,30 @@ fun determineInitialRoute(
                     ResetPassword(navController, email ?: "")
                 }
             }
+
+            fun emailActionComposable(
+                route: String,
+                deepLink: String,
+                content: @Composable (code: String, continueUrl: String) -> Unit
+            ) = composable(
+                "$route?code={code}&continueUrl={continueUrl}",
+                deepLinks = listOf(NavDeepLink("$deepLink?code={code}&continueUrl={continueUrl}")),
+                arguments = listOf(
+                    navArgument("code") { },
+                    navArgument("continueUrl") { },
+                )
+            ) {
+                it.arguments!!.let { bundle ->
+                    val code:        String by bundle
+                    val continueUrl: String by bundle
+
+                    content(code, continueUrl)
+                }
+            }
+            emailActionComposable(
+                Destinations.Forgot.route,
+                "$MultitaskerBaseUrl/user/reset"
+            ) { code, continueUrl -> ResetPassword(navController, code, continueUrl)  }
         }
 
         composable(Destinations.CalendarView.route) { }

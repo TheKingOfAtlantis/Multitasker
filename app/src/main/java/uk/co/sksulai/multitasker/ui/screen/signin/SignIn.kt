@@ -49,6 +49,7 @@ import uk.co.sksulai.multitasker.db.viewmodel.GoogleIntentLauncher
 import uk.co.sksulai.multitasker.db.viewmodel.UserViewModel
 import uk.co.sksulai.multitasker.util.provideInScope
 import uk.co.sksulai.multitasker.util.rememberMutableState
+import uk.co.sksulai.multitasker.util.rememberSaveableMutableState
 
 @OptIn(ExperimentalComposeUiApi::class)
 fun View.getManager() = context.getSystemService<AutofillManager>()
@@ -354,14 +355,14 @@ fun Modifier.addAutofillNode(
     ) { measurables, constraints ->
         val relax = constraints.copy(minWidth = 0, minHeight = 0)
 
-        val header = measurables
-            .first { it.layoutId == "logo" }
-            .measure(relax)
-
         // Measure email form first so we can use its with to constrain everything else
         val emailFormPlaceable = measurables
             .first { it.layoutId == "emailForm" }
             .measure(relax)
+
+        val header = measurables
+            .first { it.layoutId == "logo" }
+            .measure(Constraints.fixedWidth(emailFormPlaceable.width))
 
         val emailActionsPlaceable = measurables
             .first { it.layoutId == "emailActions" }
@@ -423,10 +424,10 @@ fun Modifier.addAutofillNode(
         CircularProgressIndicator()
     }
 
-    var email    by rememberSaveable { mutableStateOf("") }
-    var password by rememberSaveable { mutableStateOf("") }
-    var emailError: String?    by rememberSaveable { mutableStateOf(null) }
-    var passwordError: String? by rememberSaveable { mutableStateOf(null) }
+    var email    by rememberSaveableMutableState("")
+    var password by rememberSaveableMutableState("")
+    var emailError: String?    by rememberSaveableMutableState(null)
+    var passwordError: String? by rememberSaveableMutableState(null)
 
     val passwordSaver = rememberLauncherForActivityResult(ActivityResultContracts.StartIntentSenderForResult()) { }
     fun emailAction(
@@ -492,7 +493,7 @@ fun Modifier.addAutofillNode(
                 AppLogo(
                     useLarge = true,
                     modifier = Modifier
-                        .padding(32.dp)
+                        .padding(vertical = 32.dp)
                 )
             },
             emailForm = {
