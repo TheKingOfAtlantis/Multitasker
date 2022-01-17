@@ -61,8 +61,14 @@ fun determineInitialRoute(
             startDestination = determineInitialRoute(GraphLevel.SignInFlow, appState)
         ) {
             composable(Destinations.OnBoarding.route) { OnBoardingScreen(navController) }
-            composable(Destinations.SignIn.route) { SignInScreen(navController) }
-            composable(Destinations.SignUp.route) { /*SignUpScreen(navController)*/ }
+            composable(
+                Destinations.SignIn.route,
+                deepLinks = listOf(NavDeepLink("$MultitaskerBaseUrl/signin"))
+            ) { SignInScreen(navController) }
+            composable(
+                Destinations.SignUp.route,
+                deepLinks = listOf(NavDeepLink("$MultitaskerBaseUrl/signup"))
+            ) { /*SignUpScreen(navController)*/ }
             composable(Destinations.Forgot.route) { /*ForgotScreen(navController)*/ }
         }
 
