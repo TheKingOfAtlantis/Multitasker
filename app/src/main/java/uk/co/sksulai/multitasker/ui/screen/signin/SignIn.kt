@@ -5,6 +5,7 @@ import kotlinx.coroutines.launch
 
 import android.util.Log
 
+import android.view.View
 import android.content.IntentSender
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -22,13 +23,15 @@ import androidx.compose.ui.focus.*
 import androidx.compose.ui.text.input.*
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
-import androidx.compose.ui.layout.Layout
-import androidx.compose.ui.layout.Placeable
-import androidx.compose.ui.layout.layoutId
-import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.layout.*
+import androidx.compose.ui.platform.*
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Popup
+import androidx.core.content.getSystemService
+
+import android.view.autofill.*
+import androidx.compose.ui.autofill.*
 
 import androidx.navigation.NavHostController
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -46,6 +49,39 @@ import uk.co.sksulai.multitasker.db.viewmodel.GoogleIntentLauncher
 import uk.co.sksulai.multitasker.db.viewmodel.UserViewModel
 import uk.co.sksulai.multitasker.util.provideInScope
 import uk.co.sksulai.multitasker.util.rememberMutableState
+
+@OptIn(ExperimentalComposeUiApi::class)
+fun View.getManager() = context.getSystemService<AutofillManager>()
+@OptIn(ExperimentalComposeUiApi::class)
+fun AutofillNode.onValueChanged(
+    view: View, // = LocalView.current
+    value: String
+) = view.getManager()?.notifyValueChanged(view, id, AutofillValue.forText(value))
+
+@ExperimentalComposeUiApi
+fun Modifier.addAutofillNode(
+    autofillTree: AutofillTree,
+    autofill: Autofill?,
+    onFill: ((String) -> Unit)?,
+    vararg type: AutofillType,
+    onNodeCreated: (AutofillNode) -> Unit
+): Modifier = this.composed {
+    val node = remember(onFill, type) { AutofillNode(
+        autofillTypes = type.asList(),
+        onFill = onFill
+    ) }
+    autofillTree += node
+    onNodeCreated(node)
+
+    onGloballyPositioned {
+        node.boundingBox = it.boundsInWindow()
+    }.onFocusChanged {
+        autofill?.apply {
+            if (it.isFocused) requestAutofillForNode(node)
+            else cancelAutofillForNode(node)
+        }
+    }
+}
 
 /**
  * Form containing fields for the user's email and password that can be used to
@@ -78,18 +114,32 @@ import uk.co.sksulai.multitasker.util.rememberMutableState
         else if(!passwordError.isNullOrEmpty()) passwordFocus.requestFocus()
     }
 
+    val view         = LocalView.current
+    val autofillTree = LocalAutofillTree.current
+    val autofill     = LocalAutofill.current
+
+    val (emailNode, onEmailNodeChange) = rememberMutableState<AutofillNode?>(null)
     OutlinedTextField(
-        modifier = Modifier.focusOrder(emailFocus),
+        modifier = Modifier
+            .focusOrder(emailFocus)
+            .addAutofillNode(
+                autofillTree, autofill, onEmailChanged,
+                AutofillType.EmailAddress,
+                onNodeCreated = onEmailNodeChange
+            ),
         label = {
             ErrorLabel(
                 stringResource(id = R.string.email),
                 !emailError.isNullOrEmpty()
             )
         },
-        value         = email,
-        onValueChange = onEmailChanged,
-        singleLine    = true,
-        isError       = !emailError.isNullOrEmpty(),
+        value = email,
+        onValueChange = {
+            onEmailChanged(it)
+            emailNode?.onValueChanged(view, it)
+        },
+        singleLine       = true,
+        isError          = !emailError.isNullOrEmpty(),
         keyboardActions  = KeyboardActions { passwordFocus.requestFocus() },
         keyboardOptions  = KeyboardOptions(
             keyboardType = KeyboardType.Email,
@@ -106,17 +156,28 @@ import uk.co.sksulai.multitasker.util.rememberMutableState
 
     Spacer(Modifier.height(8.dp))
 
+    val (passwordNode, onPasswordNodeChange) = rememberMutableState<AutofillNode?>(null)
     var visible by rememberMutableState(false)
     OutlinedTextField(
-        modifier = Modifier.focusRequester(passwordFocus),
-        label    = {
+        modifier = Modifier
+            .focusRequester(passwordFocus)
+            .addAutofillNode(
+                autofillTree, autofill, onPasswordChanged,
+                AutofillType.Password, AutofillType.NewPassword,
+                onNodeCreated = onPasswordNodeChange
+            )
+        ,
+        label = {
             ErrorLabel(
                 stringResource(id = R.string.password),
                 !passwordError.isNullOrEmpty()
             )
         },
-        value         = password,
-        onValueChange = onPasswordChanged,
+        value = password,
+        onValueChange = {
+            onPasswordChanged(it)
+            passwordNode?.onValueChanged(view, it)
+        },
         singleLine    = true,
         isError       = !passwordError.isNullOrEmpty(),
         trailingIcon  = {
@@ -224,7 +285,6 @@ import uk.co.sksulai.multitasker.util.rememberMutableState
     googleText: @Composable () -> Unit,
     googlePreamble: @Composable (() -> Unit)? = null
 ) = Column(modifier) {
-
     /**
      * Helper to provide the same layout for each authentication provider
      *
@@ -270,6 +330,10 @@ import uk.co.sksulai.multitasker.util.rememberMutableState
     )
 }
 
+/**
+ * Layouts out the contents of the sign in form such that the width
+ * of everything matches the text fields
+ */
 @Composable fun SignInScreenLayout(
     logo: @Composable () -> Unit,
     emailForm: @Composable () -> Unit,
