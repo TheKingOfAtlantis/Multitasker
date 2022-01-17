@@ -4,13 +4,12 @@ import android.net.Uri
 import android.app.Activity
 import android.content.Intent
 import androidx.compose.runtime.*
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.emptyPreferences
 
 import androidx.navigation.*
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
-import androidx.navigation.compose.rememberNavController
+import androidx.navigation.compose.*
 
-import androidx.datastore.preferences.core.emptyPreferences
 import com.google.firebase.ktx.Firebase
 import com.google.firebase.dynamiclinks.ktx.dynamicLinks
 import com.google.firebase.dynamiclinks.FirebaseDynamicLinks
@@ -20,6 +19,26 @@ import uk.co.sksulai.multitasker.util.*
 import uk.co.sksulai.multitasker.util.DatastoreLocators.AppState
 
 const val MultitaskerBaseUrl = "app.multitasker.xyz"
+
+enum class GraphLevel {
+    Root,
+    SignInFlow
+}
+
+fun determineInitialRoute(
+    level: GraphLevel,
+    appState: Preferences
+) = when(level) {
+    GraphLevel.Root -> when {
+        !appState[AppState.CurrentUser].isNullOrEmpty() -> Destinations.CalendarView.route
+        !(appState[AppState.OnBoarded] ?: false) -> Destinations.SignInFlow.route
+        else -> Destinations.SignInFlow.route
+    }
+    GraphLevel.SignInFlow ->  when {
+        !(appState[AppState.OnBoarded] ?: false) -> Destinations.OnBoarding.route
+        else -> Destinations.SignIn.route
+    }
+}
 
 @Composable private fun handleDynamicLinks(
     navController: NavHostController,
@@ -34,21 +53,12 @@ const val MultitaskerBaseUrl = "app.multitasker.xyz"
 @Composable fun EntryPoint(
     navController: NavHostController = rememberNavController(),
 ) {
-    val appState by AppState.retrieve().data.collectAsState(emptyPreferences())
-    val initialRoute = when {
-        !appState[AppState.CurrentUser].isNullOrEmpty() -> Destinations.CalendarView.route
-        !(appState[AppState.OnBoarded] ?: false) -> Destinations.SignInFlow.route
-        else -> Destinations.SignInFlow.route
-    }
-
+    val appState by AppState.retrieveData(emptyPreferences())
     handleDynamicLinks(navController)
-    NavHost(navController, initialRoute) {
+    NavHost(navController, determineInitialRoute(GraphLevel.Root, appState)) {
         navigation(
             route = Destinations.SignInFlow.route,
-            startDestination = when {
-                !(appState[AppState.OnBoarded] ?: false) -> Destinations.OnBoarding.route
-                else -> Destinations.SignIn.route
-            }
+            startDestination = determineInitialRoute(GraphLevel.SignInFlow, appState)
         ) {
             composable(Destinations.OnBoarding.route) { OnBoardingScreen(navController) }
             composable(Destinations.SignIn.route) { SignInScreen(navController) }
