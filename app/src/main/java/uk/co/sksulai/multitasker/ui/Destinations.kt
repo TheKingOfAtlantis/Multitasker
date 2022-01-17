@@ -22,6 +22,20 @@ sealed class Destination(val route: String) {
         navController: NavController,
         builder: (NavOptionsBuilder.() -> Unit)? = null
     ) = builder?.let { navController.navigate(route, it) } ?: navController.navigate(route)
+
+    fun navigate(
+        navController: NavController,
+        arguments: Map<String, String> = mapOf(),
+        builder: (NavOptionsBuilder.() -> Unit)? = null
+    ) {
+        val actualRoute = route + arguments
+            .map { (key, value) -> "$key=$value" }
+            .joinToString(
+                separator = "&",
+                prefix = "?"
+            )
+        builder?.let { navController.navigate(actualRoute, it) } ?: navController.navigate(actualRoute)
+    }
 }
 /**
  * Provides a strongly typed representation of a navigation route with additional
