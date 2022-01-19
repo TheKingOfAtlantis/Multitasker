@@ -33,7 +33,7 @@ import androidx.compose.ui.text.TextStyle
  * @param label Text to put in the label
  * @param isError Whether the value of the text field contains an error
  */
-@Composable fun ErrorLabel(
+@Composable fun LabelText(
     label: String,
     isError: Boolean
 ) = Text(label + if(isError) " *" else "")

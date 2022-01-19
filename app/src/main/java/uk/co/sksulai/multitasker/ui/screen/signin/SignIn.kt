@@ -129,7 +129,7 @@ fun Modifier.addAutofillNode(
                 onNodeCreated = onEmailNodeChange
             ),
         label = {
-            ErrorLabel(
+            LabelText(
                 stringResource(id = R.string.email),
                 !emailError.isNullOrEmpty()
             )
@@ -169,7 +169,7 @@ fun Modifier.addAutofillNode(
             )
         ,
         label = {
-            ErrorLabel(
+            LabelText(
                 stringResource(id = R.string.password),
                 !passwordError.isNullOrEmpty()
             )
