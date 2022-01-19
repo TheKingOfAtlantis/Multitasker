@@ -16,6 +16,7 @@ import androidx.navigation.compose.*
 import com.google.firebase.ktx.Firebase
 import com.google.firebase.dynamiclinks.ktx.dynamicLinks
 import com.google.firebase.dynamiclinks.FirebaseDynamicLinks
+import uk.co.sksulai.multitasker.ui.screen.calendar.CalendarScreen
 
 import uk.co.sksulai.multitasker.ui.screen.signin.*
 import uk.co.sksulai.multitasker.util.*
@@ -109,7 +110,9 @@ enum class GraphLevel {
             ) { code, continueUrl -> ResetPassword(navController, code, continueUrl)  }
         }
 
-        composable(Destinations.CalendarView.route) { }
+        composable(Destinations.CalendarView.route) {
+            CalendarScreen(navController)
+        }
 
         composable(
             "Action?mode={mode}&oobCode={oobCode}&apiKey={apiKey}&continueUrl={continueUrl}&lang={lang}",
