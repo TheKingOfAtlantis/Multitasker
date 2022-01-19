@@ -23,6 +23,7 @@ import uk.co.sksulai.multitasker.db.dao.*
 import uk.co.sksulai.multitasker.db.web.*
 import uk.co.sksulai.multitasker.db.model.*
 import uk.co.sksulai.multitasker.di.DispatcherIO
+import uk.co.sksulai.multitasker.ui.MultitaskerBaseUrl
 import uk.co.sksulai.multitasker.util.DatastoreLocators.AppState
 
 @JvmInline value class GoogleIntent(val value: Intent?)
@@ -376,10 +377,14 @@ class UserRepository @Inject constructor(
     /**
      * Creates an [ActionCodeSettings] to a given [continueUrl]
      * @param continueUrl Whether to send to the user to once they have finished
+     * @param baseUrl     The base url to use which is prepended to [continueUrl]
      * @return An [ActionCodeSettings] object to [continueUrl]
      */
-    private fun createActionCode(continueUrl: String) = ActionCodeSettings.newBuilder().apply {
-        url = "https://$continueUrl"
+    private fun createActionCode(
+        continueUrl: String? = null,
+        baseUrl: String = MultitaskerBaseUrl
+    ) = ActionCodeSettings.newBuilder().apply {
+        url = "https://$baseUrl/$continueUrl"
 
         setAndroidPackageName(
             BuildConfig.APPLICATION_ID,
@@ -433,7 +438,7 @@ class UserRepository @Inject constructor(
         /**
          * Whether or not the email of the current user has been verified
          */
-        val verified: Boolean = firebaseAuth.currentUser?.isEmailVerified ?: false
+        val verified: Boolean get() = firebaseAuth.currentUser?.isEmailVerified ?: false
         /**
          * Sends an email verification request to the current user's email
          */
@@ -446,12 +451,13 @@ class UserRepository @Inject constructor(
          *
          * @param code The email verification code to verify
          */
-        suspend fun confirm(code: String) = withContext(ioDispatcher) {
+        suspend fun confirm(code: String): Unit = withContext(ioDispatcher) {
             val check = firebaseAuth.checkActionCode(code).await()
             if(check.operation != ActionCodeResult.VERIFY_EMAIL)
                 throw IllegalArgumentException("Action code given is not for verifying emails (operation: ${check.operation}")
 
             firebaseAuth.applyActionCode(code).await()
+            firebaseAuth.currentUser?.reload()
         }
     }
 

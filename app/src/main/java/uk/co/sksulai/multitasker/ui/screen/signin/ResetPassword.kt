@@ -3,28 +3,29 @@ package uk.co.sksulai.multitasker.ui.screen.signin
 import android.net.Uri
 import android.util.Patterns
 import androidx.activity.compose.BackHandler
+
+import androidx.compose.runtime.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
+
 import androidx.navigation.NavController
-import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.navOptions
+import androidx.hilt.navigation.compose.hiltViewModel
+
 import com.google.firebase.auth.FirebaseAuthException
+
 import uk.co.sksulai.multitasker.R
-import uk.co.sksulai.multitasker.db.repo.UserRepository
 import uk.co.sksulai.multitasker.db.viewmodel.UserViewModel
 import uk.co.sksulai.multitasker.ui.Destinations
 import uk.co.sksulai.multitasker.ui.component.ErrorText
@@ -152,10 +153,11 @@ import uk.co.sksulai.multitasker.util.rememberSaveableMutableState
 
 } }
 
-enum class ResetPasswordState {
+enum class EmailActionState {
     Verifying,
     Success,
     Error,
+    Retry
 }
 
 @Composable fun ResetPassword(
@@ -173,16 +175,16 @@ enum class ResetPasswordState {
 
     val resetPassword = userViewModel.resetPassword
 
-    var state by rememberSaveableMutableState(ResetPasswordState.Verifying)
+    var state by rememberSaveableMutableState(EmailActionState.Verifying)
     var error by rememberSaveableMutableState<String?>(null)
     var email by rememberSaveableMutableState("")
 
     when(state) {
-        ResetPasswordState.Verifying -> {
+        EmailActionState.Verifying -> {
             LaunchedEffect(Unit) {
                 try {
                     email = resetPassword.isValid(code)
-                    state = ResetPasswordState.Success
+                    state = EmailActionState.Success
                 } catch(e: FirebaseAuthException) {
                     error = when(e.errorCode) {
                         "ERROR_EXPIRED_ACTION_CODE"  -> "The password reset link has expired."
@@ -191,14 +193,14 @@ enum class ResetPasswordState {
                         "ERROR_USER_NOT_FOUND"       -> "The user may have been deleted."
                         else -> "An unknown error occurred: ${e.errorCode} - ${e.localizedMessage}"
                     }
-                    state = ResetPasswordState.Error
+                    state = EmailActionState.Error
                 }
             }
 
             Text("Verifying link...")
             CircularProgressIndicator()
         }
-        ResetPasswordState.Success -> {
+        EmailActionState.Success -> {
             var password by rememberSaveableMutableState("")
 
             Text(
@@ -229,7 +231,7 @@ enum class ResetPasswordState {
                 content = {Text("Submit") }
             )
         }
-        ResetPasswordState.Error -> {
+        EmailActionState.Error -> {
             Text(
                 "Link invalid",
                 style = MaterialTheme.typography.h6,
