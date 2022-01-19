@@ -28,7 +28,7 @@ class CalendarRepo @Inject constructor(
      * @param description A description of this calendar
      * @param colour      The colour of this calendar
      *
-     * @return A [CalendarModel] instance of the newly created calendar
+     * @return [CalendarModel] instance of the newly created calendar
      */
     suspend fun createCalendar(
         owner: UserModel,
@@ -49,7 +49,7 @@ class CalendarRepo @Inject constructor(
      * @param description A description of this calendar
      * @param colour      The colour of this calendar
      *
-     * @return A [CalendarModel] instance of the newly created calendar
+     * @return [CalendarModel] instance of the newly created calendar
      */
     suspend fun createCalendar(
         owner: String,
@@ -79,7 +79,7 @@ class CalendarRepo @Inject constructor(
      * @param tags        Tags associated with the event
      * @param parentID    ID of the parent event
      *
-     * @return A [EventModel] instance of the newly created event
+     * @return [EventModel] instance of the newly created event
      */
     suspend fun createEvent(
         calendar: CalendarModel,
@@ -92,19 +92,18 @@ class CalendarRepo @Inject constructor(
         category: String = "",
         tags: String     = "",
         parentID: UUID?  = null,
-    ) = create(EventModel(
-        ID          = generateID(),
-        CalendarID  = calendar.ID,
-        ParentID    = parentID,
-        Name        = name,
-        Description = description,
-        Colour      = colour?.toArgb(),
-        Category    = category,
-        Tags        = tags,
-        AllDay      = allDay,
-        Start       = start,
-        Duration    = duration,
-    ))
+    ) = createEvent(
+        calendarId  = calendar.ID,
+        name        = name,
+        description = description,
+        start       = start,
+        duration    = duration,
+        allDay      = allDay,
+        colour      = colour?.toArgb(),
+        category    = category,
+        tags        = tags,
+        parentID    = parentID,
+    )
     /**
      * Creates a event
      *
@@ -119,7 +118,7 @@ class CalendarRepo @Inject constructor(
      * @param tags        Tags associated with the event
      * @param parentID    ID of the parent event
      *
-     * @return A [EventModel] instance of the newly created event
+     * @return [EventModel] instance of the newly created event
      */
     suspend fun createEvent(
         calendarId: UUID,
@@ -128,7 +127,7 @@ class CalendarRepo @Inject constructor(
         start: OffsetDateTime,
         duration: Duration,
         allDay: Boolean,
-        colour: Color?   = null,
+        colour: Int?     = null,
         category: String = "",
         tags: String     = "",
         parentID: UUID?  = null,
@@ -138,7 +137,7 @@ class CalendarRepo @Inject constructor(
         ParentID    = parentID,
         Name        = name,
         Description = description,
-        Colour      = colour?.toArgb(),
+        Colour      = colour,
         Category    = category,
         Tags        = tags,
         AllDay      = allDay,
