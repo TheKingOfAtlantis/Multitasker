@@ -7,6 +7,7 @@ import android.os.Parcelable
 import kotlinx.parcelize.Parcelize
 import androidx.compose.runtime.Immutable
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 
 /**
  *
@@ -47,6 +48,10 @@ import androidx.compose.ui.graphics.Color
  * [Color] object to be used to show the colour of [EventModel.Colour]
  */
 val EventModel.UiColour: Color? get() = Colour?.let { Color(it) }
+/**
+ * Creates a copy of this [EventModel] with the given [colour]
+ */
+fun EventModel.withColor(colour: Color?) = copy(Colour = colour?.toArgb())
 
 /**
  * Represents the time at which the event ends

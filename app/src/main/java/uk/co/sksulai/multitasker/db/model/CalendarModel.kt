@@ -6,6 +6,7 @@ import android.os.Parcelable
 import kotlinx.parcelize.Parcelize
 import androidx.compose.runtime.Immutable
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 
 /**
  *
@@ -32,3 +33,7 @@ import androidx.compose.ui.graphics.Color
  * [Color] object to be used to show the colour of [CalendarModel.Colour]
  */
 val CalendarModel.UiColour: Color get() = Color(Colour)
+/**
+ * Creates a copy of this [CalendarModel] with the given [colour]
+ */
+fun CalendarModel.withColor(colour: Color) = copy(Colour = colour.toArgb())
