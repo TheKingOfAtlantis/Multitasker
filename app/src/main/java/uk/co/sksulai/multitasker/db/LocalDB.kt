@@ -25,11 +25,16 @@ fun LocalDB.Companion.createDatabase(context: Context, inMemory: Boolean = false
     TimeZoneConverter::class,
     DurationConverter::class,
     InstantConverter::class,
-    UriConverter::class
-) @Database(version = 2, entities = [
-    UserModel::class
+    UriConverter::class,
+    UUIDConverter::class
+) @Database(version = 3, entities = [
+    UserModel::class,
+    CalendarModel::class,
+    EventModel::class
 ]) abstract class LocalDB : RoomDatabase() {
     companion object { const val DBName = "Multitasker.db" }
 
     abstract fun getUserDao(): UserDao
+    abstract fun getCalendarDao(): CalendarDao
+    abstract fun getEventDao(): EventDao
 }

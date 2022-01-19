@@ -23,5 +23,7 @@ import uk.co.sksulai.multitasker.db.createDatabase
 @InstallIn(
     SingletonComponent::class
 ) @Module object DaoModule {
-    @Provides fun provideUserDao(db: LocalDB) = db.getUserDao()
+    @Provides fun provideUserDao(db: LocalDB)     = db.getUserDao()
+    @Provides fun provideCalendarDao(db: LocalDB) = db.getCalendarDao()
+    @Provides fun provideEventDao(db: LocalDB)    = db.getEventDao()
 }
