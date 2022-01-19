@@ -77,7 +77,7 @@ enum class GraphLevel {
             composable(
                 Destinations.SignUp.route,
                 deepLinks = listOf(NavDeepLink("$MultitaskerBaseUrl/signup"))
-            ) { /*SignUpScreen(navController)*/ }
+            ) { SignUpScreen(navController) }
             composable(
                 Destinations.Forgot.route + "?email={email}",
             ) {
