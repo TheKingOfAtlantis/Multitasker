@@ -63,4 +63,6 @@ object Destinations {
     object Forgot     : Destination("Forgot")     // Forgot password screen
 
     object CalendarView : Destination("Calendar") // The calendar view screen
+    // List of the views in the calendar view
+    val calendarDestinations = listOf<Destination>()
 }

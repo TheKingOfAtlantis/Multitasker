@@ -36,8 +36,8 @@ val LocalActivity = staticCompositionLocalOf<AppCompatActivity> {
 ) = rememberSaveable(stateSaver = stateSaver) { mutableStateOf(value, policy) }
 
 @Composable fun <T> rememberSaveableMutableState(
-    vararg inputs: Any?,
     value: T,
+    vararg inputs: Any?,
     policy: SnapshotMutationPolicy<T> = structuralEqualityPolicy(),
     stateSaver: Saver<T, out Any> = autoSaver(),
     key: String? = null,

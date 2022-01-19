@@ -2,8 +2,10 @@ package uk.co.sksulai.multitasker.db.model
 
 import java.time.*
 import android.net.Uri
+import android.os.Parcelable
 import androidx.room.*
 import androidx.compose.runtime.Immutable
+import kotlinx.parcelize.Parcelize
 
 /**
  *
@@ -20,7 +22,7 @@ import androidx.compose.runtime.Immutable
  * @param Home          Address of the user's home
  * @param DOB           Date of Birth
  */
-@Immutable
+@Immutable @Parcelize
 @Entity data class UserModel(
     @PrimaryKey val ID: String,
 
@@ -37,4 +39,4 @@ import androidx.compose.runtime.Immutable
     val ActualName: String?,
     val Home: String?,
     val DOB: LocalDate?
-)
+) : Parcelable
