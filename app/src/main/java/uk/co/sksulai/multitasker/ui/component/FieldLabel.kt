@@ -2,8 +2,10 @@ package uk.co.sksulai.multitasker.ui.component
 
 import androidx.compose.runtime.*
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.Canvas
 import androidx.compose.material.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.error
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
@@ -85,3 +87,17 @@ fun Modifier.textFieldHelperPadding() = this
     isError  = !error.isNullOrEmpty(),
     modifier = modifier
 )
+
+
+/**
+ * Circular icon which can be used as the leading icon
+ * @param colour Colour of the icon
+ * @param modifier Modifier to apply to the canvas
+ */
+@Composable fun ColourIcon(
+    colour: Color,
+    modifier: Modifier = Modifier
+) = Canvas(modifier.defaultMinSize(
+    minWidth  = 24.dp,
+    minHeight = 24.dp,
+)) { drawCircle(colour) }

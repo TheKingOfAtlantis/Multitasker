@@ -22,4 +22,5 @@
     <string name="colour_magenta">Magenta</string>
     <string name="colour_cyan">Cyan</string>
     <string name="colour_yellow">Yellow</string>
+    <string name="colour_custom">Custom</string>
 </resources>
