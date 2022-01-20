@@ -6,4 +6,11 @@
     <string name="signin">Sign In</string>
     <string name="signup">Sign Up</string>
     <string name="forgot_password">Forgot Password</string>
+
+    <!-- Calendar View Titles -->
+    <string name="dashboard">Dashboard</string>
+    <string name="agenda">Agenda</string>
+    <string name="day">Day</string>
+    <string name="week">Week</string>
+    <string name="month">Month</string>
 </resources>
