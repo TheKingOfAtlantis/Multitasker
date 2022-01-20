@@ -13,4 +13,13 @@
     <string name="day">Day</string>
     <string name="week">Week</string>
     <string name="month">Month</string>
+
+    <!-- List of default colours -->
+    <string name="colour">Colour</string>
+    <string name="colour_blue">Blue</string>
+    <string name="colour_green">Green</string>
+    <string name="colour_red">Red</string>
+    <string name="colour_magenta">Magenta</string>
+    <string name="colour_cyan">Cyan</string>
+    <string name="colour_yellow">Yellow</string>
 </resources>
