@@ -45,3 +45,10 @@ val DefaultColours
         NamedColour(R.string.colour_cyan,    Color.Cyan),
         NamedColour(R.string.colour_yellow,  Color.Yellow),
     )
+
+/**
+ * Retrieves a relevant named colour where ever possible
+ */
+@Composable fun Color.asNamedColour(): NamedColour = DefaultColours.find {
+    it.colour == this
+} ?: NamedColour(R.string.colour_custom, colour = this)

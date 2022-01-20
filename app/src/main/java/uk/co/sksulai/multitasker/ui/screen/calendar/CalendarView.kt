@@ -5,6 +5,7 @@ import androidx.compose.material.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.lerp
 
@@ -42,6 +43,7 @@ import uk.co.sksulai.multitasker.ui.Destinations
 }
 
 @OptIn(
+    ExperimentalComposeUiApi::class,
     ExperimentalMaterialApi::class,
     ExperimentalMaterialNavigationApi::class,
 ) @Composable fun CalendarScreen(
@@ -81,7 +83,9 @@ import uk.co.sksulai.multitasker.ui.Destinations
                 composable(Destinations.Week.route) { Text("Week") }
                 composable(Destinations.Month.route) { Text("Month") }
 
-                bottomSheet(Destinations.CalendarCreation.route) { /*CalendarCreation(calendarNavController, calendarViewModel)*/ }
+                bottomSheet(Destinations.CalendarCreation.route) {
+                    CalendarCreation({ calendarNavController.navigateUp() }, calendarViewModel)
+                }
                 bottomSheet(Destinations.EventCreation.route) { /*EventCreation(calendarNavController, calendarViewModel)*/ }
             }
         }

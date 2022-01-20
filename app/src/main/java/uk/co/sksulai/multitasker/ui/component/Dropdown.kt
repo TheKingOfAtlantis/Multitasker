@@ -35,6 +35,7 @@ import uk.co.sksulai.multitasker.util.rememberMutableState
     leadingIcon: @Composable (() -> Unit)? = null,
     header: @Composable (ColumnScope.() -> Unit)? = null,
     footer: @Composable (ColumnScope.() -> Unit)? = null,
+    enabled: Boolean = true,
     outlined: Boolean = true,
     itemContent: @Composable (RowScope.(T) -> Unit) = { Text(itemText(it)) },
 ) {
@@ -43,13 +44,14 @@ import uk.co.sksulai.multitasker.util.rememberMutableState
     ExposedDropdownMenuBox(
         modifier = modifier,
         expanded = expanded,
-        onExpandedChange = { expanded = !expanded }
+        onExpandedChange = { expanded = !expanded && enabled }
     ) {
         if(outlined) OutlinedTextField(
             label         = label,
             value         = itemText(value),
             onValueChange = { },
             readOnly      = true,
+            enabled       = enabled,
             leadingIcon   = leadingIcon,
             trailingIcon  = { ExposedDropdownMenuDefaults.TrailingIcon(expanded) },
             colors        = ExposedDropdownMenuDefaults.outlinedTextFieldColors()
@@ -58,6 +60,7 @@ import uk.co.sksulai.multitasker.util.rememberMutableState
             value         = itemText(value),
             onValueChange = { },
             readOnly      = true,
+            enabled       = enabled,
             leadingIcon   = leadingIcon,
             trailingIcon  = { ExposedDropdownMenuDefaults.TrailingIcon(expanded) },
             colors        = ExposedDropdownMenuDefaults.outlinedTextFieldColors()
