@@ -76,30 +76,30 @@ import uk.co.sksulai.multitasker.util.UserTestUtil
         val user = UserTestUtil.createSingle()
 
         // Assert that it doesn't already exist (even though we haven't added it)
-        assertThat(dao.fromID(user.ID).first()).isNull()
+        assertThat(dao.fromID(user.userID).first()).isNull()
         // Then assert that does exist now that we have added it
         dao.insert(user)
-        assertThat(dao.fromID(user.ID).first()).isEqualTo(user)
+        assertThat(dao.fromID(user.userID).first()).isEqualTo(user)
         // Then assert that doesn't exist now that we have removed it
         dao.delete(user)
-        assertThat(dao.fromID(user.ID).first()).isNull()
+        assertThat(dao.fromID(user.userID).first()).isNull()
     }
     @Test fun writeUserAndUpdate(): Unit = runBlocking {
         val user = UserTestUtil.createSingle()
 
         // Assert that does exist now that we have added it
         dao.insert(user)
-        assertThat(dao.fromID(user.ID).first()).isEqualTo(user)
+        assertThat(dao.fromID(user.userID).first()).isEqualTo(user)
         // Then assert that once updated is not the same as original
-        dao.update(user.copy(DisplayName = "Username"))
-        dao.fromID(user.ID).first().also { updatedUser ->
+        dao.update(user.copy(displayName = "Username"))
+        dao.fromID(user.userID).first().also { updatedUser ->
             assertThat(updatedUser).apply {
                 isNotNull()
                 isNotEqualTo(user)
             }
 
             // Assert no other field has changed
-            updatedUser!!.javaClass.declaredFields.filter { it.name != "DisplayName" }.forEach {
+            updatedUser!!.javaClass.declaredFields.filter { it.name != "displayName" }.forEach {
                 it.isAccessible   = true // For the purpose of testing we need to access the field (it is private)
 
                 val newValue      = it.get(updatedUser)
@@ -111,8 +111,8 @@ import uk.co.sksulai.multitasker.util.UserTestUtil
     }
 
     @Test fun writeUserAndReadByActualName(): Unit = runBlocking {
-        val users = UserTestUtil.createList(3).map { it.copy(ActualName = "Dave")  }.onEach { dao.insert(it) } +
-                    UserTestUtil.createList(2).map { it.copy(ActualName = "Harry") }.onEach { dao.insert(it) }
+        val users = UserTestUtil.createList(3).map { it.copy(actualName = "Dave")  }.onEach { dao.insert(it) } +
+                    UserTestUtil.createList(2).map { it.copy(actualName = "Harry") }.onEach { dao.insert(it) }
 
         assertThat(dao.fromActualName("Dave").first()).apply {
             hasSize(3)
@@ -128,7 +128,7 @@ import uk.co.sksulai.multitasker.util.UserTestUtil
     }
     @Test fun writeUserAndReadByDisplayName(): Unit = runBlocking {
         val users = UserTestUtil.createList(5)
-            .mapIndexed { i, user -> user.copy(DisplayName = "Username$i") }
+            .mapIndexed { i, user -> user.copy(displayName = "Username$i") }
             .onEach { dao.insert(it) }
 
         (0..4).forEach { assertThat(dao.fromDisplayName("Username$it").first()).containsExactly(users[it]) }
@@ -137,7 +137,7 @@ import uk.co.sksulai.multitasker.util.UserTestUtil
 
     @Test fun searchByDisplayName(): Unit = runBlocking {
         val users = UserTestUtil.createList(5)
-            .mapIndexed { i, user -> user.copy(DisplayName = "Username$i") }
+            .mapIndexed { i, user -> user.copy(displayName = "Username$i") }
             .onEach { dao.insert(it) }
 
         // Should contain all the users which start with Username (which is all of them)
@@ -152,7 +152,7 @@ import uk.co.sksulai.multitasker.util.UserTestUtil
     }
     @Test fun searchByActualName(): Unit = runBlocking {
         val users = UserTestUtil.createList(5)
-            .mapIndexed { i, user -> user.copy(ActualName = "Actual Name$i") }
+            .mapIndexed { i, user -> user.copy(actualName = "Actual Name$i") }
             .onEach { dao.insert(it) }
 
         // Should contain all the users which start with 'Actual' (which is all of them)

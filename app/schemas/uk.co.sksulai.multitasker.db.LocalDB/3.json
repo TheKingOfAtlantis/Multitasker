@@ -2,76 +2,76 @@
   "formatVersion": 1,
   "database": {
     "version": 3,
-    "identityHash": "5eb2a108ae19101079c921093ad7858d",
+    "identityHash": "b9c34f07779d8427a22d028e4cd94386",
     "entities": [
       {
         "tableName": "UserModel",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`ID` TEXT NOT NULL, `Creation` TEXT NOT NULL, `LastModified` TEXT NOT NULL, `DisplayName` TEXT, `Email` TEXT, `PreferredHome` TEXT NOT NULL, `Avatar` TEXT, `ActualName` TEXT, `Home` TEXT, `DOB` TEXT, PRIMARY KEY(`ID`))",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`userID` TEXT NOT NULL, `creation` TEXT NOT NULL, `lastModified` TEXT NOT NULL, `displayName` TEXT NOT NULL, `email` TEXT NOT NULL, `preferredHome` TEXT NOT NULL, `avatar` TEXT, `actualName` TEXT, `home` TEXT, `dob` TEXT, PRIMARY KEY(`userID`))",
         "fields": [
           {
-            "fieldPath": "ID",
-            "columnName": "ID",
+            "fieldPath": "userID",
+            "columnName": "userID",
             "affinity": "TEXT",
             "notNull": true
           },
           {
-            "fieldPath": "Creation",
-            "columnName": "Creation",
+            "fieldPath": "creation",
+            "columnName": "creation",
             "affinity": "TEXT",
             "notNull": true
           },
           {
-            "fieldPath": "LastModified",
-            "columnName": "LastModified",
+            "fieldPath": "lastModified",
+            "columnName": "lastModified",
             "affinity": "TEXT",
             "notNull": true
           },
           {
-            "fieldPath": "DisplayName",
-            "columnName": "DisplayName",
-            "affinity": "TEXT",
-            "notNull": false
-          },
-          {
-            "fieldPath": "Email",
-            "columnName": "Email",
-            "affinity": "TEXT",
-            "notNull": false
-          },
-          {
-            "fieldPath": "PreferredHome",
-            "columnName": "PreferredHome",
+            "fieldPath": "displayName",
+            "columnName": "displayName",
             "affinity": "TEXT",
             "notNull": true
           },
           {
-            "fieldPath": "Avatar",
-            "columnName": "Avatar",
+            "fieldPath": "email",
+            "columnName": "email",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "preferredHome",
+            "columnName": "preferredHome",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "avatar",
+            "columnName": "avatar",
             "affinity": "TEXT",
             "notNull": false
           },
           {
-            "fieldPath": "ActualName",
-            "columnName": "ActualName",
+            "fieldPath": "actualName",
+            "columnName": "actualName",
             "affinity": "TEXT",
             "notNull": false
           },
           {
-            "fieldPath": "Home",
-            "columnName": "Home",
+            "fieldPath": "home",
+            "columnName": "home",
             "affinity": "TEXT",
             "notNull": false
           },
           {
-            "fieldPath": "DOB",
-            "columnName": "DOB",
+            "fieldPath": "dob",
+            "columnName": "dob",
             "affinity": "TEXT",
             "notNull": false
           }
         ],
         "primaryKey": {
           "columnNames": [
-            "ID"
+            "userID"
           ],
           "autoGenerate": false
         },
@@ -80,48 +80,48 @@
       },
       {
         "tableName": "Calendar",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`ID` TEXT NOT NULL, `OwnerID` TEXT NOT NULL, `Name` TEXT NOT NULL, `Description` TEXT, `Colour` INTEGER NOT NULL, `Visible` INTEGER NOT NULL, PRIMARY KEY(`ID`))",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`calendarID` TEXT NOT NULL, `ownerID` TEXT NOT NULL, `name` TEXT NOT NULL, `description` TEXT, `colour` INTEGER NOT NULL, `visible` INTEGER NOT NULL, PRIMARY KEY(`calendarID`))",
         "fields": [
           {
-            "fieldPath": "ID",
-            "columnName": "ID",
+            "fieldPath": "calendarID",
+            "columnName": "calendarID",
             "affinity": "TEXT",
             "notNull": true
           },
           {
-            "fieldPath": "OwnerID",
-            "columnName": "OwnerID",
+            "fieldPath": "ownerID",
+            "columnName": "ownerID",
             "affinity": "TEXT",
             "notNull": true
           },
           {
-            "fieldPath": "Name",
-            "columnName": "Name",
+            "fieldPath": "name",
+            "columnName": "name",
             "affinity": "TEXT",
             "notNull": true
           },
           {
-            "fieldPath": "Description",
-            "columnName": "Description",
+            "fieldPath": "description",
+            "columnName": "description",
             "affinity": "TEXT",
             "notNull": false
           },
           {
-            "fieldPath": "Colour",
-            "columnName": "Colour",
+            "fieldPath": "colour",
+            "columnName": "colour",
             "affinity": "INTEGER",
             "notNull": true
           },
           {
-            "fieldPath": "Visible",
-            "columnName": "Visible",
+            "fieldPath": "visible",
+            "columnName": "visible",
             "affinity": "INTEGER",
             "notNull": true
           }
         ],
         "primaryKey": {
           "columnNames": [
-            "ID"
+            "calendarID"
           ],
           "autoGenerate": false
         },
@@ -130,78 +130,78 @@
       },
       {
         "tableName": "Event",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`ID` TEXT NOT NULL, `CalendarID` TEXT NOT NULL, `ParentID` TEXT, `Name` TEXT NOT NULL, `Description` TEXT NOT NULL, `Colour` INTEGER, `Category` TEXT NOT NULL, `Tags` TEXT NOT NULL, `AllDay` INTEGER NOT NULL, `Start` TEXT NOT NULL, `Duration` TEXT NOT NULL, PRIMARY KEY(`ID`))",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`eventID` TEXT NOT NULL, `calendarID` TEXT NOT NULL, `parentID` TEXT, `name` TEXT NOT NULL, `description` TEXT NOT NULL, `colour` INTEGER, `category` TEXT NOT NULL, `tags` TEXT NOT NULL, `allDay` INTEGER NOT NULL, `start` TEXT NOT NULL, `duration` TEXT NOT NULL, PRIMARY KEY(`eventID`))",
         "fields": [
           {
-            "fieldPath": "ID",
-            "columnName": "ID",
+            "fieldPath": "eventID",
+            "columnName": "eventID",
             "affinity": "TEXT",
             "notNull": true
           },
           {
-            "fieldPath": "CalendarID",
-            "columnName": "CalendarID",
+            "fieldPath": "calendarID",
+            "columnName": "calendarID",
             "affinity": "TEXT",
             "notNull": true
           },
           {
-            "fieldPath": "ParentID",
-            "columnName": "ParentID",
+            "fieldPath": "parentID",
+            "columnName": "parentID",
             "affinity": "TEXT",
             "notNull": false
           },
           {
-            "fieldPath": "Name",
-            "columnName": "Name",
+            "fieldPath": "name",
+            "columnName": "name",
             "affinity": "TEXT",
             "notNull": true
           },
           {
-            "fieldPath": "Description",
-            "columnName": "Description",
+            "fieldPath": "description",
+            "columnName": "description",
             "affinity": "TEXT",
             "notNull": true
           },
           {
-            "fieldPath": "Colour",
-            "columnName": "Colour",
+            "fieldPath": "colour",
+            "columnName": "colour",
             "affinity": "INTEGER",
             "notNull": false
           },
           {
-            "fieldPath": "Category",
-            "columnName": "Category",
+            "fieldPath": "category",
+            "columnName": "category",
             "affinity": "TEXT",
             "notNull": true
           },
           {
-            "fieldPath": "Tags",
-            "columnName": "Tags",
+            "fieldPath": "tags",
+            "columnName": "tags",
             "affinity": "TEXT",
             "notNull": true
           },
           {
-            "fieldPath": "AllDay",
-            "columnName": "AllDay",
+            "fieldPath": "allDay",
+            "columnName": "allDay",
             "affinity": "INTEGER",
             "notNull": true
           },
           {
-            "fieldPath": "Start",
-            "columnName": "Start",
+            "fieldPath": "start",
+            "columnName": "start",
             "affinity": "TEXT",
             "notNull": true
           },
           {
-            "fieldPath": "Duration",
-            "columnName": "Duration",
+            "fieldPath": "duration",
+            "columnName": "duration",
             "affinity": "TEXT",
             "notNull": true
           }
         ],
         "primaryKey": {
           "columnNames": [
-            "ID"
+            "eventID"
           ],
           "autoGenerate": false
         },
@@ -212,7 +212,7 @@
     "views": [],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '5eb2a108ae19101079c921093ad7858d')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'b9c34f07779d8427a22d028e4cd94386')"
     ]
   }
 }

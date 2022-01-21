@@ -54,57 +54,57 @@ private suspend fun UserRepository.authenticate(auth: AuthParam) = authenticate(
     @Test fun createAndRetrieve(): Unit = runBlocking {
         // Create a user then assert that we get the same thing from both the local and web database
         val user = repo.create(AuthParam.random)
-        assertThat(dao.fromID(user.ID).first()).isEqualTo(user)
-        assertThat(web.fromID(user.ID).first()).isEqualTo(user)
+        assertThat(dao.fromID(user.userID).first()).isEqualTo(user)
+        assertThat(web.fromID(user.userID).first()).isEqualTo(user)
     }
 
     @Test fun createAndUpdate(): Unit = runBlocking {
         val user = repo.create(AuthParam.random)
 
-        val userFlow = repo.fromID(user.ID)
+        val userFlow = repo.fromID(user.userID)
         assertThat(userFlow.first()).isEqualTo(user)
 
-        repo.update(user.copy(DisplayName = "Username"))
+        repo.update(user.copy(displayName = "Username"))
         // Cannot directly compare due to also modifying the 'LastModified' field
         // So we copy LastModified as everything should match
-        assertThat(userFlow.first()?.copy(LastModified = user.LastModified)).apply {
-            isEqualTo(user.copy(DisplayName = "Username"))
+        assertThat(userFlow.first()?.copy(lastModified = user.lastModified)).apply {
+            isEqualTo(user.copy(displayName = "Username"))
             isNotEqualTo(user)
         }
 
         // We also want to make sure that the change is not just made to the local or web database
-        assertThat(dao.fromID(user.ID).first()?.copy(LastModified = user.LastModified)).apply {
-            isEqualTo(user.copy(DisplayName = "Username"))
+        assertThat(dao.fromID(user.userID).first()?.copy(lastModified = user.lastModified)).apply {
+            isEqualTo(user.copy(displayName = "Username"))
             isNotEqualTo(user)
         }
-        assertThat(web.fromID(user.ID).first()?.copy(LastModified = user.LastModified)).apply {
-            isEqualTo(user.copy(DisplayName = "Username"))
+        assertThat(web.fromID(user.userID).first()?.copy(lastModified = user.lastModified)).apply {
+            isEqualTo(user.copy(displayName = "Username"))
             isNotEqualTo(user)
         }
     }
     @Test fun updateIndirectViaWeb(): Unit = runBlocking {
         val user = repo.create(AuthParam.random)
 
-        val userFlow = repo.fromID(user.ID)
+        val userFlow = repo.fromID(user.userID)
         assertThat(userFlow.first()).isEqualTo(user)
 
         // When we update the local database directly
-        web.update(user.copy(DisplayName = "Username"))
+        web.update(user.copy(displayName = "Username"))
 
         // Our flow from the repository should have been updated
-        assertThat(userFlow.first()?.copy(LastModified = user.LastModified)).apply {
-            isEqualTo(user.copy(DisplayName = "Username"))
+        assertThat(userFlow.first()?.copy(lastModified = user.lastModified)).apply {
+            isEqualTo(user.copy(displayName = "Username"))
             isNotEqualTo(user)
         }
 
         // Additionally if we retrieve from the database it should be changed
-        assertThat(web.fromID(user.ID).first()?.copy(LastModified = user.LastModified)).apply {
-            isEqualTo(user.copy(DisplayName = "Username"))
+        assertThat(web.fromID(user.userID).first()?.copy(lastModified = user.lastModified)).apply {
+            isEqualTo(user.copy(displayName = "Username"))
             isNotEqualTo(user)
         }
         // The repository should cache changes to users to the local database
-        assertThat(dao.fromID(user.ID).first()?.copy(LastModified = user.LastModified)).apply {
-            isEqualTo(user.copy(DisplayName = "Username"))
+        assertThat(dao.fromID(user.userID).first()?.copy(lastModified = user.lastModified)).apply {
+            isEqualTo(user.copy(displayName = "Username"))
             isNotEqualTo(user)
         }
     }
@@ -118,8 +118,8 @@ private suspend fun UserRepository.authenticate(auth: AuthParam) = authenticate(
         val datastore = AppState.retrieve(context)
         assertThat(datastore.data.first()[AppState.CurrentUser]).isNull()
 
-        assertThat(dao.fromID(user.ID).first()).isNull()
-        assertThat(web.fromID(user.ID).first()).isNull()
+        assertThat(dao.fromID(user.userID).first()).isNull()
+        assertThat(web.fromID(user.userID).first()).isNull()
     }
     @Test fun createAndDeleteLocal(): Unit = runBlocking {
         val auth = AuthParam.random
@@ -130,8 +130,8 @@ private suspend fun UserRepository.authenticate(auth: AuthParam) = authenticate(
         val datastore = AppState.retrieve(context)
         assertThat(datastore.data.first()[AppState.CurrentUser]).isNull()
 
-        assertThat(dao.fromID(user.ID).first()).isNull()
-        assertThat(web.fromID(user.ID).first()).apply {
+        assertThat(dao.fromID(user.userID).first()).isNull()
+        assertThat(web.fromID(user.userID).first()).apply {
             isNotNull()
             isEqualTo(user)
         }
@@ -150,8 +150,8 @@ private suspend fun UserRepository.authenticate(auth: AuthParam) = authenticate(
             datastore.data.first().let {
                 val id = it[AppState.CurrentUser]
                 if(currentUser != null || lastUser != null) assertThat(id).apply {
-                    isEqualTo(currentUser?.ID)
-                    isNotEqualTo(lastUser?.ID)
+                    isEqualTo(currentUser?.userID)
+                    isNotEqualTo(lastUser?.userID)
                 }
             }
             repo.currentUser.first().let {
@@ -184,7 +184,7 @@ private suspend fun UserRepository.authenticate(auth: AuthParam) = authenticate(
         }
 
         val userId = repo.authenticate(auth)
-        assertThat(userId).isEqualTo(currentUser?.ID)
+        assertThat(userId).isEqualTo(currentUser?.userID)
         runAsserts()
 
         // Now we sign out completely
@@ -197,10 +197,10 @@ private suspend fun UserRepository.authenticate(auth: AuthParam) = authenticate(
 
     @Test fun writeUserAndReadByActualName(): Unit = runBlocking {
         List(3) { repo.create(AuthParam.random) }
-            .map { it.copy(ActualName = "Dave")  }
+            .map { it.copy(actualName = "Dave")  }
             .onEach { dao.insert(it) }
         List(2) { repo.create(AuthParam.random) }
-            .map { it.copy(ActualName = "Harry") }
+            .map { it.copy(actualName = "Harry") }
             .onEach { dao.insert(it) }
 
         val users = dao.getAll().first() // Should be the same so we can get around LastModified not being the same
@@ -219,7 +219,7 @@ private suspend fun UserRepository.authenticate(auth: AuthParam) = authenticate(
     }
     @Test fun writeUserAndReadByDisplayName(): Unit = runBlocking {
         List(5) { repo.create(AuthParam.random) }
-            .mapIndexed { index, user -> user.copy(DisplayName = "Username$index") }
+            .mapIndexed { index, user -> user.copy(displayName = "Username$index") }
             .onEach { repo.update(it) }
         val users = dao.getAll().first() // Should be the same so we can get around LastModified not being the same
 
@@ -229,7 +229,7 @@ private suspend fun UserRepository.authenticate(auth: AuthParam) = authenticate(
 
     @Test fun searchByDisplayName(): Unit = runBlocking {
         List(5) { repo.create(AuthParam.random) }
-            .mapIndexed { index, user -> user.copy(DisplayName = "Username$index") }
+            .mapIndexed { index, user -> user.copy(displayName = "Username$index") }
             .onEach { dao.update(it) }
         val users = dao.getAll().first() // Should be the same so we can get around LastModified not being the same
 
@@ -245,7 +245,7 @@ private suspend fun UserRepository.authenticate(auth: AuthParam) = authenticate(
     }
     @Test fun searchByActualName(): Unit = runBlocking {
         List(5) { repo.create(AuthParam.random) }
-            .mapIndexed { index, user -> user.copy(ActualName = "Actual Name$index")  }
+            .mapIndexed { index, user -> user.copy(actualName = "Actual Name$index")  }
             .onEach { repo.update(it) }
         val users = dao.getAll().first() // Should be the same so we can get around LastModified not being the same
 

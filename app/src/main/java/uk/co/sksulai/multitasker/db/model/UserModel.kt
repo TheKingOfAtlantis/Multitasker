@@ -7,36 +7,38 @@ import androidx.room.*
 import androidx.compose.runtime.Immutable
 import kotlinx.parcelize.Parcelize
 
+import com.google.firebase.auth.FirebaseUser
+
 /**
  *
- * @param ID            ID of the user - Same as Firebase uid
- * @param Creation      User creation timestamp
- * @param LastModified  When user data was last modified
+ * @param userID        ID of the user (Same as [FirebaseUser.getUid])
+ * @param creation      User creation timestamp
+ * @param lastModified  When user data was last modified
  *
- * @param DisplayName   User display name
- * @param Email         Email associated with the account
+ * @param displayName   User display name
+ * @param email         Email associated with the account
  *
- * @param PreferredHome User's preferred "home" screen
- * @param Avatar        Avatar icon
- * @param ActualName    User's IRL name
- * @param Home          Address of the user's home
- * @param DOB           Date of Birth
+ * @param preferredHome User's preferred "home" screen
+ * @param avatar        Avatar icon
+ * @param actualName    User's IRL name
+ * @param home          Address of the user's home
+ * @param dob           Date of Birth
  */
 @Immutable @Parcelize
 @Entity data class UserModel(
-    @PrimaryKey val ID: String,
+    @PrimaryKey val userID: String,
 
     // Metadata
-    val Creation: Instant,
-    val LastModified: Instant,
+    val creation: Instant,
+    val lastModified: Instant,
 
-    val DisplayName: String?,
-    val Email: String?,
+    val displayName: String,
+    val email: String,
 
     // Additional user info
-    val PreferredHome: String,
-    val Avatar: Uri?,
-    val ActualName: String?,
-    val Home: String?,
-    val DOB: LocalDate?
+    val preferredHome: String,
+    val avatar: Uri?,
+    val actualName: String?,
+    val home: String?,
+    val dob: LocalDate?
 ) : Parcelable

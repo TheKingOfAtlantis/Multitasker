@@ -47,30 +47,30 @@ class UserWebService @Inject constructor(
      * Helper to convert UserModels to Firestore documents
      */
     private fun UserModel.toDocument() = hashMapOf(
-        "Email"         to Email,
-        "Creation"      to Timestamp(Creation.epochSecond, Creation.nano),
-        "LastModified"  to Timestamp(LastModified.epochSecond, LastModified.nano),
-        "DisplayName"   to DisplayName,
-        "PreferredHome" to PreferredHome,
-        "ActualName"    to ActualName,
-        "Avatar"        to UriConverter.from(Avatar),
-        "DOB"           to DateConverter.from(DOB),
-        "Home"          to Home
+        "Email"         to email,
+        "Creation"      to Timestamp(creation.epochSecond, creation.nano),
+        "LastModified"  to Timestamp(lastModified.epochSecond, lastModified.nano),
+        "DisplayName"   to displayName,
+        "PreferredHome" to preferredHome,
+        "ActualName"    to actualName,
+        "Avatar"        to UriConverter.from(avatar),
+        "DOB"           to DateConverter.from(dob),
+        "Home"          to home
     )
     /**
      * Helper to convert Firestore documents to UserModels
      */
     private fun MutableMap<String, Any?>.fromDocument(id: String) = UserModel(
-        ID            = id,
-        Creation      = (get("Creation") as Timestamp).toInstance(),
-        LastModified  = (get("LastModified") as Timestamp).toInstance(),
-        Email         = get("Email") as String?,
-        DisplayName   = get("DisplayName") as String?,
-        PreferredHome = get("PreferredHome") as String,
-        ActualName    = get("ActualName") as String?,
-        Avatar        = UriConverter.to(get("Avatar") as String?),
-        DOB           = DateConverter.to(get("DOB") as String?),
-        Home          = get("Home") as String?
+        userID            = id,
+        creation      = (get("Creation") as Timestamp).toInstance(),
+        lastModified  = (get("LastModified") as Timestamp).toInstance(),
+        email         = get("Email") as String,
+        displayName   = get("DisplayName") as String,
+        preferredHome = get("PreferredHome") as String,
+        actualName    = get("ActualName") as String?,
+        avatar        = UriConverter.to(get("Avatar") as String?),
+        dob           = DateConverter.to(get("DOB") as String?),
+        home          = get("Home") as String?
     )
 
     @TestOnly override fun getAll() = callbackFlow {
@@ -152,18 +152,18 @@ class UserWebService @Inject constructor(
      * @param user The user to be added
      */
     override suspend fun insert(user: UserModel) {
-        collection.document(user.ID).set(user.toDocument()).await()
+        collection.document(user.userID).set(user.toDocument()).await()
     }
     /**
      * Updates a user to the database
      * @param user The updated user to be modify the database with
      */
     override suspend fun update(user: UserModel) {
-        collection.document(user.ID).update(user.toDocument() as Map<String, Any?>).await()
+        collection.document(user.userID).update(user.toDocument() as Map<String, Any?>).await()
 
         val requestBuilder = UserProfileChangeRequest.Builder()
-        if(currentUser?.displayName != user.DisplayName) requestBuilder.displayName = user.DisplayName
-        if(currentUser?.photoUrl != user.Avatar) requestBuilder.photoUri = user.Avatar
+        if(currentUser?.displayName != user.displayName) requestBuilder.displayName = user.displayName
+        if(currentUser?.photoUrl != user.avatar) requestBuilder.photoUri = user.avatar
         currentUser?.updateProfile(requestBuilder.build())?.await()
     }
 
@@ -205,5 +205,5 @@ class UserWebService @Inject constructor(
      * Deletes a user to the database
      * @param user The user to be removed
      */
-    override suspend fun delete(user: UserModel) = delete(user.ID)
+    override suspend fun delete(user: UserModel) = delete(user.userID)
 }

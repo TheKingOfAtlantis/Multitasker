@@ -1,23 +1,19 @@
 package uk.co.sksulai.multitasker.db.viewmodel
 
+import java.util.*
+import java.time.*
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+
 import javax.inject.Inject
 import androidx.compose.ui.graphics.Color
 import dagger.hilt.android.lifecycle.HiltViewModel
 
 import androidx.lifecycle.ViewModel
-import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.flow.map
-import uk.co.sksulai.multitasker.db.model.CalendarModel
-import uk.co.sksulai.multitasker.db.model.End
-import uk.co.sksulai.multitasker.db.model.EventModel
-import uk.co.sksulai.multitasker.db.model.UserModel
+
+import uk.co.sksulai.multitasker.db.model.*
 import uk.co.sksulai.multitasker.db.repo.CalendarRepo
 import uk.co.sksulai.multitasker.db.repo.toFlatList
-import java.time.Duration
-import java.time.LocalDate
-import java.time.LocalTime
-import java.time.OffsetDateTime
-import java.util.*
 
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel class CalendarViewModel @Inject constructor(
@@ -86,7 +82,7 @@ import java.util.*
      * @param calendar The calendar to toggle the visibility of
      */
     suspend fun toggleVisibility(calendar: CalendarModel) {
-        calendarRepo.update(calendar.copy(Visible = !calendar.Visible))
+        calendarRepo.update(calendar.copy(visible = !calendar.visible))
     }
 
     /**
@@ -124,8 +120,8 @@ import java.util.*
             it.filter { (_, event) ->
                 // Event needs to start before the end date or during the end date
                 // Event needs to end after the start date or during the start date
-                event.Start.toLocalDate().run { isEqual(end) || isBefore(end) } &&
-                event.End.toLocalDate().run { isEqual(start) || isAfter(start) }
+                event.start.toLocalDate().run { isEqual(end) || isBefore(end) } &&
+                event.end.toLocalDate().run { isEqual(start) || isAfter(start) }
             }
         }
 

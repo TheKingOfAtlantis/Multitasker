@@ -55,7 +55,7 @@ private fun GoogleIntentLauncher.launch(intent: SavePasswordResult) = launch(int
     /**
      * The current user's preferred home page
      */
-    val preferredHome = currentUser.map { it?.PreferredHome }
+    val preferredHome = currentUser.map { it?.preferredHome }
     companion object {
         @VisibleForTesting
         val authErrorMessages = mapOf(

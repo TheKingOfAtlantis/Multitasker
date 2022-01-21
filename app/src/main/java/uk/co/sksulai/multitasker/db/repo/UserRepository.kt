@@ -101,7 +101,7 @@ class UserRepository @Inject constructor(
         // Combine the resulting lists
         dao.fromDisplayName(SearchQuery.local(displayName, queryParams)),
         web.fromDisplayName(SearchQuery.remote(displayName, queryParams))
-    ) { local, web -> (local + web).distinctBy { it.ID }  }.flowOn(ioDispatcher)
+    ) { local, web -> (local + web).distinctBy { it.userID }  }.flowOn(ioDispatcher)
     /**
      * Retrieves a list of UserModels given a search string to query against names
      * @param actualName  The name search string
@@ -113,7 +113,7 @@ class UserRepository @Inject constructor(
         // Combine the resulting lists
         dao.fromActualName(SearchQuery.local(actualName, queryParams)),
         web.fromActualName(SearchQuery.remote(actualName, queryParams))
-    ) { local, web -> (local + web).distinctBy { it.ID } }.flowOn(ioDispatcher)
+    ) { local, web -> (local + web).distinctBy { it.userID } }.flowOn(ioDispatcher)
 
     // Creation: Used when user creates an account
 
@@ -138,8 +138,8 @@ class UserRepository @Inject constructor(
      */
     private suspend fun create(user: FirebaseUser) = create(
         id          = user.uid,
-        email       = user.email,
-        displayName = user.displayName,
+        email       = user.email ?: "",
+        displayName = user.displayName ?: "",
         avatar      = user.photoUrl
     )
 
@@ -149,24 +149,24 @@ class UserRepository @Inject constructor(
      */
     private suspend fun create(
         id: String,
-        displayName: String?  = null,
-        email: String?        = null,
+        displayName: String   = "",
+        email: String         = "",
         preferredHome: String = "Dashboard",
         avatar: Uri?          = null,
         actualName: String?   = null,
         homeLocation: String? = null,
         dob: LocalDate?       = null
     ) = create(UserModel(
-        ID            = id,
-        Creation      = Instant.now(),
-        LastModified  = Instant.now(),
-        Email         = email,
-        DisplayName   = displayName,
-        PreferredHome = preferredHome,
-        Avatar        = avatar,
-        ActualName    = actualName,
-        Home          = homeLocation,
-        DOB           = dob
+        userID        = id,
+        creation      = Instant.now(),
+        lastModified  = Instant.now(),
+        email         = email,
+        displayName   = displayName,
+        preferredHome = preferredHome,
+        avatar        = avatar,
+        actualName    = actualName,
+        home          = homeLocation,
+        dob           = dob
     ))
 
     /**
@@ -175,7 +175,7 @@ class UserRepository @Inject constructor(
      */
     private suspend fun create(user: UserModel) = user.also {
         insert(user)
-        setCurrentUser(user.ID)
+        setCurrentUser(user.userID)
     }
 
     /**
@@ -193,8 +193,8 @@ class UserRepository @Inject constructor(
      */
     suspend fun update(user: UserModel): Unit = withContext(ioDispatcher) {
         user.copy(
-            LastModified = Instant.now(),
-            Avatar       = updateAvatar(user)
+            lastModified = Instant.now(),
+            avatar       = updateAvatar(user)
         ).also { user ->
             dao.update(user)
             web.update(user)
@@ -207,10 +207,10 @@ class UserRepository @Inject constructor(
      * @return The Uri for the avatar
      */
     suspend fun updateAvatar(user: UserModel) =
-        if(currentUser.first()?.Avatar != user.Avatar) {
-            if(user.Avatar != null) web.uploadAvatar(user.ID, user.Avatar)
-            else web.deleteAvatar(user.ID).let { null }
-        } else user.Avatar
+        if(currentUser.first()?.avatar != user.avatar) {
+            if(user.avatar != null) web.uploadAvatar(user.userID, user.avatar)
+            else web.deleteAvatar(user.userID).let { null }
+        } else user.avatar
 
 
     suspend fun updatePassword(oldPassword: String, newPassword: String) {
@@ -227,7 +227,7 @@ class UserRepository @Inject constructor(
      * @param localOnly Whether to just delete from local database or propagate to Firebase
      */
     suspend fun delete(user: UserModel, localOnly: Boolean = true): Unit = withContext(ioDispatcher) {
-        val isCurrent = (currentUser.first()?.ID == user.ID)
+        val isCurrent = (currentUser.first()?.userID == user.userID)
 
         dao.delete(user)
         if(!localOnly) {

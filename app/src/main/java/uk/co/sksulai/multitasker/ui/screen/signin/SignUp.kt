@@ -100,9 +100,9 @@ fun NavGraphBuilder.UserDetailsPage(
     OutlinedTextField(
         modifier = Modifier,
         label = { Text("Display Name (required)") },
-        value = updatedUser?.DisplayName ?: "",
+        value = updatedUser?.displayName ?: "",
         onValueChange = {
-            updatedUser = updatedUser?.copy(DisplayName = it)
+            updatedUser = updatedUser?.copy(displayName = it)
             displayNameError = ""
         },
         isError = displayNameError.isNotEmpty()
@@ -118,8 +118,8 @@ fun NavGraphBuilder.UserDetailsPage(
     Dropdown(
         modifier = Modifier.padding(vertical = 2.dp),
         label = { Text("Default View") },
-        value = Destinations.calendarDestinations.find { it.route == updatedUser?.PreferredHome },
-        onValueSelected = { updatedUser = updatedUser?.copy(PreferredHome = it.route) },
+        value = Destinations.calendarDestinations.find { it.route == updatedUser?.preferredHome },
+        onValueSelected = { updatedUser = updatedUser?.copy(preferredHome = it.route) },
         entries  = Destinations.calendarDestinations,
         itemText = { it?.route ?: "" }
     )
@@ -133,8 +133,8 @@ fun NavGraphBuilder.UserDetailsPage(
     OutlinedTextField(
         modifier = Modifier.padding(vertical = 2.dp),
         label = { Text("Home Address") },
-        value = updatedUser?.Home ?: "",
-        onValueChange = { updatedUser = updatedUser?.copy(Home = it) }
+        value = updatedUser?.home ?: "",
+        onValueChange = { updatedUser = updatedUser?.copy(home = it) }
     )
     HelperText(
         "Used to suggest when best to leave",
@@ -187,7 +187,7 @@ fun NavGraphBuilder.UserDetailsPage(
         onValueChange = {
             dobValue = it
             try {
-                updatedUser = updatedUser?.copy(DOB = LocalDate.parse(it, formatter))
+                updatedUser = updatedUser?.copy(dob = LocalDate.parse(it, formatter))
                 dobError = ""
             } catch(e: DateTimeException) {
                 dobError = "Birthday poorly formatted"
@@ -213,7 +213,7 @@ fun NavGraphBuilder.UserDetailsPage(
         ,
         content = { Text("Submit") },
         onClick = provideInScope(scope) {
-            if(updatedUser?.DisplayName.isNullOrEmpty())
+            if(updatedUser?.displayName.isNullOrEmpty())
                 displayNameError = "Display name is required"
             else {
                 updatedUser?.let { userViewModel.update(it) }

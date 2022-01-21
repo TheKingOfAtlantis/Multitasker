@@ -27,25 +27,25 @@ object UserTestUtil {
     suspend fun  createSingleWithParam() = AuthParam.random.let { auth ->
         Firebase.auth.createUserWithEmailAndPassword(auth.email, auth.password).await().let {
             auth to createSingle().copy(
-                ID     = it.user!!.uid,
-                Email  = it.user?.email,
-                Avatar = it.user?.photoUrl,
-                DisplayName = it.user?.displayName,
+                userID      = it.user!!.uid,
+                email       = it.user?.email ?: "",
+                avatar      = it.user?.photoUrl,
+                displayName = it.user?.displayName ?: "",
             )
         }
     }
 
     suspend fun createSingle(useAuth: Boolean = false): UserModel = if(!useAuth) UserModel(
-        ID = UUID.randomUUID().toString(),
-        Creation = Instant.now(),
-        LastModified = Instant.now(),
-        null, null, "", null, null, null, null
+        userID = UUID.randomUUID().toString(),
+        creation = Instant.now(),
+        lastModified = Instant.now(),
+        "", "", "", null, null, null, null
     ) else AuthParam.random.let { auth -> Firebase.auth.createUserWithEmailAndPassword(auth.email, auth.password).await().let {
         createSingle().copy(
-            ID     = it.user!!.uid,
-            Email  = it.user?.email,
-            Avatar = it.user?.photoUrl,
-            DisplayName = it.user?.displayName,
+            userID     = it.user!!.uid,
+            email  = it.user?.email ?: "",
+            avatar = it.user?.photoUrl,
+            displayName = it.user?.displayName ?: "",
         )
     } }
 

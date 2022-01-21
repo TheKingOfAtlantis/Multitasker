@@ -16,8 +16,8 @@ import uk.co.sksulai.multitasker.db.datasource.CalendarDataSource
     @Query("Select * From Calendar")
     override fun getAll(): Flow<List<CalendarModel>>
 
-    @Query("Select * From Calendar where ID == :id")
+    @Query("Select * From Calendar where calendarID == :id")
     override fun fromID(id: UUID): Flow<CalendarModel?>
-    @Query("Select * From Calendar where Name == :name")
+    @Query("Select * From Calendar where name == :name")
     override fun fromName(name: String): Flow<List<CalendarModel>>
 }

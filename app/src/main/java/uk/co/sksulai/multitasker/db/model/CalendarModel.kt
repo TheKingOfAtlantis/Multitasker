@@ -10,30 +10,30 @@ import androidx.compose.ui.graphics.toArgb
 
 /**
  *
- * @param ID          Unique ID to identify this calendar
- * @param OwnerID     ID associated with the owner's [UserModel]
- * @param Name        Name of this calendar
- * @param Description Description of this calendar
- * @param Colour      Colour used for colour coordination
- * @param Visible     Whether or not this calendar is visible
+ * @param calendarID  Unique ID to identify this calendar
+ * @param ownerID     ID associated with the owner's [UserModel]
+ * @param name        Name of this calendar
+ * @param description Description of this calendar
+ * @param colour      Colour used for colour coordination
+ * @param visible     Whether or not this calendar is visible
  */
 @Immutable @Parcelize
 @Entity(tableName = "Calendar") data class CalendarModel(
-    @PrimaryKey val ID: UUID,
-    val OwnerID: String,
+    @PrimaryKey val calendarID: UUID,
+    val ownerID: String,
 
-    val Name: String,
-    val Description: String?,
-    val Colour: Int,
+    val name: String,
+    val description: String?,
+    val colour: Int,
 
-    val Visible: Boolean
-) : Parcelable
-
-/**
- * [Color] object to be used to show the colour of [CalendarModel.Colour]
- */
-val CalendarModel.UiColour: Color get() = Color(Colour)
-/**
- * Creates a copy of this [CalendarModel] with the given [colour]
- */
-fun CalendarModel.withColor(colour: Color) = copy(Colour = colour.toArgb())
+    val visible: Boolean
+) : Parcelable {
+    /**
+     * [Color] object to be used to show the colour of [CalendarModel.colour]
+     */
+    val uiColour: Color get() = Color(colour)
+    /**
+     * Creates a copy of this [CalendarModel] with the given [colour]
+     */
+    fun withColor(colour: Color) = copy(colour = colour.toArgb())
+}

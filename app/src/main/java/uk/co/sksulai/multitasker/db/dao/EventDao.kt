@@ -12,16 +12,16 @@ import uk.co.sksulai.multitasker.db.datasource.EventDataSource
     @Insert override fun insert(event: EventModel)
     @Update override fun update(event: EventModel)
     @Delete override fun delete(event: EventModel)
-    @Query("Delete From Event where CalendarID == :calendarID")
+    @Query("Delete From Event where calendarID == :calendarID")
     override fun deleteFrom(calendarID: UUID)
 
-    @Query("Select * From Calendar Inner Join Event On Event.CalendarID == Calendar.ID")
+    @Query("Select * From Calendar Inner Join Event On Event.calendarID == Calendar.calendarID")
     override fun getAll(): Flow<Map<CalendarModel, List<EventModel>>>
 
-    @Query("Select * From Event where ID == :id")
+    @Query("Select * From Event where eventID == :id")
     override fun fromID(id: UUID): Flow<EventModel?>
-    @Query("Select * From Event Where CalendarID == :calendarID")
+    @Query("Select * From Event Where calendarID == :calendarID")
     override fun fromCalendar(calendarID: UUID): Flow<List<EventModel>>
-    @Query("Select * From Event where Name == :name")
+    @Query("Select * From Event where name == :name")
     override fun fromName(name: String): Flow<List<EventModel>>
 }

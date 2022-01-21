@@ -36,7 +36,7 @@ class CalendarRepo @Inject constructor(
         description: String,
         colour: Color
     ) = createCalendar(
-        owner.ID,
+        owner.userID,
         name,
         description,
         colour
@@ -57,12 +57,12 @@ class CalendarRepo @Inject constructor(
         description: String,
         colour: Color
     ) = create(CalendarModel(
-        ID          = generateID(),
-        OwnerID     = owner,
-        Name        = name,
-        Description = description,
-        Colour      = colour.toArgb(),
-        Visible     = true
+        calendarID  = generateID(),
+        ownerID     = owner,
+        name        = name,
+        description = description,
+        colour      = colour.toArgb(),
+        visible     = true
     ))
 
     /**
@@ -93,7 +93,7 @@ class CalendarRepo @Inject constructor(
         tags: String     = "",
         parentID: UUID?  = null,
     ) = createEvent(
-        calendarId  = calendar.ID,
+        calendarId  = calendar.calendarID,
         name        = name,
         description = description,
         start       = start,
@@ -132,17 +132,17 @@ class CalendarRepo @Inject constructor(
         tags: String     = "",
         parentID: UUID?  = null,
     ) = create(EventModel(
-        ID          = generateID(),
-        CalendarID  = calendarId,
-        ParentID    = parentID,
-        Name        = name,
-        Description = description,
-        Colour      = colour,
-        Category    = category,
-        Tags        = tags,
-        AllDay      = allDay,
-        Start       = start,
-        Duration    = duration,
+        eventID     = generateID(),
+        calendarID  = calendarId,
+        parentID    = parentID,
+        name        = name,
+        description = description,
+        colour      = colour,
+        category    = category,
+        tags        = tags,
+        allDay      = allDay,
+        start       = start,
+        duration    = duration,
     ))
 
     private suspend fun create(calendar: CalendarModel) = calendar.also { insert(it) }
@@ -205,7 +205,7 @@ class CalendarRepo @Inject constructor(
      * @param event The event to find the calendar for
      * @return Flow to the calendar
      */
-    fun getCalendarFrom(event: EventModel) = calendarDao.fromID(event.CalendarID)
+    fun getCalendarFrom(event: EventModel) = calendarDao.fromID(event.calendarID)
     /**
      * Retrieves a list of calendars which match the name
      * @param name Query with the name of the calendar
@@ -231,7 +231,7 @@ class CalendarRepo @Inject constructor(
      * @param calendar The calendar to be queried
      * @return Flow to the list of events found
      */
-    fun getEventFrom(calendar: CalendarModel) = eventDao.fromCalendar(calendar.ID)
+    fun getEventFrom(calendar: CalendarModel) = eventDao.fromCalendar(calendar.calendarID)
     /**
      * Retrieves a list of events which match a name
      * @param name The name of the event
