@@ -20,7 +20,6 @@ import androidx.compose.ui.graphics.toArgb
  * @param description Description of the event
  * @param colour      Optional colour to associate with this event
  * @param category    Classification of the event
- * @param tags        Tags which the user can use to quickly search for related events
  *
  * @param allDay   Whether this event last all day
  * @param start    When this event starts
@@ -34,10 +33,9 @@ import androidx.compose.ui.graphics.toArgb
 
     // Descriptors
     val name: String,
-    val description: String,
-    val colour: Int?,
+    val description: String, 
     val category: String,
-    val tags: String,
+    val colour: Int?,
 
     // Time Specifiers
     val allDay: Boolean,
@@ -58,3 +56,70 @@ import androidx.compose.ui.graphics.toArgb
      */
     fun withColor(colour: Color?) = copy(colour = colour?.toArgb())
 }
+
+/**
+ * Represents a event tag which is used to quickly group and query for events
+ *
+ * @param tagID Unique ID of this tag
+ * @param content Contents of the tag
+ */
+@Entity(tableName = "EventTag") data class EventTagModel(
+    @PrimaryKey val tagID: UUID,
+    @ColumnInfo(index = true) val content: String
+)
+@Entity(
+    primaryKeys = [ "tagID", "eventID" ],
+) data class EventTagJunction(
+    @ColumnInfo(index = true) val tagID: UUID,
+    @ColumnInfo(index = true) val eventID: UUID,
+)
+
+/**
+ * Represents an event with its associated calendar
+ * @param event The event
+ * @param calendar The calendar which is associated with the event
+ */
+data class EventWithCalendar(
+    @Relation(
+        parentColumn = "calendarID",
+        entityColumn = "calendarID"
+    ) val calendar: CalendarModel,
+    @Embedded val event: EventModel
+)
+/**
+ * Represents a list of tags of a given event
+ * @param event The event that was queried
+ * @param tags  The list of tags associated with this event
+ */
+data class EventWithTags(
+    @Embedded val event: EventModel,
+    @Relation(
+        parentColumn = "eventID",
+        entityColumn = "tagID",
+        associateBy  = Junction(EventTagJunction::class)
+    ) val tags: List<EventTagModel>
+)
+/**
+ * Represents a list of events with a given tag
+ * @param tag The tag which was queried
+ * @param events List of events with the given tag
+ */
+data class EventsWithTag(
+    @Embedded val tag: EventTagModel,
+    @Relation(
+        parentColumn = "tagID",
+        entityColumn = "eventID",
+        associateBy  = Junction(EventTagJunction::class)
+    ) val events: List<EventModel>
+)
+
+/**
+ * Represents a parent event and its children
+ */
+data class EventWithChildren(
+    @Embedded val parent: EventModel,
+    @Relation(
+        parentColumn = "eventID",
+        entityColumn = "parentID"
+    ) val children: List<EventModel>
+)

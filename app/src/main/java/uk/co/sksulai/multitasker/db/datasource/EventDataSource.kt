@@ -2,8 +2,7 @@ package uk.co.sksulai.multitasker.db.datasource
 
 import java.util.*
 import kotlinx.coroutines.flow.Flow
-import uk.co.sksulai.multitasker.db.model.CalendarModel
-import uk.co.sksulai.multitasker.db.model.EventModel
+import uk.co.sksulai.multitasker.db.model.*
 
 interface EventDataSource {
     fun insert(event: EventModel)
@@ -11,7 +10,8 @@ interface EventDataSource {
     fun delete(event: EventModel)
     fun deleteFrom(calendarID: UUID)
 
-    fun getAll(): Flow<Map<CalendarModel, List<EventModel>>>
+    fun getAll(): Flow<List<EventModel>>
+    fun getAllWithCalendar(): Flow<List<EventWithCalendar>>
 
     fun fromID(id: UUID): Flow<EventModel?>
     fun fromCalendar(calendarID: UUID): Flow<List<EventModel>>

@@ -90,7 +90,6 @@ class CalendarRepo @Inject constructor(
         allDay: Boolean,
         colour: Color?   = null,
         category: String = "",
-        tags: String     = "",
         parentID: UUID?  = null,
     ) = createEvent(
         calendarId  = calendar.calendarID,
@@ -101,7 +100,6 @@ class CalendarRepo @Inject constructor(
         allDay      = allDay,
         colour      = colour?.toArgb(),
         category    = category,
-        tags        = tags,
         parentID    = parentID,
     )
     /**
@@ -129,7 +127,6 @@ class CalendarRepo @Inject constructor(
         allDay: Boolean,
         colour: Int?     = null,
         category: String = "",
-        tags: String     = "",
         parentID: UUID?  = null,
     ) = create(EventModel(
         eventID     = generateID(),
@@ -139,7 +136,6 @@ class CalendarRepo @Inject constructor(
         description = description,
         colour      = colour,
         category    = category,
-        tags        = tags,
         allDay      = allDay,
         start       = start,
         duration    = duration,
@@ -218,7 +214,7 @@ class CalendarRepo @Inject constructor(
     /**
      * List of all the locally stored events
      */
-    val events get() = eventDao.getAll()
+    val events get() = eventDao.getAllWithCalendar()
 
     /**
      * Retrieves an event given an ID

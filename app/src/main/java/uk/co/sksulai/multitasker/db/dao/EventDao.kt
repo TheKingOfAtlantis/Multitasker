@@ -15,8 +15,9 @@ import uk.co.sksulai.multitasker.db.datasource.EventDataSource
     @Query("Delete From Event where calendarID == :calendarID")
     override fun deleteFrom(calendarID: UUID)
 
-    @Query("Select * From Calendar Inner Join Event On Event.calendarID == Calendar.calendarID")
-    override fun getAll(): Flow<Map<CalendarModel, List<EventModel>>>
+    @Query("Select * From Event") override fun getAll(): Flow<List<EventModel>>
+    @Query("Select * From Event")
+    @Transaction override fun getAllWithCalendar(): Flow<List<EventWithCalendar>>
 
     @Query("Select * From Event where eventID == :id")
     override fun fromID(id: UUID): Flow<EventModel?>

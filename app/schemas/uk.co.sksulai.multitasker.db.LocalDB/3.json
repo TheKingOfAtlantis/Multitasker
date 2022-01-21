@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 3,
-    "identityHash": "b9c34f07779d8427a22d028e4cd94386",
+    "identityHash": "081e13b0aecb1943a4315e7d39e5bb78",
     "entities": [
       {
         "tableName": "UserModel",
@@ -130,7 +130,7 @@
       },
       {
         "tableName": "Event",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`eventID` TEXT NOT NULL, `calendarID` TEXT NOT NULL, `parentID` TEXT, `name` TEXT NOT NULL, `description` TEXT NOT NULL, `colour` INTEGER, `category` TEXT NOT NULL, `tags` TEXT NOT NULL, `allDay` INTEGER NOT NULL, `start` TEXT NOT NULL, `duration` TEXT NOT NULL, PRIMARY KEY(`eventID`))",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`eventID` TEXT NOT NULL, `calendarID` TEXT NOT NULL, `parentID` TEXT, `name` TEXT NOT NULL, `description` TEXT NOT NULL, `category` TEXT NOT NULL, `colour` INTEGER, `allDay` INTEGER NOT NULL, `start` TEXT NOT NULL, `duration` TEXT NOT NULL, PRIMARY KEY(`eventID`))",
         "fields": [
           {
             "fieldPath": "eventID",
@@ -163,22 +163,16 @@
             "notNull": true
           },
           {
-            "fieldPath": "colour",
-            "columnName": "colour",
-            "affinity": "INTEGER",
-            "notNull": false
-          },
-          {
             "fieldPath": "category",
             "columnName": "category",
             "affinity": "TEXT",
             "notNull": true
           },
           {
-            "fieldPath": "tags",
-            "columnName": "tags",
-            "affinity": "TEXT",
-            "notNull": true
+            "fieldPath": "colour",
+            "columnName": "colour",
+            "affinity": "INTEGER",
+            "notNull": false
           },
           {
             "fieldPath": "allDay",
@@ -212,7 +206,7 @@
     "views": [],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'b9c34f07779d8427a22d028e4cd94386')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '081e13b0aecb1943a4315e7d39e5bb78')"
     ]
   }
 }

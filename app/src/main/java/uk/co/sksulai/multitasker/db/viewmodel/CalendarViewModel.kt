@@ -51,7 +51,6 @@ import uk.co.sksulai.multitasker.db.repo.toFlatList
      * @param allDay      Whether the event is an all-day event
      * @param colour      Optional colour to associated with the event
      * @param category    Category to associate with the event
-     * @param tags        Tags associated with the event
      * @param parentID    ID of the parent event
      *
      * @return A [EventModel] instance of the newly created event
@@ -67,13 +66,12 @@ import uk.co.sksulai.multitasker.db.repo.toFlatList
 
         colour: Color?,
         category: String,
-        tags: List<String>,
         parentID: UUID?,
     ) = calendarRepo.createEvent(
         calendar,
         name, description,
         start, duration, allDay,
-        colour, category, tags.joinToString(separator = ";"),
+        colour, category,
         parentID
     )
 
@@ -113,17 +111,15 @@ import uk.co.sksulai.multitasker.db.repo.toFlatList
      * @return A flow containing a list of events which occur in the given range (and their
      *         associated calendars)
      */
-    fun eventsIn(start: LocalDate, end: LocalDate) = events
+    fun eventsIn(start: LocalDate, end: LocalDate) = events.map {
         // TODO: Efficient check against events in SQLite table
-        .map(Map<CalendarModel, List<EventModel>>::toFlatList)
-        .map {
-            it.filter { (_, event) ->
-                // Event needs to start before the end date or during the end date
-                // Event needs to end after the start date or during the start date
-                event.start.toLocalDate().run { isEqual(end) || isBefore(end) } &&
-                event.end.toLocalDate().run { isEqual(start) || isAfter(start) }
-            }
+        it.filter { (_, event) ->
+            // Event needs to start before the end date or during the end date
+            // Event needs to end after the start date or during the start date
+            event.start.toLocalDate().run { isEqual(end) || isBefore(end) } &&
+            event.end.toLocalDate().run { isEqual(start) || isAfter(start) }
         }
+    }
 
     /**
      * Updates a calendar
