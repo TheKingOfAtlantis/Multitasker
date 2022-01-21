@@ -26,4 +26,5 @@ import uk.co.sksulai.multitasker.db.createDatabase
     @Provides fun provideUserDao(db: LocalDB)     = db.getUserDao()
     @Provides fun provideCalendarDao(db: LocalDB) = db.getCalendarDao()
     @Provides fun provideEventDao(db: LocalDB)    = db.getEventDao()
+    @Provides fun provideTagDao(db: LocalDB)      = db.getTagDao()
 }
