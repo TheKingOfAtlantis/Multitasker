@@ -14,12 +14,14 @@ import uk.co.sksulai.multitasker.db.datasource.TagDataSource
     @Delete abstract override fun delete(vararg tag: EventTagModel)
 
     @Query("Select * From EventTag")
-    abstract override fun getAllTags(): Flow<List<EventTagModel>>
+    abstract override fun getAll(): Flow<List<EventTagModel>>
 
     @Query("Select * From EventTag Where tagID like :id")
     abstract override fun fromID(id: UUID): Flow<EventTagModel?>
     @Query("Select * From EventTag Where content like :content")
-    abstract override fun fromName(content: String): Flow<List<EventTagModel>>
+    abstract override fun fromContent(content: String): Flow<List<EventTagModel>>
+    @Query("Select * From EventTag Where content like (:content)")
+    abstract override fun fromContent(content: List<String>): Flow<List<EventTagModel>>
 
     @Query("Select * From Event Where eventID == :id")
     @Transaction abstract override fun forEvent(id: UUID): Flow<EventWithTags?>
@@ -32,11 +34,16 @@ import uk.co.sksulai.multitasker.db.datasource.TagDataSource
     protected abstract fun junctionFromID(vararg id: UUID): List<EventTagJunction>
 
     override fun associate(event: EventModel, tag: EventTagModel) {
-        insert(EventTagJunction(tag.tagID, event.eventID))
+        insert(EventTagJunction(event.eventID, tag.tagID))
     }
     @Transaction override fun associate(event: EventModel, tags: List<EventTagModel>) {
-        tags.map { EventTagJunction(it.tagID, event.eventID) }
+        tags.map { EventTagJunction(event.eventID, it.tagID) }
             .toTypedArray()
             .let(this::insert)
+    }
+    @Transaction override fun disassociate(event: EventModel, tags: List<EventTagModel>) {
+        tags.map { EventTagJunction(event.eventID, it.tagID) }
+            .toTypedArray()
+            .let(this::delete)
     }
 }

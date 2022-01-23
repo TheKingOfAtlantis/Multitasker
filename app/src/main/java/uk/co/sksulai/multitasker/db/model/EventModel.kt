@@ -10,7 +10,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 
 /**
- *
+ * Represents an event which takes place in a calendar
  *
  * @param eventID    Unique ID of this event
  * @param calendarID Calendar which contains this event
@@ -83,6 +83,11 @@ import androidx.compose.ui.graphics.toArgb
     @PrimaryKey val tagID: UUID,
     @ColumnInfo(index = true) val content: String
 )
+/**
+ * Junction table that associated [EventModel]s with [EventTagModel]s
+ * @param eventID ID for an event
+ * @param tagID   ID for the associated tag
+ */
 @Entity(
     primaryKeys = [ "tagID", "eventID" ],
     foreignKeys = [
@@ -100,22 +105,10 @@ import androidx.compose.ui.graphics.toArgb
         )
     ],
 ) data class EventTagJunction(
-    @ColumnInfo(index = true) val tagID: UUID,
     @ColumnInfo(index = true) val eventID: UUID,
+    @ColumnInfo(index = true) val tagID: UUID,
 )
 
-/**
- * Represents an event with its associated calendar
- * @param event The event
- * @param calendar The calendar which is associated with the event
- */
-data class EventWithCalendar(
-    @Relation(
-        parentColumn = "calendarID",
-        entityColumn = "calendarID"
-    ) val calendar: CalendarModel,
-    @Embedded val event: EventModel
-)
 /**
  * Represents a list of tags of a given event
  * @param event The event that was queried
@@ -144,7 +137,21 @@ data class EventsWithTag(
 )
 
 /**
+ * Represents an event with its associated calendar
+ * @param event The event
+ * @param calendar The calendar which is associated with the event
+ */
+data class EventWithCalendar(
+    @Relation(
+        parentColumn = "calendarID",
+        entityColumn = "calendarID"
+    ) val calendar: CalendarModel,
+    @Embedded val event: EventModel
+)
+/**
  * Represents a parent event and its children
+ * @param parent The parent event
+ * @param children List of the parents children
  */
 data class EventWithChildren(
     @Embedded val parent: EventModel,

@@ -13,7 +13,6 @@ import androidx.lifecycle.ViewModel
 
 import uk.co.sksulai.multitasker.db.model.*
 import uk.co.sksulai.multitasker.db.repo.CalendarRepo
-import uk.co.sksulai.multitasker.db.repo.toFlatList
 
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel class CalendarViewModel @Inject constructor(

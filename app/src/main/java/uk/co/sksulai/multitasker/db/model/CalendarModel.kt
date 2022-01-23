@@ -9,6 +9,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 
 /**
+ * Represents a calendar which contains events
  *
  * @param calendarID  Unique ID to identify this calendar
  * @param ownerID     ID associated with the owner's [UserModel]

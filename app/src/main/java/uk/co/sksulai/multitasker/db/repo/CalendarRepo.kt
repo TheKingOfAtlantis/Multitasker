@@ -4,7 +4,9 @@ import java.time.*
 import java.util.*
 
 import javax.inject.Inject
+
 import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.first
 
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
@@ -16,6 +18,7 @@ import uk.co.sksulai.multitasker.di.DispatcherIO
 class CalendarRepo @Inject constructor(
     private val calendarDao: CalendarDao,
     private val eventDao: EventDao,
+    private val tagDao: TagDao,
     @DispatcherIO private val ioDispatcher: CoroutineDispatcher
 ) {
     // Creation
@@ -66,7 +69,7 @@ class CalendarRepo @Inject constructor(
     ))
 
     /**
-     * Creates a event
+     * Creates a event with a set of tags
      *
      * @param calendar    The calendar to add the event to
      * @param name        The name of the event
@@ -77,6 +80,43 @@ class CalendarRepo @Inject constructor(
      * @param colour      Optional colour to associated with the event
      * @param category    Category to associate with the event
      * @param tags        Tags associated with the event
+     * @param parentID    ID of the parent event
+     *
+     * @return [EventWithTags] instance of the newly created event and tags
+     */
+    suspend fun createEvent(
+        calendar: CalendarModel,
+        name: String,
+        description: String,
+        start: OffsetDateTime,
+        duration: Duration,
+        allDay: Boolean,
+        colour: Color?     = null,
+        category: String   = "",
+        tags: List<String> = emptyList(),
+        parentID: UUID?    = null,
+    ) = EventWithTags(
+        createEvent(
+            calendar,
+            name,
+            description,
+            start, duration, allDay,
+            colour, category,
+            parentID
+        ),
+        createTags(tags)
+    ).also { (event, tags) -> tagDao.associate(event, tags) }
+    /**
+     * Creates a event
+     *
+     * @param calendar    The calendar to add the event to
+     * @param name        The name of the event
+     * @param description Description of the event
+     * @param start       When the event starts
+     * @param duration    How long the event lasts
+     * @param allDay      Whether the event is an all-day event
+     * @param colour      Optional colour to associated with the event
+     * @param category    Category to associate with the event
      * @param parentID    ID of the parent event
      *
      * @return [EventModel] instance of the newly created event
@@ -113,7 +153,6 @@ class CalendarRepo @Inject constructor(
      * @param allDay      Whether the event is an all-day event
      * @param colour      Optional colour to associated with the event
      * @param category    Category to associate with the event
-     * @param tags        Tags associated with the event
      * @param parentID    ID of the parent event
      *
      * @return [EventModel] instance of the newly created event
@@ -141,8 +180,29 @@ class CalendarRepo @Inject constructor(
         duration    = duration,
     ))
 
-    private suspend fun create(calendar: CalendarModel) = calendar.also { insert(it) }
-    private suspend fun create(event: EventModel) = event.also { insert(event) }
+    /**
+     * Creates tags from a list of content values unless a tag already exists in which case the tag
+     * containing that value is retrieved
+     * @param tags List containing the requested tag contents
+     * @return List of [EventTagModel]s which have been added to the database
+     */
+    suspend fun createTags(tags: List<String>): List<EventTagModel> {
+        // Get list of existing tags
+        // Remove them from the given list to get those we need to create
+        val exist = getTagFrom(tags).first()
+        val result = create(
+            tags.filter { check -> exist.find { it.content == check } == null }
+                .map { EventTagModel(generateID(), it) }
+        ) + exist
+
+        // Just for niceness return the list in the same order as it was given
+        val order = tags.mapIndexed { i, s -> s to i }.toMap()
+        return result.sortedBy { it.content.let(order::getValue) }
+    }
+
+    private suspend fun create(calendar: CalendarModel)   = calendar.also { insert(it) }
+    private suspend fun create(event: EventModel)         = event.also { insert(it) }
+    private suspend fun create(tags: List<EventTagModel>) = tags.also { insert(*it.toTypedArray()) }
 
     // Manipulation
 
@@ -150,17 +210,17 @@ class CalendarRepo @Inject constructor(
      * Inserts a calendar into the database
      * @param calendar The calendar that is to be added
      */
-    suspend fun insert(calendar: CalendarModel): Unit = withContext(ioDispatcher) {
-        calendar.also(calendarDao::insert)
-    }
+    suspend fun insert(calendar: CalendarModel): Unit = withContext(ioDispatcher) { calendar.also(calendarDao::insert) }
     /**
      * Inserts an event into the database
      * @param event The calendar that is to be added
      */
-    suspend fun insert(event: EventModel): Unit = withContext(ioDispatcher) {
-        event.also(eventDao::insert)
-    }
-
+    suspend fun insert(event: EventModel): Unit = withContext(ioDispatcher) { event.also(eventDao::insert) }
+    /**
+     * Inserts a number of tags into the database
+     * @param tags The tags that are to be added
+     */
+    suspend fun insert(vararg tags: EventTagModel): Unit = withContext(ioDispatcher) { tags.also(tagDao::insert) }
     /**
      * Updates a calendar
      * @param calendar Calendar model which has been modified
@@ -173,6 +233,39 @@ class CalendarRepo @Inject constructor(
     suspend fun update(event: EventModel) = withContext(ioDispatcher) { eventDao.update(event) }
 
     /**
+     * Updates the list of tags associated with an event
+     * @param event The event to modify
+     * @param tags  List of tags to be added to the event
+     */
+    suspend fun updateAssociatedTags(event: EventModel, tags: List<String>) {
+        // Convert the list of given tags to EventTagModel
+        // Create tags which don't exist yet and retrieve those which do
+        val tagModels = createTags(tags) // Luckily createTags does all of that
+
+        // Get the current list of tags associated with the event
+        updateAssociatedTags(getEventWithTags(event).first()!!, tagModels)
+    }
+
+    private suspend fun updateAssociatedTags(event: EventWithTags, tags: List<EventTagModel>) {
+        // Work out which are tags are new and which have been removed from the event
+        // If no more events are associated with a tag remove the tag
+
+        // First find the new tags to add
+        tags.filterNot(event.tags::contains)
+            .let { tagDao.associate(event.event, it) }
+        // Then find the old tags to remove
+        event.tags                                         // Take the list tags in the event
+            .filterNot(tags::contains)                     // Leave those not contained in the list of given tags
+            .also { tagDao.disassociate(event.event, it) } // Disassociate from the tags
+        // Lastly clean up the tags
+        // We can reuse the list of disassociated tags to reduce the amount of work
+            .map { tagDao.withTag(it.tagID).first() }   // Get each tag with the events which use it
+            .filter { (_, events) -> events.isEmpty() } // If the tag has not events associated with it
+            .map(EventsWithTag::tag)                    // Then get the tag
+            .let { delete(it) }                         // and delete it
+    }
+
+    /**
      * Deletes a calendar from the database
      * @param calendar Calendar to be removed
      */
@@ -182,6 +275,11 @@ class CalendarRepo @Inject constructor(
      * @param event Event to be removed
      */
     suspend fun delete(event: EventModel) = withContext(ioDispatcher) { eventDao.delete(event) }
+    /**
+     * Deletes tags from the database
+     * @param tags Tags to be removed
+     */
+    suspend fun delete(tags: List<EventTagModel>) = withContext(ioDispatcher) { tagDao.delete(*tags.toTypedArray()) }
 
     // Getters
 
@@ -204,7 +302,7 @@ class CalendarRepo @Inject constructor(
     fun getCalendarFrom(event: EventModel) = calendarDao.fromID(event.calendarID)
     /**
      * Retrieves a list of calendars which match the name
-     * @param name Query with the name of the calendar
+     * @param name       Query with the name of the calendar
      * @param queryParam Query parameters to apply to the search
      * @return Flow to the list of calendars found
      */
@@ -230,20 +328,48 @@ class CalendarRepo @Inject constructor(
     fun getEventFrom(calendar: CalendarModel) = eventDao.fromCalendar(calendar.calendarID)
     /**
      * Retrieves a list of events which match a name
-     * @param name The name of the event
+     * @param name       The name of the event
      * @param queryParam Query parameters to apply to the search
      * @return Flow to the list of events found
      */
     fun getEventFrom(name: String, queryParam: QueryBuilder.() -> Unit = {}) =
         eventDao.fromName(SearchQuery.local(name, queryParam))
-}
+    /**
+     * Retrieve a list of events with a given tag
+     * @param tag The tag the events need to contain
+     * @return [EventsWithTag] contains the list of events along with the tag
+     */
+    fun getEventFrom(tag: EventTagModel) = tagDao.withTag(tag.tagID)
+    /**
+     * Retrieve the list of tags associated with the
+     * @param event The event to be queried
+     * @return [EventWithTags] contains the list of tags along with the event itself
+     */
+    fun getEventWithTags(event: EventModel) = tagDao.forEvent(event.eventID)
 
-/**
- * Helper to flatten a Map with a list as its value to a list of keys and list values,
- * converting a list of type Map<K, List<V>> to List<Pair<K, V>>.
- *
- * _Intended for use with maps of type `Map<CalendarModel, List<EventModel>>`_
- */
-fun <K, V> Map<K, List<V>>.toFlatList(): List<Pair<K, V>> = flatMap { entry ->
-    entry.value.associateBy { entry.key }.toList()
+    /**
+     * List of all the locally available tags
+     */
+    val tags get() = tagDao.getAll()
+
+    /**
+     * Retrieves a tag given an ID
+     * @param id The ID to be queried
+     */
+    fun getTagFrom(id: UUID) = tagDao.fromID(id)
+    /**
+     * Retrieves a list tags which whose contents match the given query
+     * @param content    The content of the tag
+     * @param queryParam Query parameters to apply to the search
+     */
+    fun getTagFrom(content: String, queryParam: QueryBuilder.() -> Unit = {}) =
+        tagDao.fromContent(SearchQuery.local(content, queryParam))
+    /**
+     * Retrieves a list of tags which match any of the given contents
+     * @param contents   List of contents to search for
+     * @param queryParam Query parameters to apply to the search
+     * @return Flow containing a list of tags with a match
+     */
+    fun getTagFrom(contents: List<String>, queryParam: QueryBuilder.() -> Unit = {}) =
+        tagDao.fromContent(contents.map { SearchQuery.local(it, queryParam) })
 }

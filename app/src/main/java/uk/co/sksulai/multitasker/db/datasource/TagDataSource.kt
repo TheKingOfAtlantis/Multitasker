@@ -11,11 +11,13 @@ interface TagDataSource {
 
     fun associate(event: EventModel, tag: EventTagModel)
     fun associate(event: EventModel, tags: List<EventTagModel>)
+    fun disassociate(event: EventModel, tags: List<EventTagModel>)
 
-    fun getAllTags(): Flow<List<EventTagModel>>
+    fun getAll(): Flow<List<EventTagModel>>
 
     fun fromID(id: UUID): Flow<EventTagModel?>
-    fun fromName(content: String): Flow<List<EventTagModel>>
+    fun fromContent(content: String): Flow<List<EventTagModel>>
+    fun fromContent(content: List<String>): Flow<List<EventTagModel>>
 
     fun forEvent(id: UUID): Flow<EventWithTags?>
     fun withTag(id: UUID): Flow<EventsWithTag?>
