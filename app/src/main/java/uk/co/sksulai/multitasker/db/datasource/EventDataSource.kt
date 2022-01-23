@@ -42,4 +42,20 @@ interface EventDataSource {
      * @param name The name query
      */
     fun fromName(name: String): Flow<List<EventModel>>
+
+    /**
+     * Retrieves a [EventModel] with its children
+     * @param id ID of the parent [EventModel]
+     * @return [EventWithChildren] containing the queried parent as [EventWithChildren.parent]
+     *         and [EventWithChildren.children] being a list of events where [EventModel.parentID]
+     *         is equal to the parents [EventModel.eventID]
+     */
+    fun withChildren(id: UUID): Flow<EventWithChildren?>
+    /**
+     * Retrieves a [EventModel] with its associated [CalendarModel]
+     * @param id ID of the event to retrieve
+     * @return [EventWithChildren] containing the queried event with the [CalendarModel] where
+     *         [EventModel.calendarID] is equal to [CalendarModel.calendarID]
+     */
+    fun withCalendar(id: UUID): Flow<EventWithCalendar?>
 }

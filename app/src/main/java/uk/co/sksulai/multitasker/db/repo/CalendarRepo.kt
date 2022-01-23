@@ -346,6 +346,21 @@ class CalendarRepo @Inject constructor(
      * @return [EventWithTags] contains the list of tags along with the event itself
      */
     fun getEventWithTags(event: EventModel) = tagDao.forEvent(event.eventID)
+    /**
+     * Retrieve an event with its associated calendar
+     * @param id The id of event to be queried
+     */
+    fun getEventWithCalendar(id: UUID) = eventDao.withCalendar(id)
+    /**
+     * Retrieve an event with its children
+     * @param id The id of event to be queried
+     */
+    fun getEventWithChildren(id: UUID) = eventDao.withChildren(id)
+    /**
+     * Retrieve an event with its children
+     * @param event The event to be queried
+     */
+    fun getEventWithChildren(event: EventModel) = getEventWithChildren(event.eventID)
 
     /**
      * List of all the locally available tags

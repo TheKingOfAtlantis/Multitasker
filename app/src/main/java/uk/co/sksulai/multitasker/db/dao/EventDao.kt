@@ -23,4 +23,9 @@ import uk.co.sksulai.multitasker.db.datasource.EventDataSource
     override fun fromCalendar(id: UUID): Flow<List<EventModel>>
     @Query("Select * From Event where name == :name")
     override fun fromName(name: String): Flow<List<EventModel>>
+
+    @Query("Select * From Event where eventID == :id")
+    @Transaction override fun withChildren(id: UUID): Flow<EventWithChildren?>
+    @Query("Select * From Event where eventID == :id")
+    @Transaction override fun withCalendar(id: UUID): Flow<EventWithCalendar?>
 }
