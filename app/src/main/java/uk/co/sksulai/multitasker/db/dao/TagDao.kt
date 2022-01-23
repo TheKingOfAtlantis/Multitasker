@@ -28,8 +28,18 @@ import uk.co.sksulai.multitasker.db.datasource.TagDataSource
     @Query("Select * From EventTag Where tagID == :id")
     @Transaction abstract override fun withTag(id: UUID): Flow<EventsWithTag>
 
+    // Event-Tag Junction Table
+    /**
+     * Inserts a entry to the junction table
+     */
     @Insert protected abstract fun insert(vararg junction: EventTagJunction)
+    /**
+     * Deletes an entry in the junction table
+     */
     @Delete protected abstract fun delete(vararg junction: EventTagJunction)
+    /**
+     * Get entries in the junction table
+     */
     @Query("Select * From EventTagJunction Where tagID == :id")
     protected abstract fun junctionFromID(vararg id: UUID): List<EventTagJunction>
 
