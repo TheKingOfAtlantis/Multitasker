@@ -17,6 +17,6 @@ interface TagDataSource {
     fun fromID(id: UUID): Flow<EventTagModel?>
     fun fromName(content: String): Flow<List<EventTagModel>>
 
-    fun forEvent(eventID: UUID): Flow<EventWithTags?>
-    fun withTag(tagID: UUID): Flow<EventsWithTag>
+    fun forEvent(id: UUID): Flow<EventWithTags?>
+    fun withTag(id: UUID): Flow<EventsWithTag?>
 }

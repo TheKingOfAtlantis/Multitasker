@@ -12,8 +12,6 @@ import uk.co.sksulai.multitasker.db.datasource.EventDataSource
     @Insert override fun insert(event: EventModel)
     @Update override fun update(event: EventModel)
     @Delete override fun delete(event: EventModel)
-    @Query("Delete From Event where calendarID == :calendarID")
-    override fun deleteFrom(calendarID: UUID)
 
     @Query("Select * From Event") override fun getAll(): Flow<List<EventModel>>
     @Query("Select * From Event")
@@ -21,8 +19,8 @@ import uk.co.sksulai.multitasker.db.datasource.EventDataSource
 
     @Query("Select * From Event where eventID == :id")
     override fun fromID(id: UUID): Flow<EventModel?>
-    @Query("Select * From Event Where calendarID == :calendarID")
-    override fun fromCalendar(calendarID: UUID): Flow<List<EventModel>>
+    @Query("Select * From Event Where calendarID == :id")
+    override fun fromCalendar(id: UUID): Flow<List<EventModel>>
     @Query("Select * From Event where name == :name")
     override fun fromName(name: String): Flow<List<EventModel>>
 }

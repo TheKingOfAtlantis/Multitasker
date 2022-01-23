@@ -26,14 +26,30 @@ import androidx.compose.ui.graphics.toArgb
  * @param duration How long this event lasts
  */
 @Immutable @Parcelize
-@Entity(tableName = "Event") data class EventModel(
+@Entity(
+    tableName = "Event",
+    foreignKeys = [
+        ForeignKey(
+            entity = CalendarModel::class,
+            parentColumns = ["calendarID"],
+            childColumns  = ["calendarID"],
+            onDelete = ForeignKey.CASCADE
+        ),
+        ForeignKey(
+            entity = EventModel::class,
+            parentColumns = ["eventID"],
+            childColumns  = ["parentID"],
+            onDelete = ForeignKey.CASCADE
+        ),
+    ]
+) data class EventModel(
     @PrimaryKey val eventID: UUID,
-    val calendarID: UUID,
-    val parentID: UUID?,
+    @ColumnInfo(index = true) val calendarID: UUID,
+    @ColumnInfo(index = true) val parentID: UUID?,
 
     // Descriptors
     val name: String,
-    val description: String, 
+    val description: String,
     val category: String,
     val colour: Int?,
 
@@ -69,6 +85,20 @@ import androidx.compose.ui.graphics.toArgb
 )
 @Entity(
     primaryKeys = [ "tagID", "eventID" ],
+    foreignKeys = [
+        ForeignKey(
+            entity = EventModel::class,
+            parentColumns = ["eventID"],
+            childColumns  = ["eventID"],
+            onDelete = ForeignKey.CASCADE
+        ),
+        ForeignKey(
+            entity = EventTagModel::class,
+            parentColumns = ["tagID"],
+            childColumns  = ["tagID"],
+            onDelete = ForeignKey.CASCADE
+        )
+    ],
 ) data class EventTagJunction(
     @ColumnInfo(index = true) val tagID: UUID,
     @ColumnInfo(index = true) val eventID: UUID,

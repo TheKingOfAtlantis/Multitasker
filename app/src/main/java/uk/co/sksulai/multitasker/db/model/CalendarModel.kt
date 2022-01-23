@@ -18,8 +18,18 @@ import androidx.compose.ui.graphics.toArgb
  * @param visible     Whether or not this calendar is visible
  */
 @Immutable @Parcelize
-@Entity(tableName = "Calendar") data class CalendarModel(
+@Entity(
+    tableName = "Calendar",
+    foreignKeys = [
+        ForeignKey(
+            entity = UserModel::class,
+            parentColumns = ["userID"],
+            childColumns = ["ownerID"]
+        )
+    ]
+) data class CalendarModel(
     @PrimaryKey val calendarID: UUID,
+    @ColumnInfo(index = true)
     val ownerID: String,
 
     val name: String,
