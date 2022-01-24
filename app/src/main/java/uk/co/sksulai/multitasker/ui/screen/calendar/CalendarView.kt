@@ -64,6 +64,19 @@ import uk.co.sksulai.multitasker.ui.Destinations
     )
     @Composable fun bottomAppBar() = BottomAppBar {
     }
+    
+    @Composable fun mainContent() = NavHost(calendarNavController, Destinations.Dashboard.route) {
+        composable(Destinations.Dashboard.route) { /*DashboardView()*/ }
+        composable(Destinations.Agenda.route) { /*AgendaView(calendarViewModel, currentDate, { currentDate = it })*/ }
+        composable(Destinations.Day.route) { /*DayView(currentDate)*/ }
+        composable(Destinations.Week.route) { /*WeekView(currentDate)*/ }
+        composable(Destinations.Month.route) { /*MonthView(currentDate)*/ }
+
+        bottomSheet(Destinations.CalendarCreation.route) {
+            CalendarCreation({ calendarNavController.navigateUp() }, calendarViewModel)
+        }
+        bottomSheet(Destinations.EventCreation.route) { /*EventCreation(calendarNavController, calendarViewModel)*/ }
+    }
 
     val shape by rememberBottomSheetShape(bottomSheetNavigator.navigatorSheetState)
     ModalBottomSheetLayout(
@@ -76,18 +89,7 @@ import uk.co.sksulai.multitasker.ui.Destinations
             isFloatingActionButtonDocked = true,
             floatingActionButtonPosition = FabPosition.Center
         ) {
-            NavHost(calendarNavController, Destinations.Dashboard.route) {
-                composable(Destinations.Dashboard.route) { Text("Dashboard") }
-                composable(Destinations.Agenda.route) { Text("Agenda") }
-                composable(Destinations.Day.route) { Text("Day") }
-                composable(Destinations.Week.route) { Text("Week") }
-                composable(Destinations.Month.route) { Text("Month") }
-
-                bottomSheet(Destinations.CalendarCreation.route) {
-                    CalendarCreation({ calendarNavController.navigateUp() }, calendarViewModel)
-                }
-                bottomSheet(Destinations.EventCreation.route) { /*EventCreation(calendarNavController, calendarViewModel)*/ }
-            }
+            mainContent()
         }
     }
 }
