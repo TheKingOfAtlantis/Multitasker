@@ -2,10 +2,14 @@ package uk.co.sksulai.multitasker.ui.screen.calendar
 
 import androidx.compose.runtime.*
 import androidx.compose.material.*
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.animation.*
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
-import androidx.compose.ui.ExperimentalComposeUiApi
+import androidx.compose.ui.*
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.lerp
 
@@ -19,6 +23,8 @@ import com.google.accompanist.navigation.material.*
 
 import uk.co.sksulai.multitasker.db.viewmodel.CalendarViewModel
 import uk.co.sksulai.multitasker.ui.Destinations
+import uk.co.sksulai.multitasker.ui.component.Scrim
+import uk.co.sksulai.multitasker.util.rememberMutableState
 
 
 @ExperimentalMaterialApi
@@ -53,15 +59,56 @@ import uk.co.sksulai.multitasker.ui.Destinations
     val bottomSheetNavigator  = rememberBottomSheetNavigator()
     val calendarNavController = rememberNavController(bottomSheetNavigator)
 
+
+    var expandFabMenu by rememberMutableState(false)
+    val fabAnim by animateFloatAsState(targetValue = if(expandFabMenu) 1f else 0f)
     @Composable fun fab() = FloatingActionButton(
-        onClick = { Destinations.CalendarCreation.navigate(calendarNavController) },
+        onClick = { expandFabMenu = !expandFabMenu },
         content = {
             Icon(
+                modifier = Modifier.rotate(45f * fabAnim),
                 imageVector = Icons.Default.Add,
                 contentDescription = null
             )
         }
     )
+    @Composable fun fabMenu(modifier: Modifier = Modifier) = Column(
+        modifier = modifier,
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Bottom
+    ) {
+        val enter = fadeIn() + slideInVertically { 3*it/2 }
+        val exit  = slideOutVertically { 3*it/2 } + fadeOut()
+
+        AnimatedVisibility(
+            visible  = expandFabMenu,
+            enter    = enter,
+            exit     = exit
+        ) {
+            ExtendedFloatingActionButton(
+                text = { Text("Create Calendar") },
+                onClick = {
+                    Destinations.CalendarCreation.navigate(calendarNavController)
+                    expandFabMenu = false
+                },
+            )
+        }
+        AnimatedVisibility(
+            visible  = expandFabMenu,
+            enter    = enter,
+            exit     = exit
+        ) {
+            ExtendedFloatingActionButton(
+                modifier = Modifier.padding(top = 8.dp),
+                text = { Text("Create Event") },
+                onClick = {
+                    Destinations.EventCreation.navigate(calendarNavController)
+                    expandFabMenu = false
+                },
+            )
+        }
+    }
+
     @Composable fun bottomAppBar() = BottomAppBar {
     }
     
@@ -72,9 +119,7 @@ import uk.co.sksulai.multitasker.ui.Destinations
         composable(Destinations.Week.route) { /*WeekView(currentDate)*/ }
         composable(Destinations.Month.route) { /*MonthView(currentDate)*/ }
 
-        bottomSheet(Destinations.CalendarCreation.route) {
-            CalendarCreation({ calendarNavController.navigateUp() }, calendarViewModel)
-        }
+        bottomSheet(Destinations.CalendarCreation.route) { CalendarCreation({ calendarNavController.navigateUp() }, calendarViewModel) }
         bottomSheet(Destinations.EventCreation.route) { /*EventCreation(calendarNavController, calendarViewModel)*/ }
     }
 
@@ -88,9 +133,14 @@ import uk.co.sksulai.multitasker.ui.Destinations
             floatingActionButton = { fab() },
             isFloatingActionButtonDocked = true,
             floatingActionButtonPosition = FabPosition.Center
-        ) {
-            mainContent()
-        }
+        ) { Box(Modifier.padding(it)) {
+            Scrim(expandFabMenu) { expandFabMenu = false }
+            fabMenu(
+                Modifier
+                    .fillMaxSize()
+                    .padding(bottom = 32.dp)
+            )
+        } }
     }
 }
 
