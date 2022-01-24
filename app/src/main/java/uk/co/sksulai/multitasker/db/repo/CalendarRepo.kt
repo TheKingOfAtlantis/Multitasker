@@ -243,7 +243,7 @@ class CalendarRepo @Inject constructor(
         val tagModels = createTags(tags) // Luckily createTags does all of that
 
         // Get the current list of tags associated with the event
-        updateAssociatedTags(getEventWithTags(event).first()!!, tagModels)
+        updateAssociatedTags(getEventWithTags(event.eventID).first()!!, tagModels)
     }
 
     private suspend fun updateAssociatedTags(event: EventWithTags, tags: List<EventTagModel>) {
@@ -342,10 +342,10 @@ class CalendarRepo @Inject constructor(
     fun getEventFrom(tag: EventTagModel) = tagDao.withTag(tag.tagID)
     /**
      * Retrieve the list of tags associated with the
-     * @param event The event to be queried
+     * @param id The event to be queried ([EventModel.eventID])
      * @return [EventWithTags] contains the list of tags along with the event itself
      */
-    fun getEventWithTags(event: EventModel) = tagDao.forEvent(event.eventID)
+    fun getEventWithTags(id: UUID) = tagDao.forEvent(id)
     /**
      * Retrieve an event with its associated calendar
      * @param id The id of event to be queried

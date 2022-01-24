@@ -2,8 +2,9 @@ package uk.co.sksulai.multitasker.db.viewmodel
 
 import java.util.*
 import java.time.*
-import kotlinx.coroutines.flow.map
+
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.*
 
 import javax.inject.Inject
 import androidx.compose.ui.graphics.Color
@@ -38,7 +39,6 @@ import uk.co.sksulai.multitasker.db.repo.CalendarRepo
         description: String,
         colour: Color
     ) = calendarRepo.createCalendar(owner, name, description, colour)
-
     /**
      * Creates a event
      *
@@ -52,7 +52,42 @@ import uk.co.sksulai.multitasker.db.repo.CalendarRepo
      * @param category    Category to associate with the event
      * @param parentID    ID of the parent event
      *
-     * @return A [EventModel] instance of the newly created event
+     * @return [EventModel] of the newly created event
+     */
+    suspend fun createEvent(
+        calendar: CalendarModel,
+        name: String,
+        description: String,
+
+        start: OffsetDateTime,
+        duration: Duration,
+        allDay: Boolean,
+
+        colour: Color?,
+        category: String,
+        tags: List<String>,
+        parentID: UUID?,
+    ) = calendarRepo.createEvent(
+        calendar,
+        name, description,
+        start, duration, allDay,
+        colour, category, tags,
+        parentID
+    )
+    /**
+     * Creates a event
+     *
+     * @param calendar    The calendar to add the event to
+     * @param name        The name of the event
+     * @param description Description of the event
+     * @param start       When the event starts
+     * @param duration    How long the event lasts
+     * @param allDay      Whether the event is an all-day event
+     * @param colour      Optional colour to associated with the event
+     * @param category    Category to associate with the event
+     * @param parentID    ID of the parent event
+     *
+     * @return [EventModel] of the newly created event
      */
     suspend fun createEvent(
         calendar: CalendarModel,
@@ -77,48 +112,76 @@ import uk.co.sksulai.multitasker.db.repo.CalendarRepo
     /**
      * Toggles the visibility of a calendar
      * @param calendar The calendar to toggle the visibility of
+     * @return Instance of the calendar model with the visibility toggled
      */
-    suspend fun toggleVisibility(calendar: CalendarModel) {
-        calendarRepo.update(calendar.copy(visible = !calendar.visible))
-    }
+    suspend fun toggleVisibility(calendar: CalendarModel) = calendar
+            .copy(visible = !calendar.visible)
+            .also { update(it) }
 
     /**
      * Retrieves a calendar given an ID
      * @param id The ID to be queried
-     * @return Flow to the calendar if it was found
+     * @return The calendar (if it was found)
      */
     fun fromCalendarID(id: UUID) = calendarRepo.getCalendarFrom(id)
     /**
      * Retrieves an event given an ID
      * @param id The ID to be queried
-     * @return Flow to the event found
+     * @return The event (if it was found)
      */
     fun fromEventID(id: UUID) = calendarRepo.getEventFrom(id)
-
-
     /**
-     * Retrieve a list of all events which occur on a given [date]
-     * @param date The date to check
-     * @return A flow containing a list of events which occur on the given date (and their
-     *         associated calendars)
+     * Retrieves an event given its ID and its calendar
+     * @param id The ID of the event to be queried
+     * @return The event and calendar (if it was found)
      */
-    fun eventsOn(date: LocalDate) = eventsIn(date, date)
+    fun fromEventIDWithCalendar(id: UUID) = calendarRepo.getEventWithCalendar(id)
     /**
-     * Retrieve a list of all events which occur on a given range of dates
-     * @param start The first date of the range (inclusive)
-     * @param end   The last date of the range (inclusive)
-     * @return A flow containing a list of events which occur in the given range (and their
-     *         associated calendars)
+     * Retrieves an event given an ID and its children
+     * @param id The ID of the event to be queried
+     * @return The event and its children (if it was found)
      */
-    fun eventsIn(start: LocalDate, end: LocalDate) = events.map {
-        // TODO: Efficient check against events in SQLite table
-        it.filter { (_, event) ->
-            // Event needs to start before the end date or during the end date
-            // Event needs to end after the start date or during the start date
-            event.start.toLocalDate().run { isEqual(end) || isBefore(end) } &&
-            event.end.toLocalDate().run { isEqual(start) || isAfter(start) }
-        }
+    fun fromEventIDWithChildren(id: UUID) = calendarRepo.getEventWithChildren(id)
+    /**
+     * Retrieves an event and its tags given an ID
+     * @param id The ID of the event to be queried
+     * @return The event and its tags (if it was found)
+     */
+    fun fromEventIDWithTags(id: UUID) = calendarRepo.getEventWithTags(id)
+    /**
+     * Retrieves events with a given event
+     * @param id ID of the tag
+     * @return List of events associated with the tag
+     */
+    fun fromEventTag(id: UUID) = calendarRepo.getTagFrom(id).flatMapLatest {
+        it?.let(calendarRepo::getEventFrom) ?: flowOf(null)
     }
+    /**
+     * Retrieves a list of events whose name contains the given value
+     * @param name The name to be queried
+     * @return List of events whose names matched with [name]
+     */
+    fun fromEventName(name: String) = calendarRepo.getEventFrom(name) { anyEnd = true }
+    /**
+     * Retrieves a tag given its ID
+     * @param id The ID of the tag
+     * @return The tag with the given [id] (if it was found)
+     */
+    fun fromTagID(id: UUID) = calendarRepo.getTagFrom(id)
+    /**
+     * Retrieves a list of tags whose contents match the query
+     * @param content The content value to be queried
+     * @return List of tags with whose content matched with [content]
+     */
+    fun fromTagContent(content: String) = calendarRepo.getTagFrom(content) { anyEnd = true }
+
+    /**
+     * Updates the list of tags associated with an event
+     * @param event The event to be updated
+     * @param tags  The new list of tags
+     */
+    suspend fun updateTags(event: EventModel, tags: List<String>)
+        = calendarRepo.updateAssociatedTags(event, tags)
 
     /**
      * Updates a calendar
@@ -141,4 +204,33 @@ import uk.co.sksulai.multitasker.db.repo.CalendarRepo
      * @param event Event to be removed
      */
     suspend fun delete(event: EventModel) = calendarRepo.delete(event)
+    /**
+     * Deletes tag(s) from the database
+     * @param tags Tags to be removed
+     */
+    suspend fun delete(vararg tags: EventTagModel) = calendarRepo.delete(tags.toList())
+
+    /**
+     * Retrieve a list of all events which occur on a given [date]
+     * @param date The date to check
+     * @return A flow containing a list of events which occur on the given date (and their
+     *         associated calendars)
+     */
+    fun eventsOn(date: LocalDate) = eventsIn(date, date)
+    /**
+     * Retrieve a list of all events which occur on a given range of dates
+     * @param start The first date of the range (inclusive)
+     * @param end   The last date of the range (inclusive)
+     * @return A flow containing a list of events which occur in the given range (and their
+     *         associated calendars)
+     */
+    fun eventsIn(start: LocalDate, end: LocalDate) = events.map {
+        // TODO: Efficient check against events in SQLite table
+        it.filter { (_, event) ->
+            // Event needs to start before the end date or during the end date
+            // Event needs to end after the start date or during the start date
+            event.start.toLocalDate().run { isEqual(end) || isBefore(end) } &&
+                    event.end.toLocalDate().run { isEqual(start) || isAfter(start) }
+        }
+    }
 }
