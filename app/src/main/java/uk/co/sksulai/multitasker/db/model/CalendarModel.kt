@@ -34,7 +34,7 @@ import androidx.compose.ui.graphics.toArgb
     val ownerID: String,
 
     val name: String,
-    val description: String?,
+    val description: String,
     val colour: Int,
 
     val visible: Boolean
