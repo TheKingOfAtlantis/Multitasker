@@ -40,7 +40,7 @@ import uk.co.sksulai.multitasker.db.repo.CalendarRepo
         colour: Color
     ) = calendarRepo.createCalendar(owner, name, description, colour)
     /**
-     * Creates a event
+     * Creates a event with a list of tags
      *
      * @param calendar    The calendar to add the event to
      * @param name        The name of the event
@@ -77,7 +77,7 @@ import uk.co.sksulai.multitasker.db.repo.CalendarRepo
         parentID
     )
     /**
-     * Creates a event
+     * Creates a event without a list of tags
      *
      * @param calendar    The calendar to add the event to
      * @param name        The name of the event
