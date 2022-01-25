@@ -13,6 +13,24 @@ import uk.co.sksulai.multitasker.util.timezone
 /**
  * Represents an event which takes place in a calendar
  *
+ * At the core of the event two categories of attributes: Textual and Time.
+ * Textual attributes are ultimately only present for the user, such as the
+ * name and description as well as other attributes such as its category and
+ * event tags.
+ *
+ * Date/time information, however, is required to correctly display when and how
+ * long the event lasts. There are two possible ways to store and think about
+ * this information both include a specific date/time + timezone to store the start
+ * but differ in how we store/think about the end:
+ *
+ *  1) Duration from the start + timezone
+ *  2) End as a separate date/time + timezone
+ *
+ * The first model is simpler as the duration is (usually) an invariant
+ * property of an event, that regardless of the actual (start/end) timezone(s)
+ * or how the start is shifted, the duration of the event remains the same. As
+ * such we store this value and instead determine the end from this (+ timezone).
+ *
  * @param eventID    Unique ID of this event
  * @param calendarID Calendar which contains this event
  * @param parentID   Parent event which this event is nested within
