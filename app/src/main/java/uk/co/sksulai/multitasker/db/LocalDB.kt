@@ -27,7 +27,7 @@ fun LocalDB.Companion.createDatabase(context: Context, inMemory: Boolean = false
     InstantConverter::class,
     UriConverter::class,
     UUIDConverter::class
-) @Database(version = 4, entities = [
+) @Database(version = 5, entities = [
     UserModel::class,
     CalendarModel::class,
     EventModel::class,

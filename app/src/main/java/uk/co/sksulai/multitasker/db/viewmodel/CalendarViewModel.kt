@@ -45,9 +45,10 @@ import uk.co.sksulai.multitasker.db.repo.CalendarRepo
      * @param calendar    The calendar to add the event to
      * @param name        The name of the event
      * @param description Description of the event
+     * @param allDay      Whether the event is an all-day event
      * @param start       When the event starts
      * @param duration    How long the event lasts
-     * @param allDay      Whether the event is an all-day event
+     * @param endTimeZone The timezone in which the event ends
      * @param colour      Optional colour to associated with the event
      * @param category    Category to associate with the event
      * @param parentID    ID of the parent event
@@ -59,9 +60,10 @@ import uk.co.sksulai.multitasker.db.repo.CalendarRepo
         name: String,
         description: String,
 
-        start: OffsetDateTime,
+        start: ZonedDateTime,
         duration: Duration,
         allDay: Boolean,
+        endTimeZone: TimeZone,
 
         colour: Color?,
         category: String,
@@ -70,7 +72,7 @@ import uk.co.sksulai.multitasker.db.repo.CalendarRepo
     ) = calendarRepo.createEvent(
         calendar,
         name, description,
-        start, duration, allDay,
+        allDay, start, duration, endTimeZone,
         colour, category, tags,
         parentID
     )
@@ -80,9 +82,10 @@ import uk.co.sksulai.multitasker.db.repo.CalendarRepo
      * @param calendar    The calendar to add the event to
      * @param name        The name of the event
      * @param description Description of the event
+     * @param allDay      Whether the event is an all-day event
      * @param start       When the event starts
      * @param duration    How long the event lasts
-     * @param allDay      Whether the event is an all-day event
+     * @param endTimeZone The timezone in which the event ends
      * @param colour      Optional colour to associated with the event
      * @param category    Category to associate with the event
      * @param parentID    ID of the parent event
@@ -94,9 +97,10 @@ import uk.co.sksulai.multitasker.db.repo.CalendarRepo
         name: String,
         description: String,
 
-        start: OffsetDateTime,
-        duration: Duration,
         allDay: Boolean,
+        start: ZonedDateTime,
+        duration: Duration,
+        endTimeZone: TimeZone,
 
         colour: Color?,
         category: String,
@@ -104,7 +108,7 @@ import uk.co.sksulai.multitasker.db.repo.CalendarRepo
     ) = calendarRepo.createEvent(
         calendar,
         name, description,
-        start, duration, allDay,
+        allDay, start, duration, endTimeZone,
         colour, category,
         parentID
     )

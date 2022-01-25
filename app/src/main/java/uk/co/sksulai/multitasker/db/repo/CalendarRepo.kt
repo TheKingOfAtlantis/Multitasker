@@ -74,9 +74,10 @@ class CalendarRepo @Inject constructor(
      * @param calendar    The calendar to add the event to
      * @param name        The name of the event
      * @param description Description of the event
+     * @param allDay      Whether the event is an all-day event
      * @param start       When the event starts
      * @param duration    How long the event lasts
-     * @param allDay      Whether the event is an all-day event
+     * @param endTimeZone The timezone in which the event ends
      * @param colour      Optional colour to associated with the event
      * @param category    Category to associate with the event
      * @param tags        Tags associated with the event
@@ -88,19 +89,20 @@ class CalendarRepo @Inject constructor(
         calendar: CalendarModel,
         name: String,
         description: String,
-        start: OffsetDateTime,
-        duration: Duration,
         allDay: Boolean,
-        colour: Color?     = null,
-        category: String   = "",
-        tags: List<String> = emptyList(),
-        parentID: UUID?    = null,
+        start: ZonedDateTime,
+        duration: Duration,
+        endTimeZone: TimeZone,
+        colour: Color?         = null,
+        category: String       = "",
+        tags: List<String>     = emptyList(),
+        parentID: UUID?        = null,
     ) = EventWithTags(
         createEvent(
             calendar,
             name,
             description,
-            start, duration, allDay,
+            allDay, start, duration, endTimeZone,
             colour, category,
             parentID
         ),
@@ -112,9 +114,10 @@ class CalendarRepo @Inject constructor(
      * @param calendar    The calendar to add the event to
      * @param name        The name of the event
      * @param description Description of the event
+     * @param allDay      Whether the event is an all-day event
      * @param start       When the event starts
      * @param duration    How long the event lasts
-     * @param allDay      Whether the event is an all-day event
+     * @param endTimeZone The timezone in which the event ends
      * @param colour      Optional colour to associated with the event
      * @param category    Category to associate with the event
      * @param parentID    ID of the parent event
@@ -125,9 +128,10 @@ class CalendarRepo @Inject constructor(
         calendar: CalendarModel,
         name: String,
         description: String,
-        start: OffsetDateTime,
-        duration: Duration,
         allDay: Boolean,
+        start: ZonedDateTime,
+        duration: Duration,
+        endTimeZone: TimeZone,
         colour: Color?   = null,
         category: String = "",
         parentID: UUID?  = null,
@@ -135,9 +139,10 @@ class CalendarRepo @Inject constructor(
         calendarId  = calendar.calendarID,
         name        = name,
         description = description,
+        allDay      = allDay,
         start       = start,
         duration    = duration,
-        allDay      = allDay,
+        endTimeZone = endTimeZone,
         colour      = colour?.toArgb(),
         category    = category,
         parentID    = parentID,
@@ -148,9 +153,10 @@ class CalendarRepo @Inject constructor(
      * @param calendarId  The calendar to add the event to
      * @param name        The name of the event
      * @param description Description of the event
+     * @param allDay      Whether the event is an all-day event
      * @param start       When the event starts
      * @param duration    How long the event lasts
-     * @param allDay      Whether the event is an all-day event
+     * @param endTimeZone The timezone in which the event ends
      * @param colour      Optional colour to associated with the event
      * @param category    Category to associate with the event
      * @param parentID    ID of the parent event
@@ -161,9 +167,10 @@ class CalendarRepo @Inject constructor(
         calendarId: UUID,
         name: String,
         description: String,
-        start: OffsetDateTime,
-        duration: Duration,
         allDay: Boolean,
+        start: ZonedDateTime,
+        duration: Duration,
+        endTimeZone: TimeZone,
         colour: Int?     = null,
         category: String = "",
         parentID: UUID?  = null,
@@ -178,6 +185,7 @@ class CalendarRepo @Inject constructor(
         allDay      = allDay,
         start       = start,
         duration    = duration,
+        endTimezone = endTimeZone
     ))
 
     /**

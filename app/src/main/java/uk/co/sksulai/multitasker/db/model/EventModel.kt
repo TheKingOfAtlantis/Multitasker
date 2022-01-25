@@ -8,6 +8,7 @@ import kotlinx.parcelize.Parcelize
 import androidx.compose.runtime.Immutable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
+import uk.co.sksulai.multitasker.util.timezone
 
 /**
  * Represents an event which takes place in a calendar
@@ -24,6 +25,7 @@ import androidx.compose.ui.graphics.toArgb
  * @param allDay   Whether this event last all day
  * @param start    When this event starts
  * @param duration How long this event lasts
+ * @param endTimezone The timezone in which the end of the event occurs
  */
 @Immutable @Parcelize
 @Entity(
@@ -55,13 +57,21 @@ import androidx.compose.ui.graphics.toArgb
 
     // Time Specifiers
     val allDay: Boolean,
-    val start: OffsetDateTime,
-    val duration: Duration
+    val start: ZonedDateTime,
+    val duration: Duration,
+    val endTimezone: TimeZone
 ) : Parcelable {
     /**
-     * Represents the time at which the event ends i.e. [start] + [duration]
+     * Represents the timezone in which the event starts
      */
-    val end: OffsetDateTime get() = start + duration
+    val startTimezone get() = start.timezone
+
+    /**
+     * Represents the time at which the event ends
+     */
+    // Combine the start + duration to get the end with respect to the local timezone
+    // Then we adjust to the timezone to be what the user provided (with date/time adjusted as necessary)
+    val end: ZonedDateTime get() = (start + duration).withZoneSameInstant(endTimezone.toZoneId())
 
     /**
      * [Color] object to be used to show the colour of [colour]
