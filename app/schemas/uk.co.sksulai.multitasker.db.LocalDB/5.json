@@ -1,0 +1,393 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 5,
+    "identityHash": "31054e88f06f827c3b0a2b23f2535ebf",
+    "entities": [
+      {
+        "tableName": "UserModel",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`userID` TEXT NOT NULL, `creation` TEXT NOT NULL, `lastModified` TEXT NOT NULL, `displayName` TEXT NOT NULL, `email` TEXT NOT NULL, `preferredHome` TEXT NOT NULL, `avatar` TEXT, `actualName` TEXT, `home` TEXT, `dob` TEXT, PRIMARY KEY(`userID`))",
+        "fields": [
+          {
+            "fieldPath": "userID",
+            "columnName": "userID",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "creation",
+            "columnName": "creation",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lastModified",
+            "columnName": "lastModified",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "displayName",
+            "columnName": "displayName",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "email",
+            "columnName": "email",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "preferredHome",
+            "columnName": "preferredHome",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "avatar",
+            "columnName": "avatar",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "actualName",
+            "columnName": "actualName",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "home",
+            "columnName": "home",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "dob",
+            "columnName": "dob",
+            "affinity": "TEXT",
+            "notNull": false
+          }
+        ],
+        "primaryKey": {
+          "columnNames": [
+            "userID"
+          ],
+          "autoGenerate": false
+        },
+        "indices": [],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "Calendar",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`calendarID` TEXT NOT NULL, `ownerID` TEXT NOT NULL, `name` TEXT NOT NULL, `description` TEXT NOT NULL, `colour` INTEGER NOT NULL, `visible` INTEGER NOT NULL, PRIMARY KEY(`calendarID`), FOREIGN KEY(`ownerID`) REFERENCES `UserModel`(`userID`) ON UPDATE NO ACTION ON DELETE NO ACTION )",
+        "fields": [
+          {
+            "fieldPath": "calendarID",
+            "columnName": "calendarID",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "ownerID",
+            "columnName": "ownerID",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "name",
+            "columnName": "name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "description",
+            "columnName": "description",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "colour",
+            "columnName": "colour",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "visible",
+            "columnName": "visible",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "columnNames": [
+            "calendarID"
+          ],
+          "autoGenerate": false
+        },
+        "indices": [
+          {
+            "name": "index_Calendar_ownerID",
+            "unique": false,
+            "columnNames": [
+              "ownerID"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_Calendar_ownerID` ON `${TABLE_NAME}` (`ownerID`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "UserModel",
+            "onDelete": "NO ACTION",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "ownerID"
+            ],
+            "referencedColumns": [
+              "userID"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "Event",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`eventID` TEXT NOT NULL, `calendarID` TEXT NOT NULL, `parentID` TEXT, `name` TEXT NOT NULL, `description` TEXT NOT NULL, `category` TEXT NOT NULL, `colour` INTEGER, `location` TEXT NOT NULL, `allDay` INTEGER NOT NULL, `start` TEXT NOT NULL, `duration` TEXT NOT NULL, `endTimezone` TEXT NOT NULL, PRIMARY KEY(`eventID`), FOREIGN KEY(`calendarID`) REFERENCES `Calendar`(`calendarID`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`parentID`) REFERENCES `Event`(`eventID`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "eventID",
+            "columnName": "eventID",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "calendarID",
+            "columnName": "calendarID",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "parentID",
+            "columnName": "parentID",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "name",
+            "columnName": "name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "description",
+            "columnName": "description",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "category",
+            "columnName": "category",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "colour",
+            "columnName": "colour",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "location",
+            "columnName": "location",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "allDay",
+            "columnName": "allDay",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "start",
+            "columnName": "start",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "duration",
+            "columnName": "duration",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "endTimezone",
+            "columnName": "endTimezone",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "columnNames": [
+            "eventID"
+          ],
+          "autoGenerate": false
+        },
+        "indices": [
+          {
+            "name": "index_Event_calendarID",
+            "unique": false,
+            "columnNames": [
+              "calendarID"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_Event_calendarID` ON `${TABLE_NAME}` (`calendarID`)"
+          },
+          {
+            "name": "index_Event_parentID",
+            "unique": false,
+            "columnNames": [
+              "parentID"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_Event_parentID` ON `${TABLE_NAME}` (`parentID`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "Calendar",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "calendarID"
+            ],
+            "referencedColumns": [
+              "calendarID"
+            ]
+          },
+          {
+            "table": "Event",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "parentID"
+            ],
+            "referencedColumns": [
+              "eventID"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "EventTag",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`tagID` TEXT NOT NULL, `content` TEXT NOT NULL, PRIMARY KEY(`tagID`))",
+        "fields": [
+          {
+            "fieldPath": "tagID",
+            "columnName": "tagID",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "content",
+            "columnName": "content",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "columnNames": [
+            "tagID"
+          ],
+          "autoGenerate": false
+        },
+        "indices": [
+          {
+            "name": "index_EventTag_content",
+            "unique": false,
+            "columnNames": [
+              "content"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_EventTag_content` ON `${TABLE_NAME}` (`content`)"
+          }
+        ],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "EventTagJunction",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`eventID` TEXT NOT NULL, `tagID` TEXT NOT NULL, PRIMARY KEY(`tagID`, `eventID`), FOREIGN KEY(`eventID`) REFERENCES `Event`(`eventID`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`tagID`) REFERENCES `EventTag`(`tagID`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "eventID",
+            "columnName": "eventID",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "tagID",
+            "columnName": "tagID",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "columnNames": [
+            "tagID",
+            "eventID"
+          ],
+          "autoGenerate": false
+        },
+        "indices": [
+          {
+            "name": "index_EventTagJunction_eventID",
+            "unique": false,
+            "columnNames": [
+              "eventID"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_EventTagJunction_eventID` ON `${TABLE_NAME}` (`eventID`)"
+          },
+          {
+            "name": "index_EventTagJunction_tagID",
+            "unique": false,
+            "columnNames": [
+              "tagID"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_EventTagJunction_tagID` ON `${TABLE_NAME}` (`tagID`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "Event",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "eventID"
+            ],
+            "referencedColumns": [
+              "eventID"
+            ]
+          },
+          {
+            "table": "EventTag",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "tagID"
+            ],
+            "referencedColumns": [
+              "tagID"
+            ]
+          }
+        ]
+      }
+    ],
+    "views": [],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '31054e88f06f827c3b0a2b23f2535ebf')"
+    ]
+  }
+}
