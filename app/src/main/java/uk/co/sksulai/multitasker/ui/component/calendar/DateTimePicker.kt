@@ -1,19 +1,25 @@
 package uk.co.sksulai.multitasker.ui.component.calendar
 
+import java.util.*
 import java.time.*
 import java.time.format.*
+import java.time.temporal.WeekFields
 
 import androidx.compose.runtime.*
-import androidx.compose.foundation.layout.*
 import androidx.compose.material.*
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.ui.*
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.graphics.Color
 
 import com.google.accompanist.pager.ExperimentalPagerApi
 
+import uk.co.sksulai.multitasker.util.rotate
 import uk.co.sksulai.multitasker.ui.component.*
 import uk.co.sksulai.multitasker.util.provideInScope
 /**
@@ -76,7 +82,8 @@ import uk.co.sksulai.multitasker.util.provideInScope
 }
 
 object DatePickerDefault {
-    const val rangeAlpha: Float  = .12f
+    val CellSize: Dp            = 40.dp
+    const val rangeAlpha: Float = .12f
 
     /**
      * The default typography for the title of the date picker
@@ -128,6 +135,8 @@ object DatePickerDefault {
         rangeColour         = rangeColour,
     )
 }
+
+@ExperimentalFoundationApi
 @ExperimentalPagerApi
 object DatePicker {
 
@@ -295,6 +304,46 @@ object DatePicker {
                     onClick  = { onNextPageRequested() },
                     content  = { Icon(Icons.Default.KeyboardArrowRight, null) }
                 )
+            }
+        }
+
+        /**
+         * A sticky header that is placed above the calendar grid to show the relevant
+         * day of the week for each column (which does not move when changing pages)
+         *
+         * @param modifier    Modifier to be applied to the header
+         * @param size        Size of the cells containing each day of week label
+         * @param startOfWeek Which day of the week is to be shown as the first
+         * @param colour      Date picker colours which are to be used
+         */
+        @Composable fun DayOfWeekHeader(
+            modifier: Modifier = Modifier,
+            size: Dp = DatePickerDefault.CellSize,
+            startOfWeek: DayOfWeek = WeekFields.of(Locale.getDefault()).firstDayOfWeek,
+            colour: DatePickerColours = DatePickerDefault.colours()
+        ) {
+            val startOfWeekOffset = remember(startOfWeek) { startOfWeek.value - DayOfWeek.MONDAY.value }
+            LazyVerticalGrid(
+                modifier = modifier,
+                cells = GridCells.Fixed(7)
+            ) {
+                items(DayOfWeek.values().rotate(startOfWeekOffset)) {
+                    val textColours by colour.textColour(enabled = true, selection = false, header = false)
+
+                    Box(
+                        Modifier.size(size),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CompositionLocalProvider(
+                            LocalContentColor provides textColours,
+                            LocalContentAlpha provides textColours.alpha
+                        ) {
+                            Text(
+                                it.getDisplayName(TextStyle.NARROW_STANDALONE, Locale.getDefault())
+                            )
+                        }
+                    }
+                }
             }
         }
     }
