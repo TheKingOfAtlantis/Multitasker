@@ -9,6 +9,7 @@ import androidx.compose.material.Text
 import androidx.compose.material.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -80,7 +81,7 @@ fun <T> PagerBuilder.page(values: Array<T>, content: @Composable PagerScope.(T) 
     state: PagerState = rememberPagerState(),
     content: PagerBuilder.() -> Unit,
 ) {
-    val pager = PagerBuilderImpl().apply(content)
+    val pager = remember { PagerBuilderImpl().apply(content) }
     HorizontalPager(
         modifier = modifier,
         count    = pager.size,
