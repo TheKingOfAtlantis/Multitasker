@@ -15,6 +15,8 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
 
 import uk.co.sksulai.multitasker.util.*
 import uk.co.sksulai.multitasker.ui.component.*
@@ -181,4 +183,104 @@ import uk.co.sksulai.multitasker.ui.component.*
         shape             = shape,
         colors            = colors,
     )
+}
+
+/**
+ * Provides a pair of TextFields which used to provide the user with an input to provide date
+ * and time values. Unlike the date field this only allows for values to be provided via the
+ * relevant pickers.
+ *
+ * @param value         The current value of the date/time (as a [LocalDateTime])
+ * @param onValueChange The users selection after changing either the date or time component
+ * @param modifier      Modifier to applied to this layout
+ * @param textStyle     The text style to apply to the date and time fields
+ * @param headerLabel   An optional label to place above both text fields
+ * @param dateLabel     An optional label to provide to the time [OutlinedTextField]
+ * @param timeLabel     An optional label to provide to the date [OutlinedTextField]
+ * @param leadingIcon   An optional icon which is provided only to the date field
+ * @param trailingIcon  An optional icon which is provided only to the time field
+ * @param dateInteractionSource the [MutableInteractionSource] representing the stream of
+ * [Interaction]s for the date TextField. You can create and pass in your own remembered
+ * [MutableInteractionSource] if you want to observe [Interaction]s and customize the
+ * appearance / behavior of the OutlinedTextField in different [Interaction]s.
+ * @param timeInteractionSource the [MutableInteractionSource] representing the stream of
+ * [Interaction]s for the time TextField. You can create and pass in your own remembered
+ * [MutableInteractionSource] if you want to observe [Interaction]s and customize the
+ * appearance / behavior of this OutlinedTextField in different [Interaction]s.
+ * @param shape the shape of the text field's border
+ * @param colors [TextFieldColors] that will be used to resolve color of the text and content
+ * (including label, placeholder, leading and trailing icons, border) for this text field in
+ * different states. See [TextFieldDefaults.outlinedTextFieldColors]
+ */
+@Composable fun DateTimeField(
+    value: LocalDateTime,
+    onValueChange: (LocalDateTime) -> Unit,
+    modifier: Modifier = Modifier,
+    textStyle: TextStyle = LocalTextStyle.current,
+    headerLabel: @Composable (() -> Unit)? = null,
+    dateLabel: @Composable (() -> Unit)? = { Text("Date") },
+    timeLabel: @Composable (() -> Unit)? = { Text("Time") },
+    leadingIcon: @Composable (() -> Unit)? = null,
+    trailingIcon: @Composable (() -> Unit)? = null,
+    dateInteractionSource: MutableInteractionSource = remember { MutableInteractionSource() },
+    timeInteractionSource: MutableInteractionSource = remember { MutableInteractionSource() },
+    shape: Shape = MaterialTheme.shapes.small,
+    colors: TextFieldColors = TextFieldDefaults.outlinedTextFieldColors()
+) = Column(modifier) {
+
+    headerLabel?.let {
+        Box(
+            Modifier
+                .padding(start = 8.dp)
+                .paddingFromBaseline(bottom = 4.dp)
+        ) {
+            CompositionLocalProvider(
+               LocalContentAlpha provides ContentAlpha.medium
+            ) {
+                ProvideTextStyle(MaterialTheme.typography.caption, it)
+            }
+        }
+    }
+    Row(Modifier.width(TextFieldDefaults.MinWidth)) {
+        val datePattern = rememberDateFormatPattern()
+        val dateFormat  = remember(datePattern) { DateTimeFormatter.ofPattern(datePattern) }
+
+        val timeFormat = DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT)
+
+        OutlinedTextField(
+            modifier = Modifier.weight(.55f),
+            label    = dateLabel,
+            value    = dateFormat.format(value),
+            onValueChange = { },
+            leadingIcon   = leadingIcon,
+            interactionSource = dateInteractionSource,
+            shape = shape,
+            colors = colors,
+            readOnly = true,
+            textStyle = textStyle.copy(textAlign = TextAlign.Center)
+        )
+        Spacer(Modifier.width(8.dp))
+        OutlinedTextField(
+            modifier = Modifier.weight(.45f),
+            label    = timeLabel,
+            value    = timeFormat.format(value),
+            onValueChange = { },
+            trailingIcon  = trailingIcon,
+            interactionSource = timeInteractionSource,
+            shape = shape,
+            colors = colors,
+            readOnly = true,
+            textStyle = textStyle.copy(textAlign = TextAlign.Center)
+        )
+    }
+
+    var showDatePicker by rememberMutableState(false)
+    var showTimePicker by rememberMutableState(false)
+
+    val datePressed by dateInteractionSource.collectIsPressedAsState()
+    val timePressed by timeInteractionSource.collectIsPressedAsState()
+    if(datePressed) showDatePicker = true
+    if(timePressed) showTimePicker = true
+
+    // TODO: Add date and time pickers
 }
