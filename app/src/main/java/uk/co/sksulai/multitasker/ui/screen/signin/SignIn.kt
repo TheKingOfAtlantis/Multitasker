@@ -130,8 +130,8 @@ fun Modifier.addAutofillNode(
         ,
         label = {
             LabelText(
-                stringResource(id = R.string.email),
-                emailError.isNotEmpty()
+                emailError.isNotEmpty(),
+                stringResource(id = R.string.email)
             )
         },
         value = email,
@@ -172,8 +172,8 @@ fun Modifier.addAutofillNode(
         ,
         label = {
             LabelText(
-                stringResource(id = R.string.password),
-                passwordError.isNotEmpty()
+                passwordError.isNotEmpty(),
+                stringResource(id = R.string.password)
             )
         },
         value = password,

@@ -1,10 +1,5 @@
 package uk.co.sksulai.multitasker.ui.screen.signin
 
-import java.text.*
-import java.time.*
-import java.util.*
-import java.time.format.DateTimeFormatter
-
 import androidx.compose.runtime.*
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
@@ -21,6 +16,7 @@ import uk.co.sksulai.multitasker.ui.component.*
 import uk.co.sksulai.multitasker.ui.Destinations
 import uk.co.sksulai.multitasker.db.repo.UserRepository
 import uk.co.sksulai.multitasker.db.viewmodel.UserViewModel
+import uk.co.sksulai.multitasker.ui.component.calendar.DateTextField
 import uk.co.sksulai.multitasker.util.*
 
 @OptIn(ExperimentalMaterialApi::class)
@@ -145,57 +141,14 @@ fun NavGraphBuilder.UserDetailsPage(
 
 
     // TODO: Add date picker
-    val dobFormat = remember {
-        val dateFormat = SimpleDateFormat.getDateInstance(DateFormat.SHORT, Locale.getDefault()) as SimpleDateFormat
-        dateFormat.timeZone = TimeZone.getDefault()
-        var format = dateFormat.toPattern()
-
-        // Fix the size of each date part
-        if(format.replace(Regex("[^d]"), "").length == 1)
-            format = format.replace(Regex("d+"), "dd")
-        if(format.replace(Regex("[^M]"), "").length == 1)
-            format = format.replace(Regex("M+"), "MM")
-        if(format.replace(Regex("[^y]"), "").length < 4)
-            format = format.replace(Regex("y+"), "yyyy")
-
-        format
-    }
-    val dobHint = remember(dobFormat) {
-        // Based on getTextInputHint(...) in https://github.com/material-components/material-components-android/
-        // Get the date format symbols
-        val symbols = DateFormatSymbols.getInstance(Locale.ROOT).localPatternChars
-        val localisedSymbols = DateFormatSymbols.getInstance(Locale.getDefault()).localPatternChars
-        // Generate a mapping between localised and unlocalised version
-        val symbolsMap = localisedSymbols
-            .mapIndexed { index, c  ->  c to symbols[index] }
-            .toMap()
-        dobFormat.map {
-            if(!symbolsMap.contains(it)) it // Keep symbols we cannot map
-            else symbolsMap.getValue(it)    // Map to localised date symbol
-        }
-        .joinToString("")           // Join list together into string
-        .uppercase(Locale.getDefault())     // Then make uppercase
-    }
-    val formatter = DateTimeFormatter.ofPattern(dobFormat)
-
-    var dobValue by rememberSaveableMutableState("")
     var dobError by rememberSaveableMutableState("")
-    OutlinedTextField(
+    DateTextField(
         modifier = Modifier.padding(vertical = 2.dp),
-        label = { LabelText("Birthday", dobError.isNotEmpty() && dobValue.isNotEmpty()) },
-        value = dobValue,
-        onValueChange = {
-            dobValue = it
-            try {
-                updatedUser = updatedUser?.copy(dob = LocalDate.parse(it, formatter))
-                dobError = ""
-            } catch(e: DateTimeException) {
-                dobError = "Birthday poorly formatted"
-            }
-        },
-        placeholder = { Text(dobHint) },
+        label = { LabelText(dobError.isNotEmpty(), "Birthday") },
+        value = updatedUser?.dob,
+        onValueComplete = { updatedUser = updatedUser?.copy(dob = it) },
+        onFormatError = { dobError = it },
         isError = dobError.isNotEmpty(),
-        singleLine = true
     )
     HelperText(
         text  = "Add it to your calendar! So we can celebrate together",
@@ -205,14 +158,13 @@ fun NavGraphBuilder.UserDetailsPage(
             .padding(bottom = 4.dp)
     )
 
-    val scope = rememberCoroutineScope()
     Button(
         modifier = Modifier
             .padding(top = 4.dp)
             .align(Alignment.CenterHorizontally)
         ,
         content = { Text("Submit") },
-        onClick = provideInScope(scope) {
+        onClick = provideInScope(rememberCoroutineScope()) {
             if(updatedUser?.displayName.isNullOrEmpty())
                 displayNameError = "Display name is required"
             else {
