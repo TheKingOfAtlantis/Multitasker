@@ -15,9 +15,13 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.ripple.rememberRipple
 import androidx.compose.ui.*
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.Stroke
 
 import com.google.accompanist.pager.ExperimentalPagerApi
 
@@ -85,7 +89,9 @@ import uk.co.sksulai.multitasker.util.provideInScope
 
 object DatePickerDefault {
     val CellSize: Dp            = 40.dp
-    const val rangeAlpha: Float = .12f
+    val SelectionRadius: Dp     = 36.dp/2
+    val TodayWidth: Dp          = 2.dp
+    const val RangeAlpha: Float = .12f
 
     /**
      * The default typography for the title of the date picker
@@ -124,7 +130,7 @@ object DatePickerDefault {
         todayColour: Color         = MaterialTheme.colors.contentColorFor(backgroundColor),
         selectionColour: Color     = MaterialTheme.colors.primary,
         selectionTextColour: Color = MaterialTheme.colors.contentColorFor(selectionColour),
-        rangeColour: Color         = selectionColour.copy(rangeAlpha)
+        rangeColour: Color         = selectionColour.copy(RangeAlpha)
     ) = DatePickerColours(
         backgroundColor     = backgroundColor,
         headerColour        = headerColour,
@@ -378,9 +384,7 @@ object DatePicker {
                     )
                 } ?: Modifier),
             contentAlignment = Alignment.Center
-        ) {
-            content()
-        }
+        ) { content() }
         /**
          * Layout for the contents of an individual cell in a calendar grid
          *
@@ -400,8 +404,103 @@ object DatePicker {
             CompositionLocalProvider(
                 LocalContentColor provides colour,
                 LocalContentAlpha provides colour.alpha
-            ) {
-               Text(value)
+            ) { Text(value) }
+        }
+
+        /**
+         * This modified applies the today indicator to a cell
+         *
+         * @param isToday Whether or not the cell corresponds to today (thus if an indicator should be drawn)
+         * @param colour  The colour of the indicator
+         * @param radius  The radius of the indicator circle
+         * @param width   The stroke width to be applied to the indicator
+         */
+        private fun Modifier.showTodayIndicator(
+            isToday: Boolean,
+            colour: Color,
+            radius: Dp = DatePickerDefault.SelectionRadius,
+            width: Dp = DatePickerDefault.TodayWidth,
+        ) = if(!isToday) this else this.drawBehind {
+            drawCircle(
+                colour,
+                radius = radius.toPx(),
+                style  = Stroke(width.toPx())
+            )
+        }
+        /**
+         * This modifier applies the selection indicator to a cell
+         *
+         * @param isSelection Whether or not this cell corresponds to a user's selection
+         * @param colour      The colour of the selection indicator
+         * @param radius      The radius of the selection indicator
+         */
+        private fun Modifier.showSelectionIndicator(
+            isSelection: Boolean,
+            colour: Color,
+            radius: Dp = DatePickerDefault.SelectionRadius
+        ) = if(!isSelection) this else this.drawBehind {
+            drawCircle(
+                colour,
+                radius = radius.toPx(),
+            )
+        }
+
+        /** Used to represents the different parts of a range of values */
+        enum class RangePart {
+            /** Used to indicate that the cell does not correspond to a value within the range */
+            None,
+            /** Used to indicate that the cell represents the start of the range */
+            Start,
+            /** Used to indicate that the cell represents some period between the start and end of the range */
+            Middle,
+            /** Used to indicate that the cell represents the end of the range */
+            End,
+        }
+
+        /**
+         * This modifier applies the relevant range indicator
+         *
+         * @param part     Which part of the range does this cell correspond to
+         * @param colour   The colour to apply to the range indicator
+         * @param height   The height of the range indicator
+         * @param cellSize The size of the cell
+         */
+        private fun Modifier.showRangeIndicator(
+            part: RangePart,
+            colour: Color,
+            height: Dp = DatePickerDefault.SelectionRadius,
+            cellSize: Dp = DatePickerDefault.CellSize,
+        ) = if(part == RangePart.None) this else this.drawBehind {
+            val offset = (cellSize - height)/2
+            when(part) {
+                // TODO: Handle LayoutDirection => LTR vs RTL
+                RangePart.Start -> drawRect(
+                    colour,
+                    Offset(size.width/2, offset.toPx()),
+                    Size(
+                        width  = size.width/2,
+                        height = size.height - offset.toPx()
+                    ),
+                    colour.alpha
+                )
+                RangePart.End -> drawRect(
+                    colour,
+                    Offset(0f, offset.toPx()),
+                    Size(
+                        width  = size.width/2,
+                        height = size.height - offset.toPx()
+                    ),
+                    colour.alpha
+                )
+                RangePart.Middle -> drawRect(
+                    colour,
+                    Offset(0f, offset.toPx()),
+                    Size(
+                        width  = size.width,
+                        height = size.height - offset.toPx()
+                    ),
+                    colour.alpha
+                )
             }
         }
     }
