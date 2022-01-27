@@ -4,6 +4,7 @@ import java.util.*
 import java.time.*
 import java.time.format.*
 import java.time.temporal.WeekFields
+import java.text.NumberFormat
 
 import androidx.compose.runtime.*
 import androidx.compose.material.*
@@ -89,6 +90,7 @@ import uk.co.sksulai.multitasker.util.provideInScope
 
 object DatePickerDefault {
     val CellSize: Dp            = 40.dp
+    val GridHeight: Dp          = CellSize * 6f
     val SelectionRadius: Dp     = 36.dp/2
     val TodayWidth: Dp          = 2.dp
     const val RangeAlpha: Float = .12f
@@ -501,6 +503,90 @@ object DatePicker {
                     ),
                     colour.alpha
                 )
+            }
+        }
+
+        /**
+         * This layout takes in a month/year as the [page] value and produces a grid which
+         * the user can interact with. It uses a series of parameters to query if various
+         * indicators should be drawn on each date and also provides a callback to respond
+         * to a user's selection
+         *
+         * @param page            The month/year grid to show
+         * @param onValueSelected Passes the users selection
+         * @param showDaysOfWeek  Whether to show the days of the week at the top
+         * @param startOfWeek     Used to determine which day of the week to show as the first
+         * @param isSelection     Callback used to determines if a date is the selected date
+         * @param isSelectable    Callback used to determines if a date is enabled/selectable
+         * @param inRange         Callback used to determines which part a range a date is. If the
+         *                        date is the first date of the range then should return [RangePart.Start],
+         *                        if is the last date of the range then should return [RangePart.End], if
+         *                        some date in the middle then [RangePart.Middle] otherwise [RangePart.None]
+         *                        if it is not part of the range.
+         * @param isToday         Callback used to determines if a date corresponds to today
+         */
+        @Composable private fun GridPage(
+            page: YearMonth,
+            onValueSelected: (LocalDate) -> Unit,
+            showDaysOfWeek: Boolean,
+            startOfWeek: DayOfWeek,
+            isSelection: (LocalDate) -> Boolean,
+            isSelectable: (LocalDate) -> Boolean,
+            inRange: (LocalDate) -> RangePart,
+            modifier: Modifier = Modifier,
+            isToday: (LocalDate) -> Boolean = { LocalDate.now() == it },
+            colour: DatePickerColours = DatePickerDefault.colours()
+        ) {
+            val startOfWeekOffset = remember(startOfWeek) { startOfWeek.value - DayOfWeek.MONDAY.value }
+            val dayOfWeekOffset   = remember(page) {
+                val monthStartOffset = page.atDay(1).dayOfWeek.value - DayOfWeek.MONDAY.value
+
+                if(monthStartOffset > startOfWeekOffset) monthStartOffset - startOfWeekOffset
+                else (monthStartOffset - startOfWeekOffset + 7) % 7
+            }
+
+            LazyVerticalGrid(
+                modifier = modifier
+                    .height(DatePickerDefault.GridHeight),
+                cells = GridCells.Fixed(7)
+            ) {
+                if(showDaysOfWeek) items(DayOfWeek.values().rotate(startOfWeekOffset)) {
+                    val daysOfWeekColour by colour.textColour(enabled = true, selection = false, header = false)
+                    Cell(
+                        it.getDisplayName(TextStyle.NARROW_STANDALONE, Locale.getDefault()),
+                        daysOfWeekColour
+                    )
+                }
+                if(dayOfWeekOffset != 0) item({ GridItemSpan(dayOfWeekOffset) }) { Box(Modifier.size(1.dp)) }
+
+                items(page.lengthOfMonth()) {
+                    val day = page.atDay(it + 1)
+
+                    val textColour by colour.textColour(
+                        enabled   = isSelectable(day),
+                        selection = isSelection(day),
+                        header = false
+                    )
+
+                    Cell(
+                        modifier = Modifier
+                            .showTodayIndicator(
+                                isToday = isToday(day),
+                                colour = colour.todayColour
+                            )
+                            .showRangeIndicator(
+                                part = inRange(day),
+                                colour = colour.rangeColour,
+                            )
+                            .showSelectionIndicator(
+                                isSelection = isSelection(day),
+                                colour = colour.selectionColour
+                            ),
+                        onClick = { onValueSelected(day) }.takeIf { isSelectable(day) },
+                        value   = NumberFormat.getInstance().format(day.dayOfMonth),
+                        colour  = textColour
+                    )
+                }
             }
         }
     }
