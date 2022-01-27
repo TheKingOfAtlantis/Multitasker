@@ -717,5 +717,81 @@ object DatePicker {
                 }
             }
         }
+
+        /**
+         * Provides a date picker dialog which allows the user to select a single date
+         *
+         * @param value            The current user selection
+         * @param onValueSelected  Provides the user's new selection
+         * @param onDismissRequest Indicates the user has requested that the dialog be dismissed
+         * @param isSelectable     Callback which is used to determine if a given date can be selected by the user
+         * @param title            Optional title that is placed in the header
+         * @param shape            The shape of the dialog box
+         * @param colour           The date picker colours
+         */
+        @Composable fun Single(
+            value: LocalDate,
+            onValueSelected: (LocalDate) -> Unit,
+            onDismissRequest: () -> Unit,
+            title: @Composable (() -> Unit)? = null,
+            shape: Shape = MaterialTheme.shapes.medium,
+            colour: DatePickerColours = DatePickerDefault.colours()
+        ) {
+            val pagerState = rememberInfinitePagerState()
+
+            val (selection, onSelection) = rememberSaveableMutableState(value)
+            val (currentMode, onModeChange) = rememberSaveableMutableState(EditMode.Picker)
+            val (dropdownVisible, onDropdownToggled) = rememberSaveableMutableState(false)
+
+            Layout(
+                shape,
+                colour,
+                dropdownVisible,
+                onDismissRequest,
+                header = {
+                    Components.Header(
+                        title,
+                        selection,
+                        currentMode, onModeChange,
+                        colour
+                    )
+                },
+                control = { Column {
+                    Components.Controls(
+                        value = Grid.calculatePage(value, pagerState.targetPage),
+                        pagerState = pagerState,
+                        dropdownVisible = dropdownVisible,
+                        onDropdownToggled = onDropdownToggled,
+                    )
+                    Components.DayOfWeekHeader(
+                        Modifier.align(Alignment.CenterHorizontally),
+                        colour = colour
+                    )
+                } },
+                dropdown = {
+
+                },
+                grid = {
+                    Grid.Single(
+                        value,
+                        selection,
+                        onSelection,
+                        showDaysOfWeek = false,
+                        state = pagerState,
+                        colour = colour
+                    )
+                },
+                buttons = {
+                    TextButton(
+                        onClick = { onDismissRequest() },
+                        content = { Text("Cancel") }
+                    )
+                    TextButton(
+                        onClick = { onValueSelected(selection) },
+                        content = { Text("OK") }
+                    )
+                }
+            )
+        }
     }
 }
