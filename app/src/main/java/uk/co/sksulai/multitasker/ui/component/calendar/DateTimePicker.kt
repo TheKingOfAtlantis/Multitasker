@@ -22,7 +22,9 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.window.Dialog
 
 import com.google.accompanist.pager.ExperimentalPagerApi
 
@@ -652,6 +654,67 @@ object DatePicker {
             }
             if(onPageChange != null) LaunchedEffect(state.targetPage) {
                 onPageChange(calculatePage(initial, state.targetPage))
+            }
+        }
+    }
+
+    /**
+     * Dialog date pickers
+     */
+    object Dialog {
+        /**
+         * Core layout that is used to position the components of both Single and Range DatePicker dialogs
+         *
+         * @param shape            The shape of the dialog box
+         * @param colour           The colour palette to use for the colour picker
+         * @param dropdownState    The current state of the dropdown menu
+         * @param onDismissRequest Used to indicate that the user has requested the dialog be dismissed
+         * @param header           The header component to be placed
+         * @param control          The control component to be placed
+         * @param grid             The calendar grid to show (i.e. single or range calendar grid)
+         * @param dropdown         The dropdown menu to be shown
+         * @param buttons          The dialog buttons
+         */
+        @Composable private fun Layout(
+            shape: Shape,
+            colour: DatePickerColours,
+            dropdownState: Boolean,
+            onDismissRequest: () -> Unit,
+            header:   @Composable () -> Unit,
+            control:  @Composable () -> Unit,
+            grid:     @Composable () -> Unit,
+            dropdown: @Composable () -> Unit,
+            buttons:  @Composable () -> Unit
+        ) = Dialog(onDismissRequest) {
+            val headerColour by colour.backgroundColour(header = true)
+            val headerTextColours by colour.textColour(enabled = true, selection = false, header = true)
+            val backgroundColor by colour.backgroundColour(header = false)
+            val textColours by colour.textColour(enabled = true, selection = false, header = false)
+
+            Surface(
+                shape = shape,
+                color = headerColour,
+                contentColor = headerTextColours
+            ) {
+                // TODO: Handle landscape vs portrait 
+                Column {
+                    header()
+                    Surface(
+                        shape = shape,
+                        color = backgroundColor,
+                        contentColor = textColours,
+                    ) { Column {
+                        control()
+                        if(!dropdownState) grid()
+                        else dropdown()
+                        Row(
+                            modifier = Modifier.align(Alignment.End),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            buttons()
+                        }
+                    } }
+                }
             }
         }
     }
