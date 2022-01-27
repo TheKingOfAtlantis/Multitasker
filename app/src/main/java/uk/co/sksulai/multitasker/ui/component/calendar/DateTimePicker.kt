@@ -29,6 +29,9 @@ import com.google.accompanist.pager.ExperimentalPagerApi
 import uk.co.sksulai.multitasker.util.*
 import uk.co.sksulai.multitasker.ui.component.*
 import uk.co.sksulai.multitasker.util.provideInScope
+
+fun LocalDate.toYearMonth(): YearMonth = YearMonth.of(year, month)
+
 /**
  * Stores the various colour used by a date picker
  *
@@ -587,6 +590,68 @@ object DatePicker {
                         colour  = textColour
                     )
                 }
+            }
+        }
+
+        /**
+         * Determines the value of a page given its index in the pager
+         *
+         * @param initial The value of the initial page
+         * @param page    The page index value
+         *
+         * @return [YearMonth] to be given to [GridPage]
+         */
+        fun calculatePage(initial: LocalDate, page: Int) = initial
+            .plusMonths(page.toLong())
+            .withDayOfMonth(1)
+            .toYearMonth()
+
+        /**
+         * Used to provide the user with the ability to select a single date. The pages are placed
+         * inside of a pager to enable the user to swipe between months. It also handles the
+         * selection of dates ensures the correct indicators are shown.
+         *
+         * @param initial         The initial local date given - used to keep track of page 0
+         * @param value           The current date selection
+         * @param onValueSelected Called when a new value has been selected
+         * @param modifier        Modifier to apply to the pager
+         * @param onPageChange    Callback which gets the target page value
+         * @param isSelectable    Callback which is used to determine if a given date can be selected by the user
+         * @param showDaysOfWeek  Whether the days of the week are shown as part of each page
+         * @param startOfWeek     The start of the week
+         * @param state           The pager state used control and observe the internal pager
+         * @param colour          The colour picker colour to use
+         */
+        @Composable fun Single(
+            initial: LocalDate,
+            value: LocalDate,
+            onValueSelected: (LocalDate) -> Unit,
+            modifier: Modifier = Modifier,
+            onPageChange: ((YearMonth) -> Unit)? = null,
+            isSelectable: (LocalDate) -> Boolean = { true },
+            showDaysOfWeek: Boolean = true,
+            startOfWeek: DayOfWeek = WeekFields.of(Locale.getDefault()).firstDayOfWeek, // TODO: User should be able to override this
+            state: InfinitePagerState = rememberInfinitePagerState(),
+            colour: DatePickerColours = DatePickerDefault.colours()
+        ) {
+            InfiniteHorizontalPager(
+                modifier,
+                state
+            ) { page ->
+                val currentPage = calculatePage(initial, page)
+                GridPage(
+                    currentPage,
+                    onValueSelected,
+                    showDaysOfWeek,
+                    startOfWeek,
+                    isSelectable = isSelectable,
+                    isSelection = { value == it },
+                    inRange = { RangePart.None },  // Only single value - so don't show ranges
+                    colour = colour
+                )
+            }
+            if(onPageChange != null) LaunchedEffect(state.targetPage) {
+                onPageChange(calculatePage(initial, state.targetPage))
             }
         }
     }
