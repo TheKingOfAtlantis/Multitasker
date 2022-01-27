@@ -7,11 +7,13 @@ import java.time.temporal.WeekFields
 
 import androidx.compose.runtime.*
 import androidx.compose.material.*
-import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.*
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.ripple.rememberRipple
 import androidx.compose.ui.*
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -19,7 +21,7 @@ import androidx.compose.ui.graphics.Color
 
 import com.google.accompanist.pager.ExperimentalPagerApi
 
-import uk.co.sksulai.multitasker.util.rotate
+import uk.co.sksulai.multitasker.util.*
 import uk.co.sksulai.multitasker.ui.component.*
 import uk.co.sksulai.multitasker.util.provideInScope
 /**
@@ -344,6 +346,62 @@ object DatePicker {
                         }
                     }
                 }
+            }
+        }
+    }
+
+    /**
+     * Contains the Calendar date grids
+     */
+    object Grid {
+        /**
+         * Layout for the contents of an individual cell in a calendar grid
+         *
+         * @param modifier Modifier to apply to this layout
+         * @param size     The size of the cell
+         * @param onClick  Callback to handle the user pressing a cell
+         * @param content  The contents of the cell
+         */
+        @Composable private fun Cell(
+            modifier: Modifier = Modifier,
+            size: Dp = DatePickerDefault.CellSize,
+            onClick: (() -> Unit)? = null,
+            content: @Composable () -> Unit
+        ) = Box(
+            modifier
+                .size(size)
+                .then(onClick?.let {
+                    Modifier.clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = rememberRipple(radius = DatePickerDefault.CellSize / 2),
+                        onClick = onClick
+                    )
+                } ?: Modifier),
+            contentAlignment = Alignment.Center
+        ) {
+            content()
+        }
+        /**
+         * Layout for the contents of an individual cell in a calendar grid
+         *
+         * @param value    A string that is placed within the cell
+         * @param colour   Colour to apply to the text
+         * @param modifier Modifier to apply to the cell layout
+         * @param size     The size of the cell
+         * @param onClick  Callback to handle the user pressing on a cell
+         */
+        @Composable private fun Cell(
+            value: String,
+            colour: Color,
+            modifier: Modifier = Modifier,
+            size: Dp = DatePickerDefault.CellSize,
+            onClick: (() -> Unit)? = null,
+        ) = Cell(modifier, size, onClick) {
+            CompositionLocalProvider(
+                LocalContentColor provides colour,
+                LocalContentAlpha provides colour.alpha
+            ) {
+               Text(value)
             }
         }
     }
