@@ -16,6 +16,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.ripple.rememberRipple
 import androidx.compose.ui.*
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -194,8 +195,8 @@ object DatePicker {
         ) = Column {
             val textColour by colour.textColour(enabled = true, header = true, selection = false)
 
-            if(title != null) CompositionLocalProvider(LocalContentColor provides textColour) {
-                Box(
+            CompositionLocalProvider(LocalContentColor provides textColour) {
+                if(title != null) Box(
                     Modifier
                         .paddingFromBaseline(top = 32.dp)
                         .padding(start = 24.dp)
@@ -286,19 +287,24 @@ object DatePicker {
             onNextPageRequested: () -> Unit,
             onPrevPageRequested: () -> Unit,
         ) {
+            val showButtons by rememberUpdatedState(!dropdownVisible)
             Box(
                 Modifier
                     .padding(vertical = 16.dp)
                     .fillMaxWidth()
             ) {
-                IconButton(
+                if(showButtons) IconButton(
                     modifier = Modifier.align(Alignment.CenterStart),
                     onClick  = { onPrevPageRequested() },
                     content  = { Icon(Icons.Default.KeyboardArrowLeft, null) }
                 )
 
                 Row(
-                    modifier = Modifier.align(Alignment.Center),
+                    modifier = Modifier
+                        .clip(MaterialTheme.shapes.small)
+                        .align(Alignment.Center)
+                        .clickable { onDropdownToggled(!dropdownVisible) }
+                    ,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Spacer(Modifier.width(24.dp))
@@ -314,7 +320,7 @@ object DatePicker {
                     }
                 }
 
-                IconButton(
+                if(showButtons) IconButton(
                     modifier = Modifier.align(Alignment.CenterEnd),
                     onClick  = { onNextPageRequested() },
                     content  = { Icon(Icons.Default.KeyboardArrowRight, null) }
@@ -361,6 +367,56 @@ object DatePicker {
                 }
             }
         }
+
+        /**
+         * Provides a dropdown menu to pick a date to use
+         *
+         * @param current     The value of the current page
+         * @param onSelection The value of the selected page
+         * @param colour      The date picker colour
+         */
+        @Composable fun Dropdown(
+            current: YearMonth,
+            onSelection: (YearMonth) -> Unit,
+            colour: DatePickerColours
+        ) = Surface {
+            val years = (/*Year.MIN_VALUE..Year.MAX_VALUE*/0..3000).toList()
+            val state = rememberLazyGridState(
+                initialFirstVisibleItemIndex = current.year - (2 * 3 + current.year % 3) // Offset it by two rows above current year
+            )
+            LazyVerticalGrid(
+                state = state,
+                cells = GridCells.Fixed(3),
+                contentPadding = PaddingValues(vertical = 4.dp)
+            ) {
+                items(years) {
+                    Box(
+                        Modifier
+                            .padding(4.dp)
+                            .wrapContentWidth()
+                            .then(
+                                if (it != current.year) Modifier else Modifier.background(
+                                    color = colour.selectionColour,
+                                    shape = MaterialTheme.shapes.small
+                                )
+                            )
+                            .clickable { onSelection(current.withYear(it)) }
+                    ) {
+                        val textColour by colour.textColour(
+                            enabled = true,
+                            header = false,
+                            selection = it == current.year
+                        )
+                        Text(
+                            modifier = Modifier.padding(8.dp),
+                            text     = Year.of(it).format(DateTimeFormatter.ofPattern("y")),
+                            color    = textColour
+                        )
+                    }
+                }
+            }
+        }
+        
     }
 
     /**
@@ -756,22 +812,34 @@ object DatePicker {
                         colour
                     )
                 },
-                control = { Column {
+                control = {
                     Components.Controls(
                         value = Grid.calculatePage(value, pagerState.targetPage),
                         pagerState = pagerState,
                         dropdownVisible = dropdownVisible,
                         onDropdownToggled = onDropdownToggled,
                     )
+                },
+                dropdown = {
+                    Components.Dropdown(
+                        current = Grid.calculatePage(value, pagerState.targetPage),
+                        onSelection = provideInScopeWithParam(rememberCoroutineScope()) {
+                            onDropdownToggled(false)
+                            pagerState.scrollToPage(
+                                value.toYearMonth().run {
+                                    (it.year - year) * 12 +
+                                    (it.monthValue - monthValue)
+                                }
+                            )
+                        },
+                        colour = colour
+                    )
+                },
+                grid = { Column {
                     Components.DayOfWeekHeader(
                         Modifier.align(Alignment.CenterHorizontally),
                         colour = colour
                     )
-                } },
-                dropdown = {
-
-                },
-                grid = {
                     Grid.Single(
                         value,
                         selection,
@@ -780,7 +848,7 @@ object DatePicker {
                         state = pagerState,
                         colour = colour
                     )
-                },
+                } },
                 buttons = {
                     TextButton(
                         onClick = { onDismissRequest() },

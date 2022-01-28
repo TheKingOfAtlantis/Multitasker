@@ -87,3 +87,18 @@ inline fun provideInScope(
     scope: CoroutineScope,
     crossinline invocable: suspend () -> Unit
 ): () -> Unit = { scope.launch { invocable() } }
+
+/**
+ * Binds another lambda which takes a parameter which is launched
+ * in the given [CoroutineScope]
+ *
+ * @param scope Coroutine scope to be used to run [invocable]
+ * @param invocable Function/lambda to run in the coroutine
+ *
+ * @return Lambda which calls [launch] with will run the given [invocable]
+ *         using the given [scope]
+ */
+inline fun <T> provideInScopeWithParam(
+    scope: CoroutineScope,
+    crossinline invocable: suspend (T) -> Unit
+): (T) -> Unit = { scope.launch { invocable(it) } }
