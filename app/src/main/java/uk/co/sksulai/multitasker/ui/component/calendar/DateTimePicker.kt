@@ -535,6 +535,7 @@ object DatePicker {
             cellSize: Dp = DatePickerDefault.CellSize,
         ) = if(part == RangePart.None) this else this.drawBehind {
             val offset = (cellSize - height)/2
+            @Suppress("NON_EXHAUSTIVE_WHEN") // We've already handled the RangePart.None
             when(part) {
                 // TODO: Handle LayoutDirection => LTR vs RTL
                 RangePart.Start -> drawRect(

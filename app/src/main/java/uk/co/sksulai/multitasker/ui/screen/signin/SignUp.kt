@@ -11,6 +11,7 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.*
 import androidx.navigation.compose.*
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.google.accompanist.pager.ExperimentalPagerApi
 
 import uk.co.sksulai.multitasker.ui.component.*
 import uk.co.sksulai.multitasker.ui.Destinations
@@ -19,6 +20,8 @@ import uk.co.sksulai.multitasker.db.viewmodel.UserViewModel
 import uk.co.sksulai.multitasker.ui.component.calendar.DateTextField
 import uk.co.sksulai.multitasker.util.*
 
+@ExperimentalFoundationApi
+@ExperimentalPagerApi
 @OptIn(ExperimentalMaterialApi::class)
 @Composable fun SignUpScreen(
     navController: NavController,
@@ -71,6 +74,8 @@ fun NavGraphBuilder.EmailVerificationPage(
 
 const val UserDetailsRoute = "details"
 
+@ExperimentalPagerApi
+@ExperimentalFoundationApi
 @ExperimentalMaterialApi
 fun NavGraphBuilder.UserDetailsPage(
     navigateNext: () -> Unit,

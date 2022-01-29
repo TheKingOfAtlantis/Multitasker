@@ -18,8 +18,10 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 
+import androidx.compose.foundation.ExperimentalFoundationApi
+import com.google.accompanist.pager.ExperimentalPagerApi
+
 import uk.co.sksulai.multitasker.util.*
-import uk.co.sksulai.multitasker.ui.component.*
 
 /**
  * Determines the required date format using the current locale and remembers
@@ -120,6 +122,8 @@ import uk.co.sksulai.multitasker.ui.component.*
  * (including label, placeholder, leading and trailing icons, border) for this text field in
  * different states. See [TextFieldDefaults.outlinedTextFieldColors]
  */
+@ExperimentalFoundationApi
+@ExperimentalPagerApi
 @Composable fun DateTextField(
     value: LocalDate?,
     onValueComplete: (LocalDate?) -> Unit,
@@ -183,6 +187,18 @@ import uk.co.sksulai.multitasker.ui.component.*
         shape             = shape,
         colors            = colors,
     )
+    if(readOnly) {
+        val isPressed by interactionSource.collectIsPressedAsState()
+        var showDatePicker by rememberSaveableMutableState(false)
+
+        if(isPressed) showDatePicker = true
+        if(showDatePicker) DatePicker.Dialog.Single(
+            value ?: LocalDate.now(),
+            onValueComplete,
+            title = label,
+            onDismissRequest = { showDatePicker = false }
+        )
+    }
 }
 
 /**
@@ -212,6 +228,8 @@ import uk.co.sksulai.multitasker.ui.component.*
  * (including label, placeholder, leading and trailing icons, border) for this text field in
  * different states. See [TextFieldDefaults.outlinedTextFieldColors]
  */
+@ExperimentalFoundationApi
+@ExperimentalPagerApi
 @Composable fun DateTimeField(
     value: LocalDateTime,
     onValueChange: (LocalDateTime) -> Unit,
@@ -236,9 +254,7 @@ import uk.co.sksulai.multitasker.ui.component.*
         ) {
             CompositionLocalProvider(
                LocalContentAlpha provides ContentAlpha.medium
-            ) {
-                ProvideTextStyle(MaterialTheme.typography.caption, it)
-            }
+            ) { ProvideTextStyle(MaterialTheme.typography.caption, it) }
         }
     }
     Row(Modifier.width(TextFieldDefaults.MinWidth)) {
@@ -254,9 +270,9 @@ import uk.co.sksulai.multitasker.ui.component.*
             onValueChange = { },
             leadingIcon   = leadingIcon,
             interactionSource = dateInteractionSource,
-            shape = shape,
-            colors = colors,
-            readOnly = true,
+            shape     = shape,
+            colors    = colors,
+            readOnly  = true,
             textStyle = textStyle.copy(textAlign = TextAlign.Center)
         )
         Spacer(Modifier.width(8.dp))
@@ -267,20 +283,28 @@ import uk.co.sksulai.multitasker.ui.component.*
             onValueChange = { },
             trailingIcon  = trailingIcon,
             interactionSource = timeInteractionSource,
-            shape = shape,
-            colors = colors,
-            readOnly = true,
+            shape     = shape,
+            colors    = colors,
+            readOnly  = true,
             textStyle = textStyle.copy(textAlign = TextAlign.Center)
         )
     }
 
-    var showDatePicker by rememberMutableState(false)
-    var showTimePicker by rememberMutableState(false)
+    var showDatePicker by rememberSaveableMutableState(false)
+    var showTimePicker by rememberSaveableMutableState(false)
 
     val datePressed by dateInteractionSource.collectIsPressedAsState()
     val timePressed by timeInteractionSource.collectIsPressedAsState()
     if(datePressed) showDatePicker = true
     if(timePressed) showTimePicker = true
 
-    // TODO: Add date and time pickers
+    // TODO: Add time picker
+    if(showDatePicker) DatePicker.Dialog.Single(
+        value = value.toLocalDate(),
+        onValueSelected = {
+            onValueChange(it.atTime(value.toLocalTime()))
+            showDatePicker = false
+        },
+        onDismissRequest = { showDatePicker = false }
+    )
 }

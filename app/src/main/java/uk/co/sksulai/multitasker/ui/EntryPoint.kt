@@ -7,11 +7,14 @@ import android.app.Activity
 import android.content.Intent
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.foundation.ExperimentalFoundationApi
+
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.emptyPreferences
 
 import androidx.navigation.*
 import androidx.navigation.compose.*
+import com.google.accompanist.pager.ExperimentalPagerApi
 
 import com.google.firebase.ktx.Firebase
 import com.google.firebase.dynamiclinks.ktx.dynamicLinks
@@ -53,7 +56,10 @@ enum class GraphLevel {
         navController.handleDeepLink(Intent().apply { data = deepLink })
 }
 
-@Composable fun EntryPoint(
+@OptIn(
+    ExperimentalPagerApi::class,
+    ExperimentalFoundationApi::class
+) @Composable fun EntryPoint(
     navController: NavHostController = rememberNavController(),
 ) {
     val appState by AppState.retrieveData(emptyPreferences())
