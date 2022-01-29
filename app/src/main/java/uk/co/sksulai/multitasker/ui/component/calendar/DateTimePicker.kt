@@ -723,24 +723,28 @@ object DatePicker {
          *
          * @param shape            The shape of the dialog box
          * @param colour           The colour palette to use for the colour picker
+         * @param editMode         The current edit mode
          * @param dropdownState    The current state of the dropdown menu
          * @param onDismissRequest Used to indicate that the user has requested the dialog be dismissed
          * @param header           The header component to be placed
          * @param control          The control component to be placed
          * @param grid             The calendar grid to show (i.e. single or range calendar grid)
+         * @param textField        The text field to use in [EditMode.Keyboard]
          * @param dropdown         The dropdown menu to be shown
          * @param buttons          The dialog buttons
          */
         @Composable private fun Layout(
             shape: Shape,
             colour: DatePickerColours,
+            editMode: EditMode,
             dropdownState: Boolean,
             onDismissRequest: () -> Unit,
-            header:   @Composable () -> Unit,
-            control:  @Composable () -> Unit,
-            grid:     @Composable () -> Unit,
-            dropdown: @Composable () -> Unit,
-            buttons:  @Composable () -> Unit
+            header:    @Composable () -> Unit,
+            control:   @Composable () -> Unit,
+            grid:      @Composable () -> Unit,
+            textField: @Composable () -> Unit,
+            dropdown:  @Composable () -> Unit,
+            buttons:   @Composable () -> Unit
         ) = Dialog(onDismissRequest) {
             val headerColour by colour.backgroundColour(header = true)
             val headerTextColours by colour.textColour(enabled = true, selection = false, header = true)
@@ -760,14 +764,27 @@ object DatePicker {
                         color = backgroundColor,
                         contentColor = textColours,
                     ) { Column {
-                        control()
-                        if(!dropdownState) grid()
-                        else dropdown()
-                        Row(
-                            modifier = Modifier.align(Alignment.End),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            buttons()
+                        if(editMode == EditMode.Picker)
+                            control()
+
+                        Box {
+                            Column {
+                                when (editMode) {
+                                    EditMode.Picker   -> grid()
+                                    EditMode.Keyboard -> Box(
+                                        Modifier
+                                            .fillMaxWidth()
+                                            .padding(vertical = 8.dp),
+                                        Alignment.Center
+                                    ) { textField() }
+                                }
+                                Row(
+                                    modifier = Modifier.align(Alignment.End),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) { buttons() }
+                            }
+                            if(dropdownState)
+                                dropdown()
                         }
                     } }
                 }
@@ -789,6 +806,7 @@ object DatePicker {
             value: LocalDate,
             onValueSelected: (LocalDate) -> Unit,
             onDismissRequest: () -> Unit,
+            isSelectable: (LocalDate) -> Boolean = { true },
             title: @Composable (() -> Unit)? = null,
             shape: Shape = MaterialTheme.shapes.medium,
             colour: DatePickerColours = DatePickerDefault.colours()
@@ -802,6 +820,7 @@ object DatePicker {
             Layout(
                 shape,
                 colour,
+                currentMode,
                 dropdownVisible,
                 onDismissRequest,
                 header = {
@@ -835,6 +854,19 @@ object DatePicker {
                         colour = colour
                     )
                 },
+                textField = { Column {
+                    var error by rememberSaveableMutableState("")
+                    DateTextField(
+                        value = selection,
+                        onValueComplete = { it?.let(onSelection) },
+                        onFormatError = { error = it },
+                        isError = error.isNotEmpty()
+                    )
+                    ErrorText(
+                        message = error,
+                        modifier = Modifier.textFieldHelperPadding()
+                    )
+                } },
                 grid = { Column {
                     Components.DayOfWeekHeader(
                         Modifier.align(Alignment.CenterHorizontally),
@@ -844,6 +876,7 @@ object DatePicker {
                         value,
                         selection,
                         onSelection,
+                        isSelectable = isSelectable,
                         showDaysOfWeek = false,
                         state = pagerState,
                         colour = colour
