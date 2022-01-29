@@ -3,16 +3,23 @@ package uk.co.sksulai.multitasker.ui.screen.calendar
 import java.util.*
 import java.time.*
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.*
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.*
+import androidx.compose.foundation.text.*
+import androidx.compose.foundation.interaction.*
 
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 
 import androidx.compose.ui.*
+import androidx.compose.ui.text.*
 import androidx.compose.ui.graphics.*
+import androidx.compose.ui.focus.*
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.*
 
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -42,6 +49,106 @@ val EventCategories = listOf(
     "Other/Travel",     // Travel: Flight, train
     "Other/Religious",  // Religious holiday: Christmas, Eid, etc.
 )
+
+/**
+ * Provides the UI to search timezones
+ *
+ * @param onTimezoneSelected Callback which provides the users selection
+ * @param onDismissRequest   Indicates the user has requested this be dismissed
+ */
+@ExperimentalMaterialApi
+@Composable private fun TimezoneSearch(
+    onTimezoneSelected: (TimeZone) -> Unit,
+    onDismissRequest: () -> Unit
+) = Column(Modifier.fillMaxHeight()) {
+    var query by rememberMutableState("")
+    val availableTimezones = remember { TimeZone.getAvailableIDs().map(TimeZone::getTimeZone) }
+
+    BackHandler(true, onDismissRequest)
+
+    TopAppBar(
+        navigationIcon = {
+            IconButton(onClick = onDismissRequest) {
+                Icon(Icons.Default.ArrowBack, null)
+            }
+        },
+        title = {
+            val colours = TextFieldDefaults.textFieldColors()
+            val cursorColour by colours.cursorColor(isError = false)
+            val textColour by colours.textColor(enabled = true)
+            val placeholderColour by colours.placeholderColor(enabled = true)
+
+            val focus = FocusRequester.Default
+            BasicTextField(
+                modifier = Modifier
+                    .widthIn(min = TextFieldDefaults.MinWidth)
+                    .focusRequester(focus)
+                ,
+                value = query,
+                onValueChange = { query = it },
+                cursorBrush = SolidColor(cursorColour),
+                textStyle = MaterialTheme.typography.body1.copy(color = textColour),
+                decorationBox = { content ->
+                    if(query.isEmpty()) CompositionLocalProvider(
+                        LocalContentAlpha provides ContentAlpha.medium
+                    ) {
+                        Text(
+                            text = "Country or Time-zone",
+                            style = MaterialTheme.typography.subtitle1,
+                            color = placeholderColour
+                        )
+                    }
+                    content()
+                }
+            )
+            LaunchedEffect(Unit) {
+                focus.requestFocus()
+            }
+        }
+    )
+
+    data class Result(
+        val timeZone: TimeZone,
+        val displayName: AnnotatedString,
+        val id: AnnotatedString,
+        val offset: String
+    )
+    @Composable fun Result.asListItem() {
+        ListItem(
+            modifier = Modifier.clickable { onTimezoneSelected(timeZone) },
+            text = { Text(displayName) },
+            secondaryText = { Text(id) },
+            trailing = { Text(offset) }
+        )
+    }
+
+    fun produceAnnotatedString(value: String, toAnnotated: String) = buildAnnotatedString {
+        append(value)
+        val annotationStart = value.indexOf(toAnnotated, ignoreCase = true)
+        if(annotationStart != -1) addStyle(
+            style = SpanStyle(fontWeight = FontWeight.Bold),
+            start = annotationStart,
+            end   = annotationStart + toAnnotated.length
+        )
+    }
+
+    if(query.isNotEmpty()) {
+        val result = availableTimezones
+            .filter { it.displayName.contains(query, true) || it.id.contains(query, true) }
+            .map {
+                Result(
+                    timeZone = it,
+                    displayName = produceAnnotatedString(it.displayName, query),
+                    id = produceAnnotatedString(it.id, query),
+                    offset = it.getDisplayName(false, TimeZone.SHORT)
+                )
+            }
+
+        LazyColumn {
+            items(result) { it.asListItem() }
+        }
+    }
+}
 
 /**
  * Provides the layout for event creation and editing
@@ -110,7 +217,11 @@ val EventCategories = listOf(
     
     calendarViewModel: CalendarViewModel = hiltViewModel()
 ) {
-    Column {
+    var timezoneSelector: ((TimeZone) -> Unit)? by rememberSaveableMutableState(null)
+    if(timezoneSelector != null) TimezoneSearch(
+        timezoneSelector!!,
+        onDismissRequest = { timezoneSelector = null }
+    ) else Column {
         TopAppBar(
             backgroundColor = Color.Transparent,
             elevation = 0.dp
@@ -221,6 +332,49 @@ val EventCategories = listOf(
                     value = end.toLocalDateTime(),
                     onValueChange = { onEndChange(it.atZone(end.zone)) },
                 )
+
+                var showSeparateTimezone by rememberSaveableMutableState(false)
+                val startTimezoneInteraction = remember { MutableInteractionSource() }
+                val startTimezonePressed by startTimezoneInteraction.collectIsPressedAsState()
+                if (startTimezonePressed) timezoneSelector = { onStartChange(start.withZoneSameLocal(it.toZoneId())) }
+                OutlinedTextField(
+                    modifier = Modifier.padding(vertical = 8.dp),
+                    label = { Text("${if (showSeparateTimezone) "Start " else ""}Timezone") },
+                    value = TimeZone.getTimeZone(start.zone).displayName,
+                    onValueChange = { },
+                    readOnly = true,
+                    interactionSource = startTimezoneInteraction,
+                    trailingIcon = {
+                        IconToggleButton(
+                            checked = showSeparateTimezone,
+                            onCheckedChange = { showSeparateTimezone = it },
+                            content = {
+                                if (showSeparateTimezone) Icon(
+                                    imageVector = Icons.Default.KeyboardArrowUp,
+                                    contentDescription = "Separate Timezones"
+                                ) else Icon(
+                                    imageVector = Icons.Default.KeyboardArrowDown,
+                                    contentDescription = "Single Timezone"
+                                )
+                            }
+                        )
+                    }
+                )
+                if (showSeparateTimezone) {
+                    val endTimezoneInteraction = remember { MutableInteractionSource() }
+                    val endTimezonePressed by endTimezoneInteraction.collectIsPressedAsState()
+                    if (endTimezonePressed) timezoneSelector =
+                        { onEndChange(end.withZoneSameLocal(it.toZoneId())) }
+
+                    OutlinedTextField(
+                        modifier = Modifier.padding(vertical = 8.dp),
+                        label = { Text("End Timezone") },
+                        value = TimeZone.getTimeZone(end.zone).displayName,
+                        onValueChange = { },
+                        readOnly = true,
+                        interactionSource = endTimezoneInteraction,
+                    )
+                }
             }
 
             Divider(Modifier.padding(vertical = 16.dp))
