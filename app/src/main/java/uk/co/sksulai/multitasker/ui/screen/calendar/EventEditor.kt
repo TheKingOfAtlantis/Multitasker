@@ -16,11 +16,13 @@ import androidx.compose.ui.graphics.*
 import androidx.compose.ui.unit.*
 
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.google.accompanist.pager.ExperimentalPagerApi
 
 import uk.co.sksulai.multitasker.util.*
 import uk.co.sksulai.multitasker.db.model.*
 import uk.co.sksulai.multitasker.db.viewmodel.CalendarViewModel
 import uk.co.sksulai.multitasker.ui.component.*
+import uk.co.sksulai.multitasker.ui.component.calendar.*
 import uk.co.sksulai.multitasker.ui.component.graphics.*
 
 /**
@@ -75,7 +77,9 @@ val EventCategories = listOf(
  *
  * @param calendarViewModel
  */
+@ExperimentalFoundationApi
 @ExperimentalMaterialApi
+@ExperimentalPagerApi
 @Composable private fun EventEditorLayout(
     calendar: CalendarModel?,
     colour: NamedColour?,
@@ -163,11 +167,89 @@ val EventCategories = listOf(
             }
 
             OutlinedTextField(
-                modifier = Modifier.padding(top = 8.dp, bottom = 16.dp),
+                modifier = Modifier.padding(top = 8.dp),
                 label = { Text("Name") },
                 value = name,
                 onValueChange = onNameChange
             )
+
+            Divider(Modifier.padding(vertical = 16.dp))
+
+            ListItem(
+                modifier = Modifier
+                    .width(TextFieldDefaults.MinWidth)
+                    .clickable { onAllDayChange(!allDay) }
+                ,
+                text     = { Text("All-Day") },
+                trailing = { Switch(allDay, onAllDayChange) }
+            )
+
+            if(allDay) {
+                Box(
+                    Modifier
+                        .padding(top = 4.dp, start = 8.dp)
+                        .paddingFromBaseline(bottom = 4.dp)
+                ) {
+                    CompositionLocalProvider(
+                        LocalContentAlpha provides ContentAlpha.medium
+                    ) {
+                        Text(
+                            text = "Start",
+                            style = MaterialTheme.typography.caption
+                        )
+                    }
+                }
+                DateTextField(
+                    label = { Text("Date") },
+                    value = start.toLocalDate(),
+                    onValueComplete = {
+                        onEndChange(
+                            it!!.atTime(start.toLocalTime()).atZone(start.zone)
+                        )
+                    },
+                    readOnly = true
+                )
+
+                Box(
+                    Modifier
+                        .padding(top = 4.dp, start = 8.dp)
+                        .paddingFromBaseline(bottom = 4.dp)
+                ) {
+                    CompositionLocalProvider(
+                        LocalContentAlpha provides ContentAlpha.medium
+                    ) {
+                        Text(
+                            text = "End",
+                            style = MaterialTheme.typography.caption
+                        )
+                    }
+                }
+                DateTextField(
+                    label = { Text("Date") },
+                    value = end.toLocalDate(),
+                    onValueComplete = {
+                        onEndChange(
+                            it!!.atTime(start.toLocalTime()).atZone(start.zone)
+                        )
+                    },
+                    readOnly = true
+                )
+            } else {
+                DateTimeField(
+                    modifier = Modifier.padding(top = 8.dp),
+                    headerLabel = { Text("Start") },
+                    value = start.toLocalDateTime(),
+                    onValueChange = { onStartChange(it.atZone(start.zone)) },
+                )
+                DateTimeField(
+                    modifier = Modifier.padding(top = 8.dp),
+                    headerLabel = { Text("End") },
+                    value = end.toLocalDateTime(),
+                    onValueChange = { onEndChange(it.atZone(end.zone)) },
+                )
+            }
+
+            Divider(Modifier.padding(vertical = 16.dp))
 
             OutlinedTextField(
                 modifier = Modifier.padding(top = 8.dp),
@@ -216,10 +298,12 @@ val EventCategories = listOf(
 /**
  * Provides the UI necessary for creating events
  *
- * @param onDismissRequest The user has requested that event creation UI be dismissed
+ * @param onDismissRequest  The user has requested that event creation UI be dismissed
  * @param calendarViewModel Used to provide access to the database
  */
+@ExperimentalFoundationApi
 @ExperimentalMaterialApi
+@ExperimentalPagerApi
 @Composable fun EventCreation(
     onDismissRequest: () -> Unit,
     calendarViewModel: CalendarViewModel = hiltViewModel()
