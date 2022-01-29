@@ -4,16 +4,24 @@ import java.util.*
 import java.time.*
 
 import androidx.compose.runtime.*
+import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
+
 import androidx.compose.material.*
-import androidx.compose.ui.Modifier
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
+
+import androidx.compose.ui.*
+import androidx.compose.ui.graphics.*
+import androidx.compose.ui.unit.*
 
 import androidx.hilt.navigation.compose.hiltViewModel
 
 import uk.co.sksulai.multitasker.util.*
 import uk.co.sksulai.multitasker.db.model.*
 import uk.co.sksulai.multitasker.db.viewmodel.CalendarViewModel
-import uk.co.sksulai.multitasker.ui.component.graphics.NamedColour
+import uk.co.sksulai.multitasker.ui.component.*
+import uk.co.sksulai.multitasker.ui.component.graphics.*
 
 /**
  * Used to sub-categorise events within a calendar
@@ -43,9 +51,8 @@ val EventCategories = listOf(
  * @param location    The current location of the event ([EventModel.location])
  * @param tags        The current list of tags of the event
  * @param start       The current start of the event ([EventModel.start])
- * @param duration    The current duration of the event ([EventModel.duration])
- * @param allDay      Whether this event lasts all day or not
- * @param endTimezone The timezone to be associated with the end ([EventModel.endTimezone])
+ * @param end         The current end of the event ([EventModel.end])
+ * @param allDay      Whether this event lasts all day or not ([EventModel.allDay])
  *
  * @param onCalendarChange    Called when the user selects a calendar
  * @param onColourChange      Called when the user selects a colour
@@ -55,9 +62,8 @@ val EventCategories = listOf(
  * @param onCategoryChange    Called when the user changes the location
  * @param onTagsChange        Called when the user updates the list of tags
  * @param onStartChange       Called when the user changes the start date/time
- * @param onDurationChange    Called when the user changes the duration of the event
+ * @param onEndChange         Called when the user changes the end date/time of the event
  * @param onAllDayChange      Called when the user has changed if its an all-day event
- * @param onEndTimezoneChange Called when the timezone of the end has changed
  *
  * @param childrenEditor Composable which is provided to edit the children.
  *                       This allows both the editor and creation layouts to provide alternative
@@ -69,6 +75,7 @@ val EventCategories = listOf(
  *
  * @param calendarViewModel
  */
+@ExperimentalMaterialApi
 @Composable private fun EventEditorLayout(
     calendar: CalendarModel?,
     colour: NamedColour?,
@@ -78,9 +85,8 @@ val EventCategories = listOf(
     location: String,
     tags: List<String>,
     start: ZonedDateTime,
-    duration: Duration,
+    end: ZonedDateTime,
     allDay: Boolean,
-    endTimezone: TimeZone,
 
     onCalendarChange: (CalendarModel?) -> Unit,
     onColourChange: (NamedColour?) -> Unit,
@@ -90,9 +96,8 @@ val EventCategories = listOf(
     onLocationChange: (String) -> Unit,
     onTagsChange: (List<String>) -> Unit,
     onStartChange: (ZonedDateTime) -> Unit,
-    onDurationChange: (Duration) -> Unit,
+    onEndChange: (ZonedDateTime) -> Unit,
     onAllDayChange: (Boolean) -> Unit,
-    onEndTimezoneChange: (TimeZone) -> Unit,
 
     childrenEditor: @Composable ColumnScope.() -> Unit,
 
@@ -101,6 +106,111 @@ val EventCategories = listOf(
     
     calendarViewModel: CalendarViewModel = hiltViewModel()
 ) {
+    Column {
+        TopAppBar(
+            backgroundColor = Color.Transparent,
+            elevation = 0.dp
+        ) {
+            IconButton(
+                onClick = onDismissRequest,
+                content = { Icon(Icons.Default.Close, contentDescription = null) }
+            )
+            Spacer(Modifier.weight(1f))
+            IconButton(
+                onClick = onSaveRequest,
+                content = { Icon(Icons.Default.Save, contentDescription = null) }
+            )
+        }
+
+        Column(
+            Modifier
+                .fillMaxWidth()
+                .verticalScroll(rememberScrollState()),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+
+            val calendars by calendarViewModel.calendars.collectAsState(initial = emptyList())
+
+            Dropdown(
+                label = { Text("Calendar") },
+                value = calendar,
+                onValueSelected = onCalendarChange,
+                entries = calendars,
+                itemText = { it?.name ?: "" },
+                leadingIcon = {
+                    ColourIcon(
+                        modifier = Modifier
+                            .padding(start = 8.dp)
+                            .size(24.dp),
+                        colour = calendar?.uiColour ?: Color.Unspecified
+                    )
+                }
+            ) {
+                ListItem(
+                    text = { Text(it.name) },
+                    secondaryText = it.description
+                        .takeIf { it.isNotEmpty() }
+                        ?.let { @Composable { Text(it) } },
+                    icon = {
+                        ColourIcon(
+                            modifier = Modifier
+                                .padding(start = 8.dp)
+                                .size(24.dp),
+                            colour = calendar?.uiColour ?: Color.Unspecified
+                        )
+                    }
+                )
+            }
+
+            OutlinedTextField(
+                modifier = Modifier.padding(top = 8.dp, bottom = 16.dp),
+                label = { Text("Name") },
+                value = name,
+                onValueChange = onNameChange
+            )
+
+            OutlinedTextField(
+                modifier = Modifier.padding(top = 8.dp),
+                label = { Text("Description") },
+                value = description,
+                onValueChange = onDescriptionChange
+            )
+
+            ColourDropdown(
+                modifier = Modifier.padding(top = 8.dp),
+                value = colour ?: (calendar?.uiColour ?: Color.Unspecified).asNamedColour().copy(name = "Follow Calendar"),
+                onValueChange = { onColourChange(it) },
+                header = { DropdownMenuItem({ onColourChange(null) }) {
+                    val calendarColour = (calendar?.uiColour ?: Color.Unspecified).asNamedColour()
+                    ListItem(
+                        icon = { ColourIcon(calendarColour.colour,
+                            Modifier
+                                .padding(vertical = 8.dp)
+                                .size(24.dp)) },
+                        text = { Text("Calendar Colour") },
+                        secondaryText = { Text(calendarColour.name) },
+                    )
+                } }
+            )
+
+            Dropdown(
+                modifier = Modifier.padding(top = 8.dp),
+                label = { Text("Category") },
+                value = category,
+                onValueSelected = onCategoryChange,
+                entries = EventCategories,
+            )
+
+            OutlinedTextField(
+                modifier = Modifier.padding(top = 8.dp),
+                label = { Text("Tags") },
+                value = tags.joinToString(" #"),
+                onValueChange = { onTagsChange(it.split(" #")) }
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+        }
+    }
 }
 
 /**
@@ -109,6 +219,7 @@ val EventCategories = listOf(
  * @param onDismissRequest The user has requested that event creation UI be dismissed
  * @param calendarViewModel Used to provide access to the database
  */
+@ExperimentalMaterialApi
 @Composable fun EventCreation(
     onDismissRequest: () -> Unit,
     calendarViewModel: CalendarViewModel = hiltViewModel()
@@ -123,9 +234,8 @@ val EventCategories = listOf(
     var location: String         by rememberSaveableMutableState("")
     var tags: List<String>       by rememberSaveableMutableState(emptyList())
     var start: ZonedDateTime     by rememberSaveableMutableState(ZonedDateTime.now())
-    var duration: Duration       by rememberSaveableMutableState(Duration.ofHours(1))
+    var end: ZonedDateTime       by rememberSaveableMutableState(start + Duration.ofHours(1))
     var allDay: Boolean          by rememberSaveableMutableState(false)
-    var endTimezone: TimeZone    by rememberSaveableMutableState(TimeZone.getDefault())
 
     EventEditorLayout(
         calendar    = calendar,
@@ -136,9 +246,8 @@ val EventCategories = listOf(
         location    = location,
         tags        = tags,
         start       = start,
-        duration    = duration,
+        end         = end,
         allDay      = allDay,
-        endTimezone = endTimezone,
 
         onCalendarChange    = { calendar    = it },
         onColourChange      = { colour      = it },
@@ -148,9 +257,8 @@ val EventCategories = listOf(
         onLocationChange    = { location    = it },
         onTagsChange        = { tags        = it },
         onStartChange       = { start       = it },
-        onDurationChange    = { duration    = it },
+        onEndChange         = { end         = it },
         onAllDayChange      = { allDay      = it },
-        onEndTimezoneChange = { endTimezone = it },
 
         childrenEditor = {
             Text("Save first to add nested events")
@@ -163,6 +271,13 @@ val EventCategories = listOf(
         },
 
         onSaveRequest = provideInScope(rememberCoroutineScope()) {
+            // If all day which chosen we need to coarse the values for the start and end to be
+            // at the start and end of the day (as required)
+            // eg. if start and end on the same day => need actual start to be 00:00:01 and end to be 23:59:59
+
+            val actualStart = if (!allDay) start else start.toLocalDate().atStartOfDay(start.zone)
+            val actualEnd   = if (!allDay) end   else end.toLocalDate().atTime(LocalTime.MAX).atZone(end.zone)
+
             calendarViewModel.createEvent(
                 calendar    = calendar!!,
                 parentID    = null,
@@ -172,10 +287,10 @@ val EventCategories = listOf(
                 category    = category,
                 location    = location,
                 tags        = tags,
-                start       = start,
-                duration    = duration,
                 allDay      = allDay,
-                endTimeZone = endTimezone
+                start       = actualStart,
+                duration    = Duration.between(actualStart, actualEnd),
+                endTimeZone = actualEnd.timezone,
             )
             onDismissRequest()
         },
