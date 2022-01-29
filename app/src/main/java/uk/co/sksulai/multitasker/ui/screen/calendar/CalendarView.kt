@@ -77,13 +77,13 @@ import uk.co.sksulai.multitasker.util.rememberMutableState
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Bottom
     ) {
-        val enter = fadeIn() + slideInVertically { 3*it/2 }
-        val exit  = slideOutVertically { 3*it/2 } + fadeOut()
+        fun enter(offset: Int) = fadeIn() + slideInVertically { offset*it/2 }
+        fun exit(offset: Int)  = slideOutVertically { offset*it/2 } + fadeOut()
 
         AnimatedVisibility(
             visible  = expandFabMenu,
-            enter    = enter,
-            exit     = exit
+            enter    = enter(5),
+            exit     = exit(5)
         ) {
             ExtendedFloatingActionButton(
                 text = { Text("Create Calendar") },
@@ -95,8 +95,8 @@ import uk.co.sksulai.multitasker.util.rememberMutableState
         }
         AnimatedVisibility(
             visible  = expandFabMenu,
-            enter    = enter,
-            exit     = exit
+            enter    = enter(3),
+            exit     = exit(3)
         ) {
             ExtendedFloatingActionButton(
                 modifier = Modifier.padding(top = 8.dp),
@@ -134,6 +134,7 @@ import uk.co.sksulai.multitasker.util.rememberMutableState
             isFloatingActionButtonDocked = true,
             floatingActionButtonPosition = FabPosition.Center
         ) { Box(Modifier.padding(it)) {
+            mainContent()
             Scrim(expandFabMenu) { expandFabMenu = false }
             fabMenu(
                 Modifier
