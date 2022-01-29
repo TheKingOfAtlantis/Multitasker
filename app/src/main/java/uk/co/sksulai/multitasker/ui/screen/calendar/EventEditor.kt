@@ -184,21 +184,8 @@ val EventCategories = listOf(
                 trailing = { Switch(allDay, onAllDayChange) }
             )
 
-            if(allDay) {
-                Box(
-                    Modifier
-                        .padding(top = 4.dp, start = 8.dp)
-                        .paddingFromBaseline(bottom = 4.dp)
-                ) {
-                    CompositionLocalProvider(
-                        LocalContentAlpha provides ContentAlpha.medium
-                    ) {
-                        Text(
-                            text = "Start",
-                            style = MaterialTheme.typography.caption
-                        )
-                    }
-                }
+            if(allDay) Column {
+                TextFieldHeader("Start", Modifier.padding(top = 4.dp))
                 DateTextField(
                     label = { Text("Date") },
                     value = start.toLocalDate(),
@@ -210,20 +197,7 @@ val EventCategories = listOf(
                     readOnly = true
                 )
 
-                Box(
-                    Modifier
-                        .padding(top = 4.dp, start = 8.dp)
-                        .paddingFromBaseline(bottom = 4.dp)
-                ) {
-                    CompositionLocalProvider(
-                        LocalContentAlpha provides ContentAlpha.medium
-                    ) {
-                        Text(
-                            text = "End",
-                            style = MaterialTheme.typography.caption
-                        )
-                    }
-                }
+                TextFieldHeader("End", Modifier.padding(top = 4.dp))
                 DateTextField(
                     label = { Text("Date") },
                     value = end.toLocalDate(),
@@ -234,7 +208,7 @@ val EventCategories = listOf(
                     },
                     readOnly = true
                 )
-            } else {
+            } else Column {
                 DateTimeField(
                     modifier = Modifier.padding(top = 8.dp),
                     headerLabel = { Text("Start") },

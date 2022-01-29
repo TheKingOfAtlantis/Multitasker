@@ -24,6 +24,16 @@ fun Modifier.textFieldHelperPadding() = this
     .padding(horizontal = 16.dp)
 
 /**
+ * Default padding to be applied to header text above a text field.
+ * It adds 8[dp] to the start of the text and 4[dp] from the baseline to the bottom
+ *
+ * @see TextFieldHeader
+ */
+fun Modifier.textFieldHeaderPadding() = this
+    .widthIn(max = TextFieldDefaults.MinWidth)
+    .padding(start = 8.dp)
+    .paddingFromBaseline(bottom = 4.dp)
+/**
  * Used to properly show an error message to the user with the correct formatting
  *
  * @param message   The error message to be show (if empty/null nothing is shown)
@@ -114,3 +124,37 @@ fun Modifier.textFieldHelperPadding() = this
     minWidth  = 24.dp,
     minHeight = 24.dp,
 )) { drawCircle(colour) }
+
+/**
+ * Text placed above text fields (which is not the label)
+ *
+ * @param text     Composable containing the text to be shown
+ * @param modifier Modifier to apply to this layout
+ * @param colour   Colour to apply to the text
+ * @param style    Style to apply to the text
+ */
+@Composable fun TextFieldHeader(
+    modifier: Modifier = Modifier,
+    colour: Color = LocalContentColor.current,
+    style: TextStyle = MaterialTheme.typography.caption,
+    text: @Composable () -> Unit,
+) = Box(modifier.textFieldHeaderPadding()) {
+    CompositionLocalProvider(
+        LocalContentColor provides colour,
+        LocalContentAlpha provides ContentAlpha.medium,
+    ) { ProvideTextStyle(style, text) }
+}
+/**
+ * Text placed above text fields (which is not the label)
+ *
+ * @param text     Text to show in the header
+ * @param modifier Modifier to apply to this layout
+ * @param colour   Colour to apply to the text
+ * @param style    Style to apply to the text
+ */
+@Composable fun TextFieldHeader(
+    text: String,
+    modifier: Modifier = Modifier,
+    colour: Color = LocalContentColor.current,
+    style: TextStyle = MaterialTheme.typography.caption,
+) = TextFieldHeader(modifier, colour, style) { Text(text) }
