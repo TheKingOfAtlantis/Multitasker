@@ -4,7 +4,7 @@ import java.time.*
 import java.time.format.*
 import kotlin.time.ExperimentalTime
 import kotlin.time.Duration.Companion.minutes
-import kotlin.math.roundToInt
+import kotlin.math.*
 
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
@@ -15,6 +15,7 @@ import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.gestures.detectTransformGestures
+import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.material.*
 import androidx.compose.ui.*
 import androidx.compose.ui.draw.drawBehind
@@ -36,6 +37,9 @@ import uk.co.sksulai.multitasker.util.rememberSaveableMutableState
     currentDate: LocalDate,
     calendarViewModel: CalendarViewModel = hiltViewModel()
 ) {
+    /**
+     * The current amount to expand/contract the separation between time intervals
+     */
     var zoom by rememberSaveableMutableState(1f)
 
     /**
@@ -90,6 +94,7 @@ import uk.co.sksulai.multitasker.util.rememberSaveableMutableState
     Layout(
         modifier = Modifier
             .fillMaxSize()
+            .verticalScroll(scrollState, enabled = false)
             .pointerInput(Unit) {
                 detectTransformGestures { centroid, pan, zoomChange, _ ->
                     // To keep the centroid stationary we need to keep the relative
@@ -100,27 +105,21 @@ import uk.co.sksulai.multitasker.util.rememberSaveableMutableState
 
                     val offset = run {
                         // Z2 = Z1 * zoomChange
-                        // C1/Z1 = C2/Z2 => C2 = C1 * Z2/Z1
-                        val oldCentroid = centroid + Offset(0f, scrollState.value.toFloat())
-                        val newCentroid = oldCentroid * zoomChange // Z2/Z1 = zoomChange
-                        val topOffset = newCentroid - centroid
-                        // Finally lets add the pan
-                        topOffset + pan
+                        // C1/Z1 = C2/Z2 => C2 = C1 * Z2/Z1 => C2 = C1 * zoomChange
+                        val topOffset   = centroid - Offset.Zero.copy(y = scrollState.value.toFloat())
+                        val newCentroid = centroid * zoomChange
+                        val top = newCentroid - topOffset
+                        top + pan
                     }
 
-                    when {
-                        // If zoomChange is shrink & zoom not too small
-                        // If zoomChange is grow & zoom not too large
-                        (zoomChange < 1 && zoom > .75) || (zoomChange > 1 && zoom < 4) -> {
-                            zoom *= zoomChange
-                            scope.launch {
-                                scrollState.scrollTo(offset.y.roundToInt())
-                            }
-                        }
-                    }
+                    // If zoomChange is shrink & zoom not too small
+                    // If zoomChange is grow   & zoom not too large
+                    if ((zoomChange < 1 && zoom > .75) || (zoomChange > 1 && zoom < 4)) {
+                        zoom *= zoomChange
+                        scope.launch { scrollState.scrollTo(offset.y.roundToInt()) }
+                    } else scope.launch { scrollState.scrollBy(-pan.y) }
                 }
             }
-            .verticalScroll(scrollState)
         ,
         content = {
             val onBackground = MaterialTheme.colors.onBackground
