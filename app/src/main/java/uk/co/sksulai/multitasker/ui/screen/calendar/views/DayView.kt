@@ -4,19 +4,25 @@ import java.time.*
 import java.time.format.*
 import kotlin.time.ExperimentalTime
 import kotlin.time.Duration.Companion.minutes
+import kotlin.math.roundToInt
 
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 
 import androidx.compose.runtime.*
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
+import androidx.compose.animation.core.*
+import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.material.*
 import androidx.compose.ui.*
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.*
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.offset
 
@@ -30,7 +36,7 @@ import uk.co.sksulai.multitasker.util.rememberSaveableMutableState
     currentDate: LocalDate,
     calendarViewModel: CalendarViewModel = hiltViewModel()
 ) {
-    val zoom by rememberSaveableMutableState(1f)
+    var zoom by rememberSaveableMutableState(1f)
 
     /**
      * A state which keeps track of the current date
@@ -42,7 +48,7 @@ import uk.co.sksulai.multitasker.util.rememberSaveableMutableState
             // Work out how long until the start of the next day
             // Keep the thread waiting until we change day
             // Set the current value to the new date
-            val wait = Duration.between(LocalTime.now(), LocalDate.now().plusDays(1).atStartOfDay())
+            val wait = Duration.between(LocalDate.now().atTime(LocalTime.now()), LocalDate.now().plusDays(1).atStartOfDay())
             delay(wait.toMillis())
             value = LocalDate.now()
         }
@@ -52,18 +58,69 @@ import uk.co.sksulai.multitasker.util.rememberSaveableMutableState
      * We use this to position the current time of day indicator
      */
     // TODO: Smoothly animate the value
-    val currentTime by produceState(LocalTime.now()) {
-        while(coroutineContext.isActive) {
-            // Update the current time every 5 minutes
-            delay(5.minutes)
-            value = LocalTime.now()
+    val currentTime by run {
+        val time by produceState(LocalTime.now()) {
+            while (coroutineContext.isActive) {
+                // Update the current time every 5 minutes
+                delay(5.minutes)
+                value = LocalTime.now()
+            }
         }
+        animateValueAsState(
+            targetValue = time,
+            typeConverter = TwoWayConverter(
+                convertToVector = { AnimationVector(it.toSecondOfDay().toFloat()) },
+                convertFromVector = { LocalTime.ofSecondOfDay(it.value.toLong()) },
+            ),
+            animationSpec = tween(1000 /* 1s */),
+        )
     }
+    val scope = rememberCoroutineScope()
+
+    val hourHeight = 64.dp * zoom
+    val scrollState = rememberScrollState(with(LocalDensity.current) {
+        // Calculate the position of the current time
+        // Offset it by 1-2hrs
+        // Convert to position in px
+        val hourPos = hourHeight * (currentTime.toSecondOfDay().toFloat()/(60 * 60))
+        val offsetPos = (hourPos - hourHeight * 2f)
+        offsetPos.coerceAtLeast(0.dp).roundToPx()
+    })
 
     Layout(
         modifier = Modifier
             .fillMaxSize()
-            .verticalScroll(rememberScrollState())
+            .pointerInput(Unit) {
+                detectTransformGestures { centroid, pan, zoomChange, _ ->
+                    // To keep the centroid stationary we need to keep the relative
+                    // position stationary before and after the transformation.
+                    // However, the distance to the top (need to scroll the list correctly)
+                    // is constant regardless of the actual zoom (screen doesn't actually
+                    // get bigger)
+
+                    val offset = run {
+                        // Z2 = Z1 * zoomChange
+                        // C1/Z1 = C2/Z2 => C2 = C1 * Z2/Z1
+                        val oldCentroid = centroid + Offset(0f, scrollState.value.toFloat())
+                        val newCentroid = oldCentroid * zoomChange // Z2/Z1 = zoomChange
+                        val topOffset = newCentroid - centroid
+                        // Finally lets add the pan
+                        topOffset + pan
+                    }
+
+                    when {
+                        // If zoomChange is shrink & zoom not too small
+                        // If zoomChange is grow & zoom not too large
+                        (zoomChange < 1 && zoom > .75) || (zoomChange > 1 && zoom < 4) -> {
+                            zoom *= zoomChange
+                            scope.launch {
+                                scrollState.scrollTo(offset.y.roundToInt())
+                            }
+                        }
+                    }
+                }
+            }
+            .verticalScroll(scrollState)
         ,
         content = {
             val onBackground = MaterialTheme.colors.onBackground
@@ -128,8 +185,6 @@ import uk.co.sksulai.multitasker.util.rememberSaveableMutableState
         measurePolicy = { measurables, constraints ->
             val relaxed = constraints.copy(minWidth = 0, minHeight = 0)
 
-            val hourHeight = 64.dp * zoom
-
             val height = hourHeight * 24
             val width  = constraints.maxWidth
 
@@ -149,7 +204,7 @@ import uk.co.sksulai.multitasker.util.rememberSaveableMutableState
             val nowLabelPlaceable = measurables
                 .first { it.layoutId == "time-label-now" }
                 .measure(relaxed)
-            val nowDividerPlacable = measurables
+            val nowDividerPlaceable = measurables
                 .first { it.layoutId == "time-divider-now" }
                 .measure(constraints.offset(horizontal = -marginWidth))
 
@@ -170,7 +225,7 @@ import uk.co.sksulai.multitasker.util.rememberSaveableMutableState
 
                 if(currentDate == today) {
                     val nowOffset = height * currentTime.toSecondOfDay().toFloat() / (24 * 60 * 60)
-                    nowDividerPlacable.placeRelative(marginWidth, nowOffset.roundToPx())
+                    nowDividerPlaceable.placeRelative(marginWidth, nowOffset.roundToPx())
                 }
             }
         }
