@@ -82,26 +82,30 @@ import uk.co.sksulai.multitasker.util.rememberSaveableMutableState
     val scope = rememberCoroutineScope()
 
     val hourHeight = 64.dp * zoom
+
     val scrollState = rememberScrollState(with(LocalDensity.current) {
         // Calculate the position of the current time
         // Offset it by 1-2hrs
         // Convert to position in px
-        val hourPos = hourHeight * (currentTime.toSecondOfDay().toFloat()/(60 * 60))
+        val hourPos   = hourHeight * (currentTime.toSecondOfDay().toFloat()/(60 * 60))
         val offsetPos = (hourPos - hourHeight * 2f)
         offsetPos.coerceAtLeast(0.dp).roundToPx()
     })
+    val nestedScrollConnection = remember { object : NestedScrollConnection { } }
+    val nestedScrollDispatcher = remember { NestedScrollDispatcher() }
 
     Layout(
         modifier = Modifier
             .fillMaxSize()
-            .verticalScroll(scrollState, enabled = false)
+            .verticalScroll(scrollState)
+            .nestedScroll(nestedScrollConnection, nestedScrollDispatcher)
             .pointerInput(Unit) {
+                // Fix: Need to support fling behaviour
                 detectTransformGestures { centroid, pan, zoomChange, _ ->
-                    // To keep the centroid stationary we need to keep the relative
-                    // position stationary before and after the transformation.
-                    // However, the distance to the top (need to scroll the list correctly)
-                    // is constant regardless of the actual zoom (screen doesn't actually
-                    // get bigger)
+                    // To keep the centroid stationary we need to keep the relative position
+                    // stationary before and after the transformation. However, the distance
+                    // to the top (need to scroll the list correctly) is constant regardless
+                    // of the actual zoom (screen doesn't actually get bigger)
 
                     val offset = run {
                         // Z2 = Z1 * zoomChange
@@ -109,18 +113,25 @@ import uk.co.sksulai.multitasker.util.rememberSaveableMutableState
                         val topOffset   = centroid - Offset.Zero.copy(y = scrollState.value.toFloat())
                         val newCentroid = centroid * zoomChange
                         val top = newCentroid - topOffset
-                        top + pan
+                        top - pan
                     }
 
                     // If zoomChange is shrink & zoom not too small
                     // If zoomChange is grow   & zoom not too large
                     if ((zoomChange < 1 && zoom > .75) || (zoomChange > 1 && zoom < 4)) {
                         zoom *= zoomChange
-                        scope.launch { scrollState.scrollTo(offset.y.roundToInt()) }
-                    } else scope.launch { scrollState.scrollBy(-pan.y) }
+                        nestedScrollDispatcher.dispatchPostScroll(
+                            Offset.Zero,
+                            Offset.Zero.copy(y = scrollState.value.toFloat()) - offset,
+                            NestedScrollSource.Drag
+                        )
+                    } else nestedScrollDispatcher.dispatchPostScroll(
+                        Offset.Zero,
+                        pan,
+                        NestedScrollSource.Drag
+                    )
                 }
-            }
-        ,
+            },
         content = {
             val onBackground = MaterialTheme.colors.onBackground
 
