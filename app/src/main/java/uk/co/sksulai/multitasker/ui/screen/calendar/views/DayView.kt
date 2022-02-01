@@ -98,18 +98,13 @@ import uk.co.sksulai.multitasker.util.rememberSaveableMutableState
             .verticalScroll(scrollState)
             .nestedScroll(nestedScrollConnection, nestedScrollDispatcher)
             .pointerInput(Unit) {
-                /**
-                 * @param centroid   The center of the transformation
-                 * @param pan        Represents the change in the centroid's position
-                 * @param zoomChange Represents the change in the centroid's size
-                 */
-                fun onGesture(centroid: Offset, pan: Offset, zoomChange: Float, velocity: Velocity) {
+                detectTransformGestures { centroid, pan, zoomChange, _ ->
                     // To keep the centroid stationary we need to keep the relative position
                     // stationary before and after the transformation. However, the distance
                     // to the top (need to scroll the list correctly) is constant regardless
                     // of the actual zoom (screen doesn't actually get bigger)
 
-                    val offset = run {
+                    val offset = Offset.Zero.copy(y = scrollState.value.toFloat()) - run {
                         // Z2 = Z1 * zoomChange
                         // C1/Z1 = C2/Z2 => C2 = C1 * Z2/Z1 => C2 = C1 * zoomChange
                         val topOffset   = centroid - Offset.Zero.copy(y = scrollState.value.toFloat())
@@ -120,74 +115,16 @@ import uk.co.sksulai.multitasker.util.rememberSaveableMutableState
 
                     // If zoomChange is shrink & zoom not too small
                     // If zoomChange is grow   & zoom not too large
-                    if ((zoomChange < 1 && zoom > .75) || (zoomChange > 1 && zoom < 4)) {
+                    if ((zoomChange < 1 && zoom > .75) || (zoomChange > 1 && zoom < 4))
                         zoom *= zoomChange
-                        nestedScrollDispatcher.dispatchPostScroll(
-                            consumed  = Offset.Zero,
-                            available = Offset.Zero.copy(y = scrollState.value.toFloat()) - offset,
-                            source    = NestedScrollSource.Drag
-                        )
-                    } else {
-                        nestedScrollDispatcher.dispatchPostScroll(
-                            consumed  = Offset.Zero,
-                            available = pan,
-                            source    = NestedScrollSource.Drag
-                        )
-                        scope.launch {
-                            nestedScrollDispatcher.dispatchPostFling(
-                                consumed  = Velocity.Zero,
-                                available = velocity
-                            )
-                        }
-                    }
+                    nestedScrollDispatcher.dispatchPostScroll(
+                        consumed  = Offset.Zero,
+                        available = offset,
+                        source    = NestedScrollSource.Drag
+                    )
                 }
-                /**
-                 * Extracted and modified the logic from [detectTransformGestures]
-                 */
-                forEachGesture {
-                    awaitPointerEventScope {
-                        val velocityTracker = VelocityTracker()
-
-                        var zoomChange    = 1f
-                        var pan           = Offset.Zero
-                        var pastTouchSlop = false
-                        val touchSlop     = viewConfiguration.touchSlop
-
-                        val down = awaitFirstDown(requireUnconsumed = false)
-                        velocityTracker.addPointerInputChange(down)
-                        do {
-                            val event    = awaitPointerEvent()
-                            val canceled = event.changes.any { it.positionChangeConsumed() }
-                            if (!canceled) {
-                                val panDelta  = event.calculatePan()
-                                val zoomDelta = event.calculateZoom()
-
-                                if(!pastTouchSlop) {
-                                    zoomChange *= zoomDelta
-                                    pan        += panDelta
-
-                                    val centroidSize = event.calculateCentroidSize(useCurrent = false)
-                                    val zoomMotion   = abs(1 - zoomChange) * centroidSize
-                                    val panMotion    = pan.getDistance()
-
-                                    if(zoomMotion > touchSlop || panMotion > touchSlop)
-                                        pastTouchSlop = true
-                                }
-                                if(pastTouchSlop) {
-                                    val centroid = event.calculateCentroid(useCurrent = false)
-                                    if(zoomDelta != 1f || panDelta != Offset.Zero)
-                                        onGesture(centroid, panDelta, zoomDelta, velocityTracker.calculateVelocity())
-                                    event.changes.forEach {
-                                        if (it.positionChanged())
-                                            it.consumeAllChanges()
-                                        velocityTracker.addPointerInputChange(it)
-                                    }
-                                }
-                            }
-                        } while (!canceled && event.changes.any { it.pressed })
-                    }
-                }
-            },
+            }
+        ,
         content = {
             val onBackground = MaterialTheme.colors.onBackground
 
