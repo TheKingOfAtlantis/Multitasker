@@ -11,6 +11,7 @@ import kotlin.math.*
 
 import androidx.compose.runtime.*
 import androidx.compose.foundation.*
+import androidx.compose.foundation.gestures.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
@@ -20,6 +21,8 @@ import androidx.compose.ui.*
 import androidx.compose.ui.layout.*
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.input.pointer.*
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.*
@@ -50,6 +53,8 @@ object TimePicker {
             labels: Map<Int, String>,
             modifier: Modifier = Modifier
         ) {
+
+            val diameter = 256.dp
             val dialBackground = LocalContentColor.current
                 .copy(alpha = ContentAlpha.disabled)
 
@@ -59,6 +64,33 @@ object TimePicker {
                         dialBackground,
                         radius = size.width/2f,
                     )
+                }
+                .pointerInput(Unit) {
+                    forEachGesture {
+                        awaitPointerEventScope {
+                            fun updatePosition(position: Offset) {
+                                val newPosition = position - Offset(diameter.toPx(), diameter.toPx()) / 2f
+                                val newAngle    = (newPosition.run { atan2(x, -y) } + 2 * PI) % (2 * PI)
+
+                                onPositionChange((newAngle/(2 * PI) * steps).roundToInt() % steps)
+                                // TODO: Handle haptic feedback
+                            }
+
+                            val down = awaitFirstDown()
+                            updatePosition(down.position)
+
+                            while(true) {
+                                val event = awaitPointerEvent()
+                                val change = event.changes.first { it.id == down.id }
+
+                                if(change.changedToUpIgnoreConsumed())
+                                    break
+
+                                updatePosition(change.position)
+                                change.consumeAllChanges()
+                            }
+                        }
+                    }
                 },
                 content = {
                     labels.forEach { (index, hour) ->
