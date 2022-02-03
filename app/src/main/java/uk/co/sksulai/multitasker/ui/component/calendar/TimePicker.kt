@@ -24,7 +24,7 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.pointer.*
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.*
 import androidx.compose.ui.window.*
 
 import uk.co.sksulai.multitasker.ui.component.NumberField
@@ -40,11 +40,11 @@ object TimePicker {
         /**
          * Generic based from which the hour and minute dials built
          *
-         * @param position The current index position of the dial hand (in range 0..[steps])
+         * @param position         The current index position of the dial hand (in range 0..[steps])
          * @param onPositionChange Called when the user moves the dial to a new position
-         * @param steps The number of steps around the dial
-         * @param labels Set of labels to be placed at specific positions around the dial
-         * @param modifier Modifier to be applied to the dial
+         * @param steps            The number of steps around the dial
+         * @param labels           Set of labels to be placed at specific positions around the dial
+         * @param modifier         Modifier to be applied to the dial
          */
         @Composable fun Dial(
             position: Int,
@@ -53,10 +53,17 @@ object TimePicker {
             labels: Map<Int, String>,
             modifier: Modifier = Modifier
         ) {
+            if(position !in 0 until steps) throw IndexOutOfBoundsException(
+                "Expected position to be in the range [0, steps: ${steps}) but was: $position"
+            )
 
             val diameter = 256.dp
+            val paddingRadius = 16.dp
+
             val dialBackground = LocalContentColor.current
                 .copy(alpha = ContentAlpha.disabled)
+
+            fun getAngle(position: Int) = (2 * PI) * (position.toFloat()/steps)
 
             Layout(
                 modifier = modifier.drawBehind {
@@ -93,40 +100,39 @@ object TimePicker {
                     }
                 },
                 content = {
-                    labels.forEach { (index, hour) ->
+                    labels.forEach { (position, hour) ->
                         Text(
-                            NumberFormat.getInstance().format(hour),
-                            modifier = Modifier.layoutId("hour-$index")
+                            text = hour,
+                            modifier = Modifier.layoutId("label-$position")
                         )
                     }
                 }
             ) { measurables, constraints ->
                 val relaxed = constraints.copy(minWidth = 0, minHeight = 0)
 
-                val hourPlaceables = measurables
+                val labelPlaceables = measurables
                     .filter { it.layoutId is String }
                     .associateBy { (it.layoutId as String) }
-                    .filterKeys { it.contains(Regex("^hour-\\d+$")) }
-                    .mapKeys { it.key.removePrefix("hour-").toInt() }
+                    .filterKeys { it.contains(Regex("^label-\\d+$")) }
+                    .mapKeys { it.key.removePrefix("label-").toInt() }
                     .mapValues { it.value.measure(relaxed) }
                     .toSortedMap()
 
-                val size = 256.dp
-                layout(size.roundToPx(), size.roundToPx()) {
-                    val radius = size/2
-                    hourPlaceables.forEach { (hour, placeable) ->
-                        val angle = (2 * PI.toFloat()) * (hour % 12)/12
-                        val radiusPx = radius
+                layout(diameter.roundToPx(), diameter.roundToPx()) {
+                    val radius = diameter/2
+
+                    labelPlaceables.forEach { (position, placeable) ->
+                        val angle = getAngle(position).toFloat()
                         val paddingRadius = 16.dp
 
                         val x = run {
-                            val pos = radiusPx * (1 + sin(angle))
+                            val pos = radius * (1 + sin(angle))
                             val sizeCorrection = placeable.width.toDp()  * .5f * (sin(angle - PI.toFloat()) - 1)
                             val padding = - paddingRadius * sin(angle)
                             pos + sizeCorrection + padding
                         }
                         val y = run {
-                            val pos = radiusPx * (1 - cos(angle))
+                            val pos = radius * (1 - cos(angle))
                             val sizeCorrection = placeable.height.toDp() * .5f * (cos(angle) - 1)
                             val padding = paddingRadius * cos(angle)
                             pos + sizeCorrection + padding
@@ -153,12 +159,27 @@ object TimePicker {
             // TODO: Respect 12hr vs 24hr
             position = if(value == 12) 0 else value,
             steps = 12,
-            onPositionChange = { onValueChange(if(it == 0) 12 else it) },
+            onPositionChange = onValueChange,
             labels = (0..11).associateWith {
                 NumberFormat.getInstance().format(if(it == 0) 12 else it)
             },
             modifier = modifier
         )
+
+        @Composable fun MinuteDial(
+            value: Int,
+            onValueChange: (Int) -> Unit,
+            modifier: Modifier = Modifier
+        ) = Dial(
+            position = value,
+            steps = 60,
+            onPositionChange = onValueChange,
+            labels = (0..11).associate {
+                it * 5 to NumberFormat.getInstance().format(it * 5)
+            },
+            modifier = modifier
+        )
+
         /**
          * Used to allow the user to select between AM and PM
          *
