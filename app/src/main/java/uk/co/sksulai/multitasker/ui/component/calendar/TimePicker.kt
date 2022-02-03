@@ -31,6 +31,7 @@ import uk.co.sksulai.multitasker.ui.component.NumberField
 import uk.co.sksulai.multitasker.util.rememberSaveableMutableState
 
 @ExperimentalComposeUiApi
+@ExperimentalGraphicsApi
 object TimePicker {
     enum class EditMode { Keyboard, Picker }
     enum class DayDivision { AM, PM }
@@ -57,9 +58,11 @@ object TimePicker {
                 "Expected position to be in the range [0, steps: ${steps}) but was: $position"
             )
 
-            val diameter = 256.dp
+            val diameter      = 256.dp
             val paddingRadius = 16.dp
+            val radius        = diameter/2
 
+            val armColour = MaterialTheme.colors.primary
             val dialBackground = LocalContentColor.current
                 .copy(alpha = ContentAlpha.disabled)
 
@@ -106,6 +109,49 @@ object TimePicker {
                             modifier = Modifier.layoutId("label-$position")
                         )
                     }
+
+                    Canvas(
+                        Modifier
+                            .layoutId("arm")
+                            .fillMaxSize()
+                    ) {
+                        val angle = getAngle(position).toFloat()
+                        val radius = size.width/2 - paddingRadius.toPx() - 12.dp.toPx()
+
+                        val armEnd = center + Offset(
+                            sin(angle)  * radius,
+                            -cos(angle) * radius
+                        )
+
+                        // Clock dial arm
+                        drawLine(
+                            armColour,
+                            start = center,
+                            end   = armEnd,
+                            strokeWidth = 2.dp.toPx()
+                        )
+
+                        val selectionRadius = 20.dp
+                        // Selection indicator
+                        drawCircle(
+                            armColour,
+                            radius = selectionRadius.toPx(),
+                            center = armEnd
+                        )
+                        if(position !in labels.keys)
+                            drawCircle(
+                                Color.hsl(1f, 1f, .55f),
+                                radius = 2.dp.toPx(),
+                                center = armEnd,
+                                blendMode = BlendMode.Lighten
+                            )
+
+                        // Dial centre
+                        drawCircle(
+                            armColour,
+                            radius = 4.dp.toPx(),
+                        )
+                    }
                 }
             ) { measurables, constraints ->
                 val relaxed = constraints.copy(minWidth = 0, minHeight = 0)
@@ -118,13 +164,16 @@ object TimePicker {
                     .mapValues { it.value.measure(relaxed) }
                     .toSortedMap()
 
+                val arm = measurables
+                    .first { it.layoutId == "arm" }
+                    .measure(Constraints.fixed(diameter.roundToPx(), diameter.roundToPx()))
+
+
                 layout(diameter.roundToPx(), diameter.roundToPx()) {
-                    val radius = diameter/2
+                    arm.place(IntOffset.Zero)
 
                     labelPlaceables.forEach { (position, placeable) ->
                         val angle = getAngle(position).toFloat()
-                        val paddingRadius = 16.dp
-
                         val x = run {
                             val pos = radius * (1 + sin(angle))
                             val sizeCorrection = placeable.width.toDp()  * .5f * (sin(angle - PI.toFloat()) - 1)
