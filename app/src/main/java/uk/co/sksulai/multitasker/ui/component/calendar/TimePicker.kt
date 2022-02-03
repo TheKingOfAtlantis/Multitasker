@@ -12,6 +12,9 @@ import kotlin.math.*
 import androidx.compose.runtime.*
 import androidx.compose.foundation.*
 import androidx.compose.foundation.gestures.*
+import androidx.compose.foundation.interaction.DragInteraction
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
@@ -21,11 +24,15 @@ import androidx.compose.ui.*
 import androidx.compose.ui.layout.*
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.pointer.*
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.*
 import androidx.compose.ui.window.*
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.collect
 
 import uk.co.sksulai.multitasker.ui.component.NumberField
 import uk.co.sksulai.multitasker.util.rememberSaveableMutableState
@@ -52,7 +59,8 @@ object TimePicker {
             onPositionChange: (Int) -> Unit,
             steps: Int,
             labels: Map<Int, String>,
-            modifier: Modifier = Modifier
+            modifier: Modifier = Modifier,
+            interactionSource: MutableInteractionSource = remember { MutableInteractionSource() }
         ) {
             if(position !in 0 until steps) throw IndexOutOfBoundsException(
                 "Expected position to be in the range [0, steps: ${steps}) but was: $position"
@@ -80,21 +88,29 @@ object TimePicker {
                         awaitPointerEventScope {
                             fun updatePosition(position: Offset) {
                                 val newPosition = position - Offset(diameter.toPx(), diameter.toPx()) / 2f
-                                val newAngle    = (newPosition.run { atan2(x, -y) } + 2 * PI) % (2 * PI)
 
-                                onPositionChange((newAngle/(2 * PI) * steps).roundToInt() % steps)
+                                // Ignore the centre
+                                if(newPosition.getDistance() < (radius - 64.dp).toPx())
+                                    return
+
+                                val newAngle = (newPosition.run { atan2(x, -y) } + 2 * PI) % (2 * PI)
+                                onPositionChange((newAngle / (2 * PI) * steps).roundToInt() % steps)
                                 // TODO: Handle haptic feedback
                             }
 
                             val down = awaitFirstDown()
+                            val startInteraction = DragInteraction.Start()
+                            interactionSource.tryEmit(startInteraction)
                             updatePosition(down.position)
 
                             while(true) {
                                 val event = awaitPointerEvent()
                                 val change = event.changes.first { it.id == down.id }
 
-                                if(change.changedToUpIgnoreConsumed())
+                                if(change.changedToUpIgnoreConsumed()) {
+                                    interactionSource.tryEmit(DragInteraction.Stop(startInteraction))
                                     break
+                                }
 
                                 updatePosition(change.position)
                                 change.consumeAllChanges()
@@ -116,7 +132,10 @@ object TimePicker {
                             .fillMaxSize()
                     ) {
                         val angle = getAngle(position).toFloat()
-                        val radius = size.width/2 - paddingRadius.toPx() - 12.dp.toPx()
+                        // TODO: Investigate if labels are truly positioned in a circle and not a
+                        //       oval that almost appears as a circle
+                        // TODO: Determine the best value for the final arm adjustment
+                        val radius = size.width/2 - paddingRadius.toPx() - 8.dp.toPx()
 
                         val armEnd = center + Offset(
                             sin(angle)  * radius,
@@ -203,7 +222,8 @@ object TimePicker {
             value: Int,
             onValueChange: (Int) -> Unit,
             modifier: Modifier = Modifier,
-            is24hr: Boolean = DateFormat.is24HourFormat(LocalContext.current)
+            is24hr: Boolean = DateFormat.is24HourFormat(LocalContext.current),
+            interactionSource: MutableInteractionSource = remember { MutableInteractionSource() }
         ) = Dial(
             // TODO: Respect 12hr vs 24hr
             position = if(value == 12) 0 else value,
@@ -212,13 +232,15 @@ object TimePicker {
             labels = (0..11).associateWith {
                 NumberFormat.getInstance().format(if(it == 0) 12 else it)
             },
-            modifier = modifier
+            modifier = modifier,
+            interactionSource = interactionSource
         )
 
         @Composable fun MinuteDial(
             value: Int,
             onValueChange: (Int) -> Unit,
-            modifier: Modifier = Modifier
+            modifier: Modifier = Modifier,
+            interactionSource: MutableInteractionSource = remember { MutableInteractionSource() }
         ) = Dial(
             position = value,
             steps = 60,
@@ -226,7 +248,8 @@ object TimePicker {
             labels = (0..11).associate {
                 it * 5 to NumberFormat.getInstance().format(it * 5)
             },
-            modifier = modifier
+            modifier = modifier,
+            interactionSource = interactionSource
         )
 
         /**
@@ -341,8 +364,17 @@ object TimePicker {
         onDismissRequest: () -> Unit,
         title: @Composable () -> Unit = { Text("Select Time") }
     ) {
-        val (editMode, onEditModeChange) = rememberSaveableMutableState(EditMode.Picker)
+        // TODO: Seems as though there is bug in compose which causes the focus requesters
+        //       to be in an invalid state when created like this
+        //       Once fixed replace with is as its less verbose
+        //val (hourFocus, minuteFocus) = remember { FocusRequester.createRefs() }
+        val hourFocus   = remember { FocusRequester() }
+        val minuteFocus = remember { FocusRequester() }
 
+        val hourInteractionSource = remember { MutableInteractionSource() }
+        val minuteInteractionSource = remember { MutableInteractionSource() }
+
+        val (editMode, onEditModeChange) = rememberSaveableMutableState(EditMode.Picker)
         var selection by rememberSaveableMutableState(value)
 
         DialogLayout(
@@ -353,15 +385,22 @@ object TimePicker {
             textField = {
                 NumberField(
                     modifier = Modifier
+                        .focusRequester(hourFocus)
                         .size(
                             width  = 96.dp,
                             height = 80.dp
                         ),
                     label = { Text("Hour") },
-                    value = selection.get(ChronoField.HOUR_OF_AMPM),
-                    onValueChange = { selection = selection.withHour(it) },
+                    value = selection.get(ChronoField.HOUR_OF_AMPM).let { if(it == 0) 12 else it },
+                    onValueChange = {
+                        // if the user provides value > 12 should treat as 24hr time
+                        // Otherwise handle as 12hr time
+                        selection = if(it <= 12) selection.with(ChronoField.HOUR_OF_AMPM, (if(it == 12) 0 else it).toLong())
+                        else selection.withHour(it)
+                    },
                     onFormatError = { value, e -> },
-                    readOnly = editMode == EditMode.Picker
+                    readOnly = editMode == EditMode.Picker,
+                    interactionSource = hourInteractionSource
                 )
                 Text(
                     modifier = Modifier.width(24.dp),
@@ -369,16 +408,18 @@ object TimePicker {
                 )
                 NumberField(
                     modifier = Modifier
+                        .focusRequester(minuteFocus)
                         .size(
                             width  = 96.dp,
                             height = 80.dp
                         ),
                     label = { Text("Minute") },
                     value = selection.minute,
-                    onValueChange = { selection = selection.withHour(it) },
+                    onValueChange = { selection = selection.withMinute(it) },
                     format = "%02d",
                     onFormatError = { value, e -> },
-                    readOnly = editMode == EditMode.Picker
+                    readOnly = editMode == EditMode.Picker,
+                    interactionSource = minuteInteractionSource
                 )
 
                 Spacer(Modifier.padding(12.dp))
@@ -391,6 +432,27 @@ object TimePicker {
                 )
             },
             dial = {
+                val hourDialInteractionSource = remember { MutableInteractionSource() }
+                val minuteFocused by minuteInteractionSource.collectIsFocusedAsState()
+
+                LaunchedEffect(hourDialInteractionSource) {
+                    hourDialInteractionSource.interactions.collect {
+                        if(it is DragInteraction.Stop)
+                            minuteFocus.requestFocus()
+                    }
+                }
+
+                when {
+                    minuteFocused -> Components.MinuteDial(
+                        value = selection.minute,
+                        onValueChange = { selection = selection.withMinute(it) }
+                    )
+                    else -> Components.HourDial(
+                        value = selection[ChronoField.HOUR_OF_AMPM],
+                        onValueChange = { selection = selection.with(ChronoField.HOUR_OF_AMPM, it.toLong()) },
+                        interactionSource = hourDialInteractionSource
+                    )
+                }
             },
             buttons = {
                 Button(onClick = onDismissRequest) { Text("Cancel") }
@@ -398,5 +460,9 @@ object TimePicker {
                 Button(onClick = { onValueSelected(selection) }) { Text("OK") }
             }
         )
+
+        LaunchedEffect(Unit) {
+            hourFocus.requestFocus()
+        }
     }
 }
