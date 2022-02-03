@@ -20,6 +20,8 @@ import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Keyboard
 import androidx.compose.ui.*
 import androidx.compose.ui.layout.*
 import androidx.compose.ui.graphics.*
@@ -29,6 +31,7 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.pointer.*
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.*
 import androidx.compose.ui.window.*
 import kotlinx.coroutines.delay
@@ -37,6 +40,8 @@ import kotlinx.coroutines.flow.collect
 import uk.co.sksulai.multitasker.ui.component.NumberField
 import uk.co.sksulai.multitasker.util.rememberSaveableMutableState
 
+
+@ExperimentalUnitApi
 @ExperimentalComposeUiApi
 @ExperimentalGraphicsApi
 object TimePicker {
@@ -343,17 +348,70 @@ object TimePicker {
         textField: @Composable RowScope.() -> Unit,
         dial: @Composable () -> Unit,
         buttons: @Composable RowScope.() -> Unit
-    ) = Dialog(onDismissRequest) { Surface(
-        shape = MaterialTheme.shapes.medium
-    ) {
+    ) = Dialog(
+        onDismissRequest,
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) { Surface(shape = MaterialTheme.shapes.medium) {
         Column {
-            title()
-            Row {
-                textField()
+            Box(
+                Modifier
+                    .padding(start = 12.dp)
+                    .paddingFromBaseline(
+                        top = 28.dp,
+                        bottom = 24.dp
+                    )
+            ) {
+                CompositionLocalProvider(LocalContentAlpha provides ContentAlpha.medium) {
+                    ProvideTextStyle(MaterialTheme.typography.caption, title)
+                }
             }
-            dial()
-            Row {
-                buttons()
+
+            ProvideTextStyle(
+                LocalTextStyle.current.copy(
+                    fontSize  = TextUnit(24f, TextUnitType.Sp),
+                    textAlign = TextAlign.Center
+                )
+            ) {
+                Row(
+                    Modifier.padding(horizontal = 24.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    textField()
+                }
+            }
+            if(editMode == EditMode.Picker) Box(
+                Modifier
+                    .padding(horizontal = 36.dp)
+                    .padding(top = 36.dp, bottom = 16.dp)
+                    .align(Alignment.CenterHorizontally)
+            ) {
+                dial()
+            }
+            Box(
+                Modifier
+                    .width(328.dp)
+                    .padding(
+                        top = 8.dp,
+                        bottom = 8.dp,
+                        start = 16.dp,
+                        end = 8.dp,
+                    )
+            ) {
+                IconButton(
+                    modifier = Modifier.align(Alignment.CenterStart),
+                    onClick = {
+                        onEditModeChange(when(editMode) {
+                            EditMode.Keyboard -> EditMode.Picker
+                            EditMode.Picker   -> EditMode.Keyboard
+                        })
+                    }
+                ) {
+                    Icon(Icons.Default.Keyboard, null)
+                }
+                Row(
+                    Modifier.align(Alignment.CenterEnd),
+                    content = buttons
+                )
             }
         }
     } }
