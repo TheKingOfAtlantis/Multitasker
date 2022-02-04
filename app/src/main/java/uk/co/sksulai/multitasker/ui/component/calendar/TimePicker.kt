@@ -109,8 +109,8 @@ object TimePicker {
         /**
          * Generic based from which the hour and minute dials built
          *
-         * @param position The current index position of the dial hand (in range 0..[steps])
-         * @param onPositionChange Called when the user moves the dial to a new position
+         * @param value The current index position of the dial hand (in range 0..[steps])
+         * @param onValueChange Called when the user moves the dial to a new position
          * @param steps    The number of steps around the dial
          * @param labels   Set of labels to be placed at specific positions around the dial
          * @param modifier Modifier to be applied to the dial
@@ -121,8 +121,8 @@ object TimePicker {
          *                 interactions with the dial
          */
         @Composable private fun Dial(
-            position: Int,
-            onPositionChange: (Int) -> Unit,
+            value: Int,
+            onValueChange: (Int) -> Unit,
             steps: Int,
             labels: Map<Int, String>,
             modifier: Modifier = Modifier,
@@ -130,8 +130,8 @@ object TimePicker {
             interactionSource: MutableInteractionSource = remember { MutableInteractionSource() },
             colour: TimePickerColour
         ) {
-            if(position !in 0 until steps) throw IndexOutOfBoundsException(
-                "Expected position to be in the range [0, steps: ${steps}) but was: $position"
+            if(value !in 0 until steps) throw IndexOutOfBoundsException(
+                "Expected position to be in the range [0, steps: ${steps}) but was: $value"
             )
 
             val diameter      = 256.dp
@@ -181,7 +181,7 @@ object TimePicker {
                                 // Ignore the centre
                                 if(ring > rings - 1) return
 
-                                onPositionChange(run {
+                                onValueChange(run {
                                     val ringOffset   = ring * stepsPerRing
                                     val ringPosition = (newAngle/(2 * PI) * stepsPerRing).roundToInt() % stepsPerRing
 
@@ -224,8 +224,8 @@ object TimePicker {
                             .layoutId("arm")
                             .fillMaxSize()
                     ) {
-                        val angle = getAngle(position).toFloat()
-                        val track = getRing(position)
+                        val angle = getAngle(value)
+                        val track = getRing(value)
                         // TODO: Investigate if labels are truly positioned in a circle and not a
                         //       oval that almost appears as a circle
                         // TODO: Determine the best value for the final arm adjustment
@@ -251,7 +251,7 @@ object TimePicker {
                             radius = selectionRadius.toPx(),
                             center = armEnd
                         )
-                        if(position !in labels.keys)
+                        if(value !in labels.keys)
                             drawCircle(
                                 Color.hsl(1f, 1f, .55f),
                                 radius = 2.dp.toPx(),
@@ -323,14 +323,14 @@ object TimePicker {
             colour: TimePickerColour,
             interactionSource: MutableInteractionSource = remember { MutableInteractionSource() }
         ) = Dial(
-            position = when {
+            value = when {
                 value == 12 -> 0
                 is24hr && value == 0 -> 12
                 else -> value
             },
             steps = if(is24hr) 24 else 12,
             rings = if(is24hr) 2 else 1,
-            onPositionChange = if(!is24hr) onValueChange else { {
+            onValueChange = if(!is24hr) onValueChange else { {
                 onValueChange(when(it) {
                     0 -> 12
                     12 -> 0
@@ -358,9 +358,9 @@ object TimePicker {
             colour: TimePickerColour,
             interactionSource: MutableInteractionSource = remember { MutableInteractionSource() }
         ) = Dial(
-            position = value,
+            value = value,
             steps = 60,
-            onPositionChange = onValueChange,
+            onValueChange = onValueChange,
             labels = (0..11).associate {
                 it * 5 to NumberFormat.getInstance().format(it * 5)
             },
