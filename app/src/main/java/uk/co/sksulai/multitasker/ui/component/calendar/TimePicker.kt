@@ -6,6 +6,7 @@ import java.text.NumberFormat
 import java.time.LocalTime
 import java.time.temporal.ChronoField
 import android.text.format.DateFormat
+import androidx.compose.animation.core.*
 import kotlinx.coroutines.flow.collect
 
 import androidx.compose.runtime.*
@@ -28,6 +29,7 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.pointer.*
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.*
 import androidx.compose.ui.window.*
@@ -158,7 +160,7 @@ object TimePicker {
                 // Divide the number of steps by the number of rings to get the number of divisions
                 // of the dial at each ring level
                 // Then wrap the angle to 360°/2π
-                ((2 * PI) * (position.toFloat()/(steps/rings)) % (2 * PI))
+                ((2 * PI) * (position.toFloat()/(steps/rings)) % (2 * PI)).toFloat()
 
             Layout(
                 modifier = modifier.drawBehind {
@@ -178,8 +180,8 @@ object TimePicker {
                                 // Then coarse value to ensure we don't try and get value from a non-existent track
                                 val ring = ((radius.toPx() - newPosition.getDistance())/ringWidth.toPx()).toInt()
 
-                                // Ignore the centre
-                                if(ring > rings - 1) return
+                                // Ignore the centre and outside the dial
+                                if (ring > rings - 1 || ring < 0) return
 
                                 onValueChange(run {
                                     val ringOffset   = ring * stepsPerRing
@@ -219,28 +221,33 @@ object TimePicker {
                         )
                     }
 
+                    val armPosition by with(LocalDensity.current) {
+                        // TODO: Make 0 <-> 360 transition smooth
+                        //       Uncomment once done
+                        // val angle by animateFloatAsState(getAngle(position).toFloat())
+                        val angle = getAngle(value)
+                        val track = getRing(value)
+                        val armLength = radius - paddingRadius - 8.dp - ringWidth * track
+
+                        animateOffsetAsState(Offset(radius.toPx(), radius.toPx()) + Offset(
+                            sin(angle)  * armLength.toPx(),
+                            -cos(angle) * armLength.toPx()
+                        ))
+                    }
                     Canvas(
                         Modifier
                             .layoutId("arm")
                             .fillMaxSize()
                     ) {
-                        val angle = getAngle(value)
-                        val track = getRing(value)
                         // TODO: Investigate if labels are truly positioned in a circle and not a
                         //       oval that almost appears as a circle
                         // TODO: Determine the best value for the final arm adjustment
-                        val radius = size.width/2 - paddingRadius.toPx() - 8.dp.toPx() - ringWidth.toPx() * track
-
-                        val armEnd = center + Offset(
-                            sin(angle)  * radius,
-                            -cos(angle) * radius
-                        )
 
                         // Clock dial arm
                         drawLine(
                             selectionColour,
                             start = center,
-                            end   = armEnd,
+                            end = armPosition,
                             strokeWidth = 2.dp.toPx()
                         )
 
@@ -249,13 +256,13 @@ object TimePicker {
                         drawCircle(
                             selectionColour,
                             radius = selectionRadius.toPx(),
-                            center = armEnd
+                            center = armPosition
                         )
                         if(value !in labels.keys)
                             drawCircle(
                                 Color.hsl(1f, 1f, .55f),
                                 radius = 2.dp.toPx(),
-                                center = armEnd,
+                                center = armPosition,
                                 blendMode = BlendMode.Lighten
                             )
 
@@ -287,7 +294,7 @@ object TimePicker {
 
                     labelPlaceables.forEach { (position, placeable) ->
                         val ring  = getRing(position)
-                        val angle = getAngle(position).toFloat()
+                        val angle = getAngle(position)
                         val x = run {
                             val pos = radius * (1 + sin(angle))
                             val sizeCorrection = placeable.width.toDp()  * .5f * (sin(angle - PI.toFloat()) - 1)
