@@ -6,6 +6,7 @@ import java.text.NumberFormat
 import java.time.LocalTime
 import java.time.temporal.ChronoField
 import android.text.format.DateFormat
+import android.view.HapticFeedbackConstants
 import androidx.compose.animation.core.*
 import kotlinx.coroutines.flow.collect
 
@@ -30,6 +31,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.pointer.*
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.*
 import androidx.compose.ui.window.*
@@ -132,6 +134,8 @@ object TimePicker {
             interactionSource: MutableInteractionSource = remember { MutableInteractionSource() },
             colour: TimePickerColour
         ) {
+            val view = LocalView.current
+
             if(value !in 0 until steps) throw IndexOutOfBoundsException(
                 "Expected position to be in the range [0, steps: ${steps}) but was: $value"
             )
@@ -162,6 +166,9 @@ object TimePicker {
                 // Then wrap the angle to 360°/2π
                 ((2 * PI) * (position.toFloat()/(steps/rings)) % (2 * PI)).toFloat()
 
+            // Create a state which we can update so we know what the current value is
+            // when handling the touch gesture
+            val indexState = rememberUpdatedState(value)
             Layout(
                 modifier = modifier.drawBehind {
                     drawCircle(
@@ -179,36 +186,46 @@ object TimePicker {
                                 // Work out which track the pointer in on
                                 // Then coarse value to ensure we don't try and get value from a non-existent track
                                 val ring = ((radius.toPx() - newPosition.getDistance())/ringWidth.toPx()).toInt()
-
                                 // Ignore the centre and outside the dial
                                 if (ring > rings - 1 || ring < 0) return
 
-                                onValueChange(run {
+                                val index = run {
                                     val ringOffset   = ring * stepsPerRing
                                     val ringPosition = (newAngle/(2 * PI) * stepsPerRing).roundToInt() % stepsPerRing
 
                                     ringPosition + ringOffset
-                                })
-                                // TODO: Handle haptic feedback
+                                }
+                                if(index != indexState.value) {
+                                    // TODO: Replace with LocalHapticFeedback when it supports more types
+                                    onValueChange(index)
+                                    view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+                                }
                             }
 
+                            // Get the position of the initial touch
                             val down = awaitFirstDown()
-                            val startInteraction = DragInteraction.Start()
-                            interactionSource.tryEmit(startInteraction)
                             updatePosition(down.position)
 
-                            while(true) {
-                                val event = awaitPointerEvent()
+                            // Emit a start drag interaction once we've started
+                            val startInteraction = DragInteraction.Start()
+                            interactionSource.tryEmit(startInteraction)
+
+                            do {
+                                val event  = awaitPointerEvent()
                                 val change = event.changes.first { it.id == down.id }
 
+                                // If the pointer has been lifted then emit a stop drag interaction
+                                // Then break out of this loop
                                 if(change.changedToUpIgnoreConsumed()) {
                                     interactionSource.tryEmit(DragInteraction.Stop(startInteraction))
                                     break
                                 }
-
-                                updatePosition(change.position)
-                                change.consumeAllChanges()
-                            }
+                                // When the position has changed update the index and consume changes
+                                if(change.positionChanged()) {
+                                    updatePosition(change.position)
+                                    change.consumeAllChanges()
+                                }
+                            } while(true)
                         }
                     }
                 },
@@ -234,6 +251,7 @@ object TimePicker {
                             -cos(angle) * armLength.toPx()
                         ))
                     }
+
                     Canvas(
                         Modifier
                             .layoutId("arm")
