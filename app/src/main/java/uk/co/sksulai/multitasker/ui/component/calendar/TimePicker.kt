@@ -19,6 +19,7 @@ import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Keyboard
 import androidx.compose.ui.*
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.*
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.draw.drawBehind
@@ -34,6 +35,67 @@ import androidx.compose.ui.window.*
 import uk.co.sksulai.multitasker.ui.component.NumberField
 import uk.co.sksulai.multitasker.util.rememberSaveableMutableState
 
+/**
+ * @param backgroundColour     The colour of the background
+ * @param dialBackgroundColour The background colour of the dial
+ * @param textColour           The colour of the text
+ * @param dialTextColour       The colour of text on the dial
+ * @param outlineColour        The colour of the AM/PM and text field outline
+ * @param selectionColour      The colour of the selection indicator
+ * @param dialArmColour        The colour of the arms on the dial
+ * @param selectionTextColour  The colour of the text of a selection
+ */
+@Immutable data class TimePickerColour(
+    private val backgroundColour: Color,
+    private val dialBackgroundColour: Color,
+    private val textColour: Color,
+    private val dialTextColour: Color,
+    val dialArmColour: Color,
+    val outlineColour: Color,
+    val selectionColour: Color,
+    val selectionTextColour: Color
+) {
+
+    @Composable fun textColour(
+        dial: Boolean = false,
+        selection: Boolean = false
+    ) = rememberUpdatedState(when {
+        dial -> dialTextColour
+        selection -> selectionTextColour
+        else -> textColour
+    })
+
+    @Composable fun backgroundColour(
+        dial: Boolean = false,
+        selection: Boolean = false
+    ) = rememberUpdatedState(when {
+        dial -> dialBackgroundColour
+        selection -> selectionColour
+        else -> backgroundColour
+    })
+}
+
+@Stable object TimePickerDefault {
+    @Composable fun colour(
+        backgroundColour: Color = MaterialTheme.colors.surface,
+        dialBackgroundColour: Color = MaterialTheme.colors.secondaryVariant,
+        textColour: Color = MaterialTheme.colors.contentColorFor(backgroundColour),
+        dialTextColour: Color = MaterialTheme.colors.contentColorFor(dialBackgroundColour),
+        outlineColour: Color = MaterialTheme.colors.onSurface.copy(ContentAlpha.disabled),
+        selectionColour: Color = MaterialTheme.colors.primary,
+        dialArmColour: Color = MaterialTheme.colors.secondary,
+        selectionTextColour: Color = MaterialTheme.colors.contentColorFor(selectionColour)
+    ) = TimePickerColour(
+        backgroundColour = backgroundColour,
+        dialBackgroundColour = dialBackgroundColour,
+        textColour = textColour,
+        dialTextColour = dialTextColour,
+        outlineColour = outlineColour,
+        selectionColour = selectionColour,
+        dialArmColour = dialArmColour,
+        selectionTextColour = selectionTextColour
+    )
+}
 
 @ExperimentalUnitApi
 @ExperimentalComposeUiApi
@@ -58,14 +120,15 @@ object TimePicker {
          * @param interactionSource A stream of interactions which can be used to observe the user's
          *                 interactions with the dial
          */
-        @Composable fun Dial(
+        @Composable private fun Dial(
             position: Int,
             onPositionChange: (Int) -> Unit,
             steps: Int,
             labels: Map<Int, String>,
             modifier: Modifier = Modifier,
             rings: Int = 1,
-            interactionSource: MutableInteractionSource = remember { MutableInteractionSource() }
+            interactionSource: MutableInteractionSource = remember { MutableInteractionSource() },
+            colour: TimePickerColour
         ) {
             if(position !in 0 until steps) throw IndexOutOfBoundsException(
                 "Expected position to be in the range [0, steps: ${steps}) but was: $position"
@@ -76,9 +139,9 @@ object TimePicker {
             val radius        = diameter/2
             val ringWidth     = 36.dp
 
-            val armColour = MaterialTheme.colors.primary
-            val dialBackground = LocalContentColor.current
-                .copy(alpha = ContentAlpha.disabled)
+            val selectionColour = colour.dialArmColour
+            val dialBackgroundColour by colour.backgroundColour(dial = true, selection = true)
+            val dialTextColour by colour.textColour(dial = true)
 
             /**
              * The number of steps in each ring
@@ -100,7 +163,7 @@ object TimePicker {
             Layout(
                 modifier = modifier.drawBehind {
                     drawCircle(
-                        dialBackground,
+                        dialBackgroundColour,
                         radius = radius.toPx(),
                     )
                 }
@@ -151,7 +214,8 @@ object TimePicker {
                     labels.forEach { (position, hour) ->
                         Text(
                             text = hour,
-                            modifier = Modifier.layoutId("label-$position")
+                            modifier = Modifier.layoutId("label-$position"),
+                            color = dialTextColour
                         )
                     }
 
@@ -174,7 +238,7 @@ object TimePicker {
 
                         // Clock dial arm
                         drawLine(
-                            armColour,
+                            selectionColour,
                             start = center,
                             end   = armEnd,
                             strokeWidth = 2.dp.toPx()
@@ -183,7 +247,7 @@ object TimePicker {
                         val selectionRadius = 20.dp
                         // Selection indicator
                         drawCircle(
-                            armColour,
+                            selectionColour,
                             radius = selectionRadius.toPx(),
                             center = armEnd
                         )
@@ -197,7 +261,7 @@ object TimePicker {
 
                         // Dial centre
                         drawCircle(
-                            armColour,
+                            selectionColour,
                             radius = 4.dp.toPx(),
                         )
                     }
@@ -256,6 +320,7 @@ object TimePicker {
             onValueChange: (Int) -> Unit,
             modifier: Modifier = Modifier,
             is24hr: Boolean,
+            colour: TimePickerColour,
             interactionSource: MutableInteractionSource = remember { MutableInteractionSource() }
         ) = Dial(
             position = when {
@@ -282,6 +347,7 @@ object TimePicker {
                 }
                 else (0..11).associateWith { DateTimeFormatter.ofPattern("H").format(LocalTime.of(it, 0)) },
             modifier = modifier,
+            colour = colour,
             interactionSource = interactionSource
         )
 
@@ -289,6 +355,7 @@ object TimePicker {
             value: Int,
             onValueChange: (Int) -> Unit,
             modifier: Modifier = Modifier,
+            colour: TimePickerColour,
             interactionSource: MutableInteractionSource = remember { MutableInteractionSource() }
         ) = Dial(
             position = value,
@@ -298,6 +365,7 @@ object TimePicker {
                 it * 5 to NumberFormat.getInstance().format(it * 5)
             },
             modifier = modifier,
+            colour = colour,
             interactionSource = interactionSource
         )
 
@@ -312,18 +380,20 @@ object TimePicker {
             value: DayDivision,
             onValueSelected: (DayDivision) -> Unit,
             modifier: Modifier = Modifier,
+            colour: TimePickerColour,
         ) {
             // TODO: Handle orientation
             // TODO: Move colours into a single source of truth
 
-            val borderColour = MaterialTheme.colors.onSurface.copy(ContentAlpha.medium)
-            val selectionColour = MaterialTheme.colors.primary
-            val selectionTextColour = MaterialTheme.colors.contentColorFor(selectionColour)
-            val textColour = LocalContentColor.current
+            val borderColour = colour.outlineColour
+            val selectionColour by colour.backgroundColour(selection = true)
+            val selectionTextColour by colour.textColour(selection = true)
+            val textColour by colour.textColour()
 
-            fun Modifier.selectionBackground(isSelection: Boolean, shape: Shape) =
-                if(isSelection) this.background(selectionColour, shape)
+            fun Modifier.selectionBackground(isSelection: Boolean, shape: Shape) = this.clip(shape).run {
+                if(isSelection) background(selectionColour, shape)
                 else this
+            }
 
             Column(
                 modifier
@@ -385,6 +455,8 @@ object TimePicker {
     }
 
     @Composable private fun DialogLayout(
+        shape: Shape,
+        colour: TimePickerColour,
         editMode: EditMode,
         onEditModeChange: (EditMode) -> Unit,
         onDismissRequest: () -> Unit,
@@ -395,7 +467,10 @@ object TimePicker {
     ) = Dialog(
         onDismissRequest,
         properties = DialogProperties(usePlatformDefaultWidth = false)
-    ) { Surface(shape = MaterialTheme.shapes.medium) {
+    ) { Surface(
+        shape = shape,
+        color = colour.backgroundColour().value
+    ) {
         Column {
             Box(
                 Modifier
@@ -417,8 +492,10 @@ object TimePicker {
                 )
             ) {
                 Row(
-                    Modifier.padding(horizontal = 24.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                    Modifier
+                        .padding(horizontal = 24.dp)
+                        .align(Alignment.CenterHorizontally),
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
                     textField()
                 }
@@ -464,8 +541,11 @@ object TimePicker {
         value: LocalTime,
         onValueSelected: (LocalTime) -> Unit,
         onDismissRequest: () -> Unit,
-        title: @Composable () -> Unit = { Text("Select Time") }
+        modifier: Modifier = Modifier,
+        title: @Composable () -> Unit = { Text("Select Time") },
         is24hr: Boolean = DateFormat.is24HourFormat(LocalContext.current),
+        shape: Shape = MaterialTheme.shapes.medium,
+        colour: TimePickerColour = TimePickerDefault.colour()
     ) {
         // TODO: Seems as though there is bug in compose which causes the focus requesters
         //       to be in an invalid state when created like this
@@ -481,6 +561,8 @@ object TimePicker {
         var selection by rememberSaveableMutableState(value)
 
         DialogLayout(
+            shape,
+            colour,
             editMode,
             onEditModeChange,
             onDismissRequest,
@@ -550,7 +632,8 @@ object TimePicker {
                         value = if (selection.get(ChronoField.AMPM_OF_DAY) == 0) DayDivision.AM else DayDivision.PM,
                         onValueSelected = {
                             selection = selection.with(ChronoField.AMPM_OF_DAY, it.ordinal.toLong())
-                        }
+                        },
+                        colour = colour
                     )
                 }
             },
@@ -568,7 +651,8 @@ object TimePicker {
                 when {
                     minuteFocused -> Components.MinuteDial(
                         value = selection.minute,
-                        onValueChange = { selection = selection.withMinute(it) }
+                        onValueChange = { selection = selection.withMinute(it) },
+                        colour = colour
                     )
                     else -> Components.HourDial(
                         value = if(is24hr) selection.hour else selection[ChronoField.HOUR_OF_AMPM],
@@ -577,7 +661,8 @@ object TimePicker {
                             else selection.with(ChronoField.HOUR_OF_AMPM, it.toLong())
                         },
                         interactionSource = hourDialInteractionSource,
-                        is24hr = is24hr
+                        is24hr = is24hr,
+                        colour = colour
                     )
                 }
             },
