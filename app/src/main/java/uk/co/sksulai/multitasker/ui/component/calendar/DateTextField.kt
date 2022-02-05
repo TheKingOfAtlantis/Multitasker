@@ -19,6 +19,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.ui.ExperimentalComposeUiApi
+import androidx.compose.ui.graphics.ExperimentalGraphicsApi
+import androidx.compose.ui.unit.ExperimentalUnitApi
 import com.google.accompanist.pager.ExperimentalPagerApi
 
 import uk.co.sksulai.multitasker.util.*
@@ -228,8 +231,11 @@ import uk.co.sksulai.multitasker.util.*
  * (including label, placeholder, leading and trailing icons, border) for this text field in
  * different states. See [TextFieldDefaults.outlinedTextFieldColors]
  */
+@ExperimentalComposeUiApi
 @ExperimentalFoundationApi
+@ExperimentalGraphicsApi
 @ExperimentalPagerApi
+@ExperimentalUnitApi
 @Composable fun DateTimeField(
     value: LocalDateTime,
     onValueChange: (LocalDateTime) -> Unit,
@@ -306,5 +312,13 @@ import uk.co.sksulai.multitasker.util.*
             showDatePicker = false
         },
         onDismissRequest = { showDatePicker = false }
+    )
+    if(showTimePicker) TimePicker.Dialog(
+        value = value.toLocalTime(),
+        onValueSelected = {
+            onValueChange(it.atDate(value.toLocalDate()))
+            showTimePicker = false
+        },
+        onDismissRequest = { showTimePicker = false }
     )
 }

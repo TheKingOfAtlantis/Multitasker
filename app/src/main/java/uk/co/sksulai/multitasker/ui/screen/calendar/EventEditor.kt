@@ -184,9 +184,12 @@ val EventCategories = listOf(
  *
  * @param calendarViewModel
  */
+@ExperimentalComposeUiApi
 @ExperimentalFoundationApi
 @ExperimentalMaterialApi
+@ExperimentalGraphicsApi
 @ExperimentalPagerApi
+@ExperimentalUnitApi
 @Composable private fun EventEditorLayout(
     calendar: CalendarModel?,
     colour: NamedColour?,
@@ -429,9 +432,12 @@ val EventCategories = listOf(
  * @param onDismissRequest  The user has requested that event creation UI be dismissed
  * @param calendarViewModel Used to provide access to the database
  */
+@ExperimentalComposeUiApi
 @ExperimentalFoundationApi
 @ExperimentalMaterialApi
+@ExperimentalGraphicsApi
 @ExperimentalPagerApi
+@ExperimentalUnitApi
 @Composable fun EventCreation(
     onDismissRequest: () -> Unit,
     calendarViewModel: CalendarViewModel = hiltViewModel()
