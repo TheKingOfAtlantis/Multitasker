@@ -370,7 +370,7 @@ object TimePicker {
                         else -> it
                     }, 0))
                 }
-                else (0..11).associateWith { DateTimeFormatter.ofPattern("H").format(LocalTime.of(it, 0)) },
+                else (0..11).associateWith { DateTimeFormatter.ofPattern("h").format(LocalTime.of(it, 0)) },
             modifier = modifier,
             colour = colour,
             interactionSource = interactionSource
