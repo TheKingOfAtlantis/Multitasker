@@ -8,15 +8,15 @@ interface EventDataSource {
     /**
      * Insert an event
      */
-    fun insert(event: EventModel)
+    suspend fun insert(event: EventModel)
     /**
      * Updates an event
      */
-    fun update(event: EventModel)
+    suspend fun update(event: EventModel)
     /**
      * Deletes an event
      */
-    fun delete(event: EventModel)
+    suspend fun delete(event: EventModel)
 
     /**
      * Retrieves a list of all the [EventModel]s

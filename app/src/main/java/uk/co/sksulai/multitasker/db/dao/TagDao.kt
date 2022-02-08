@@ -8,10 +8,10 @@ import androidx.room.*
 import uk.co.sksulai.multitasker.db.model.*
 import uk.co.sksulai.multitasker.db.datasource.TagDataSource
 
-@Dao abstract class TagDao : TagDataSource {
-    @Insert abstract override fun insert(vararg tag: EventTagModel)
-    @Update abstract override fun update(vararg tag: EventTagModel)
-    @Delete abstract override fun delete(vararg tag: EventTagModel)
+@Dao abstract class TagDao : TagDataSource, DatabaseService {
+    @Insert abstract override suspend fun insert(vararg tag: EventTagModel)
+    @Update abstract override suspend fun update(vararg tag: EventTagModel)
+    @Delete abstract override suspend fun delete(vararg tag: EventTagModel)
 
     @Query("Select * From EventTag")
     abstract override fun getAll(): Flow<List<EventTagModel>>
@@ -32,28 +32,28 @@ import uk.co.sksulai.multitasker.db.datasource.TagDataSource
     /**
      * Inserts a entry to the junction table
      */
-    @Insert protected abstract fun insert(vararg junction: EventTagJunction)
+    @Insert protected abstract suspend fun insert(vararg junction: EventTagJunction)
     /**
      * Deletes an entry in the junction table
      */
-    @Delete protected abstract fun delete(vararg junction: EventTagJunction)
+    @Delete protected abstract suspend fun delete(vararg junction: EventTagJunction)
     /**
      * Get entries in the junction table
      */
     @Query("Select * From EventTagJunction Where tagID == :id")
-    protected abstract fun junctionFromID(vararg id: UUID): List<EventTagJunction>
+    protected abstract fun junctionFromID(vararg id: UUID): Flow<List<EventTagJunction>>
 
-    override fun associate(event: EventModel, tag: EventTagModel) {
+    override suspend fun associate(event: EventModel, tag: EventTagModel) {
         insert(EventTagJunction(event.eventID, tag.tagID))
     }
-    @Transaction override fun associate(event: EventModel, tags: List<EventTagModel>) {
+    @Transaction override suspend fun associate(event: EventModel, tags: List<EventTagModel>) {
         tags.map { EventTagJunction(event.eventID, it.tagID) }
             .toTypedArray()
-            .let(this::insert)
+            .let { insert(*it) }
     }
-    @Transaction override fun disassociate(event: EventModel, tags: List<EventTagModel>) {
+    @Transaction override suspend fun disassociate(event: EventModel, tags: List<EventTagModel>) {
         tags.map { EventTagJunction(event.eventID, it.tagID) }
             .toTypedArray()
-            .let(this::delete)
+            .let { delete(*it) }
     }
 }

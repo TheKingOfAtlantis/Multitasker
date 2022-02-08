@@ -8,10 +8,10 @@ import androidx.room.*
 import uk.co.sksulai.multitasker.db.model.*
 import uk.co.sksulai.multitasker.db.datasource.EventDataSource
 
-@Dao interface EventDao : EventDataSource {
-    @Insert override fun insert(event: EventModel)
-    @Update override fun update(event: EventModel)
-    @Delete override fun delete(event: EventModel)
+@Dao interface EventDao : EventDataSource, DatabaseService {
+    @Insert override suspend fun insert(event: EventModel)
+    @Update override suspend fun update(event: EventModel)
+    @Delete override suspend fun delete(event: EventModel)
 
     @Query("Select * From Event") override fun getAll(): Flow<List<EventModel>>
     @Query("Select * From Event")

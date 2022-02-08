@@ -223,17 +223,17 @@ class CalendarRepo @Inject constructor(
      * Inserts a calendar into the database
      * @param calendar The calendar that is to be added
      */
-    suspend fun insert(calendar: CalendarModel): Unit = withContext(ioDispatcher) { calendar.also(calendarDao::insert) }
+    suspend fun insert(calendar: CalendarModel): Unit = withContext(ioDispatcher) { calendar.also { calendarDao.insert(it) } }
     /**
      * Inserts an event into the database
      * @param event The calendar that is to be added
      */
-    suspend fun insert(event: EventModel): Unit = withContext(ioDispatcher) { event.also(eventDao::insert) }
+    suspend fun insert(event: EventModel): Unit = withContext(ioDispatcher) { event.also { eventDao.insert(it) } }
     /**
      * Inserts a number of tags into the database
      * @param tags The tags that are to be added
      */
-    suspend fun insert(vararg tags: EventTagModel): Unit = withContext(ioDispatcher) { tags.also(tagDao::insert) }
+    suspend fun insert(vararg tags: EventTagModel): Unit = withContext(ioDispatcher) { tags.also { tagDao.insert(*it) } }
     /**
      * Updates a calendar
      * @param calendar Calendar model which has been modified
