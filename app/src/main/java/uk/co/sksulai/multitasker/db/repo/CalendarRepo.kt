@@ -11,17 +11,20 @@ import kotlinx.coroutines.flow.first
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 
+import androidx.room.withTransaction
+import uk.co.sksulai.multitasker.db.LocalDB
 import uk.co.sksulai.multitasker.db.dao.*
 import uk.co.sksulai.multitasker.db.model.*
-import uk.co.sksulai.multitasker.di.DispatcherIO
 
 class CalendarRepo @Inject constructor(
+    private val db: LocalDB,
     private val calendarDao: CalendarDao,
     private val eventDao: EventDao,
     private val tagDao: TagDao,
-    @DispatcherIO private val ioDispatcher: CoroutineDispatcher
 ) {
     // Creation
+    
+    suspend fun <R> withTransaction(block: suspend () -> R) = db.withTransaction(block)
 
     /**
      * Creates a calendar
@@ -98,17 +101,16 @@ class CalendarRepo @Inject constructor(
         location: String       = "",
         tags: List<String>     = emptyList(),
         parentID: UUID?        = null,
-    ) = EventWithTags(
-        createEvent(
+    ) = withTransaction {
+        EventWithTags(createEvent(
             calendar,
             name,
             description,
             allDay, start, duration, endTimeZone,
             colour, category, location,
             parentID
-        ),
-        createTags(tags)
-    ).also { (event, tags) -> tagDao.associate(event, tags) }
+        ), createTags(tags)).also { (event, tags) -> tagDao.associate(event, tags) }
+    }
     /**
      * Creates a event
      *
@@ -199,7 +201,7 @@ class CalendarRepo @Inject constructor(
      * @param tags List containing the requested tag contents
      * @return List of [EventTagModel]s which have been added to the database
      */
-    suspend fun createTags(tags: List<String>): List<EventTagModel> {
+    suspend fun createTags(tags: List<String>): List<EventTagModel> = withTransaction {
         // Get list of existing tags
         // Remove them from the given list to get those we need to create
         val exist = getTagFrom(tags).first()
@@ -210,7 +212,7 @@ class CalendarRepo @Inject constructor(
 
         // Just for niceness return the list in the same order as it was given
         val order = tags.mapIndexed { i, s -> s to i }.toMap()
-        return result.sortedBy { it.content.let(order::getValue) }
+        result.sortedBy { it.content.let(order::getValue) }
     }
 
     private suspend fun create(calendar: CalendarModel)   = calendar.also { insert(it) }
@@ -223,34 +225,35 @@ class CalendarRepo @Inject constructor(
      * Inserts a calendar into the database
      * @param calendar The calendar that is to be added
      */
-    suspend fun insert(calendar: CalendarModel): Unit = withContext(ioDispatcher) { calendar.also { calendarDao.insert(it) } }
+    suspend fun insert(calendar: CalendarModel): Unit = withTransaction { calendarDao.insert(calendar) }
     /**
      * Inserts an event into the database
      * @param event The calendar that is to be added
      */
-    suspend fun insert(event: EventModel): Unit = withContext(ioDispatcher) { event.also { eventDao.insert(it) } }
+    suspend fun insert(event: EventModel): Unit = withTransaction { eventDao.insert(event) }
+    
     /**
      * Inserts a number of tags into the database
      * @param tags The tags that are to be added
      */
-    suspend fun insert(vararg tags: EventTagModel): Unit = withContext(ioDispatcher) { tags.also { tagDao.insert(*it) } }
+    suspend fun insert(vararg tags: EventTagModel): Unit = withTransaction { tagDao.insert(*tags) }
     /**
      * Updates a calendar
      * @param calendar Calendar model which has been modified
      */
-    suspend fun update(calendar: CalendarModel) = withContext(ioDispatcher) { calendarDao.update(calendar) }
+    suspend fun update(calendar: CalendarModel) = withTransaction { calendarDao.update(calendar) }
     /**
      * Updates an event
      * @param event Event model which has been modified
      */
-    suspend fun update(event: EventModel) = withContext(ioDispatcher) { eventDao.update(event) }
+    suspend fun update(event: EventModel) = withTransaction { eventDao.update(event) }
 
     /**
      * Updates the list of tags associated with an event
      * @param event The event to modify
      * @param tags  List of tags to be added to the event
      */
-    suspend fun updateAssociatedTags(event: EventModel, tags: List<String>) {
+    suspend fun updateAssociatedTags(event: EventModel, tags: List<String>) = db.withTransaction {
         // Convert the list of given tags to EventTagModel
         // Create tags which don't exist yet and retrieve those which do
         val tagModels = createTags(tags) // Luckily createTags does all of that
@@ -259,7 +262,7 @@ class CalendarRepo @Inject constructor(
         updateAssociatedTags(getEventWithTags(event.eventID).first()!!, tagModels)
     }
 
-    private suspend fun updateAssociatedTags(event: EventWithTags, tags: List<EventTagModel>) {
+    private suspend fun updateAssociatedTags(event: EventWithTags, tags: List<EventTagModel>) = db.withTransaction {
         // Work out which are tags are new and which have been removed from the event
         // If no more events are associated with a tag remove the tag
 
@@ -282,17 +285,17 @@ class CalendarRepo @Inject constructor(
      * Deletes a calendar from the database
      * @param calendar Calendar to be removed
      */
-    suspend fun delete(calendar: CalendarModel) = withContext(ioDispatcher) { calendarDao.delete(calendar) }
+    suspend fun delete(calendar: CalendarModel) = withTransaction { calendarDao.delete(calendar) }
     /**
      * Deletes an event from the database
      * @param event Event to be removed
      */
-    suspend fun delete(event: EventModel) = withContext(ioDispatcher) { eventDao.delete(event) }
+    suspend fun delete(event: EventModel) = withTransaction { eventDao.delete(event) }
     /**
      * Deletes tags from the database
      * @param tags Tags to be removed
      */
-    suspend fun delete(tags: List<EventTagModel>) = withContext(ioDispatcher) { tagDao.delete(*tags.toTypedArray()) }
+    suspend fun delete(tags: List<EventTagModel>) = withTransaction { tagDao.delete(*tags.toTypedArray()) }
 
     // Getters
 
