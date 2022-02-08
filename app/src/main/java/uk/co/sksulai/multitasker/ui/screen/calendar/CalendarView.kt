@@ -2,6 +2,7 @@ package uk.co.sksulai.multitasker.ui.screen.calendar
 
 import androidx.compose.runtime.*
 import androidx.compose.material.*
+import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.animation.*
@@ -49,6 +50,7 @@ import uk.co.sksulai.multitasker.util.rememberMutableState
 }
 
 @OptIn(
+    ExperimentalFoundationApi::class,
     ExperimentalComposeUiApi::class,
     ExperimentalMaterialApi::class,
     ExperimentalMaterialNavigationApi::class,

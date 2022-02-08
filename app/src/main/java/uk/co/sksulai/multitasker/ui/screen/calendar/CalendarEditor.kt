@@ -1,22 +1,22 @@
 package uk.co.sksulai.multitasker.ui.screen.calendar
 
+import java.time.Duration
+
 import androidx.compose.runtime.*
+import androidx.compose.foundation.*
+import androidx.compose.foundation.text.*
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Save
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.ExperimentalComposeUiApi
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.graphics.Color
+import androidx.compose.material.icons.filled.*
+import androidx.compose.ui.*
+import androidx.compose.ui.focus.*
+import androidx.compose.ui.graphics.*
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
+
 import androidx.hilt.navigation.compose.hiltViewModel
 
 import uk.co.sksulai.multitasker.util.*
@@ -24,6 +24,7 @@ import uk.co.sksulai.multitasker.db.model.*
 import uk.co.sksulai.multitasker.db.viewmodel.*
 import uk.co.sksulai.multitasker.ui.component.*
 import uk.co.sksulai.multitasker.ui.component.graphics.*
+import uk.co.sksulai.multitasker.ui.component.calendar.ReminderField
 
 /**
  * Used as the basis for both the creation and editor dialogs. Used to provide all the
@@ -48,6 +49,7 @@ import uk.co.sksulai.multitasker.ui.component.graphics.*
  * @param userViewModel Viewmodel that is used to retrieve the list of potential owners
  *
  */
+@ExperimentalFoundationApi
 @ExperimentalComposeUiApi
 @ExperimentalMaterialApi
 @Composable private fun CalendarEditorLayout(
@@ -55,11 +57,13 @@ import uk.co.sksulai.multitasker.ui.component.graphics.*
     name: String,
     description: String,
     colour: NamedColour,
+    reminders: List<Duration>,
 
     onOwnerChange: (UserModel) -> Unit,
     onNameChange: (String) -> Unit,
     onDescriptionChange: (String) -> Unit,
     onColourChange: (NamedColour) -> Unit,
+    onRemindersChange: (List<Duration>) -> Unit,
 
     onSaveCalendar: () -> Unit,
     onDismissRequest: () -> Unit,
@@ -140,6 +144,19 @@ import uk.co.sksulai.multitasker.ui.component.graphics.*
         value = colour,
         onValueChange = { onColourChange(it) },
     )
+
+    Divider(Modifier.padding(vertical = 16.dp))
+
+    ReminderField(
+        reminders = reminders,
+        onNewReminder = {
+            if(it !in reminders)
+                onRemindersChange(reminders + it)
+        },
+        onRemoveReminder = { removed -> onRemindersChange(reminders.filterNot { it == removed }) }
+    )
+
+    Spacer(Modifier.height(24.dp))
 }
 
 /**
@@ -149,6 +166,7 @@ import uk.co.sksulai.multitasker.ui.component.graphics.*
  * @param calendarViewModel Used to create the calendar
  * @param userViewModel     Used to retrieve users
  */
+@ExperimentalFoundationApi
 @ExperimentalComposeUiApi
 @ExperimentalMaterialApi
 @Composable fun CalendarCreation(
@@ -162,18 +180,23 @@ import uk.co.sksulai.multitasker.ui.component.graphics.*
     var name        by rememberSaveableMutableState("")
     var description by rememberSaveableMutableState("")
     var colour      by rememberSaveableMutableState(DefaultColours.random())
+    var reminders   by rememberSaveableMutableState(emptyList<Duration>())
 
     CalendarEditorLayout(
         owner = owner,
         name  = name,
         description = description,
         colour = colour,
+        reminders = reminders,
+
         onOwnerChange = { /*TODO*/ },
         onNameChange = { name = it },
         onDescriptionChange = { description = it },
         onColourChange = { colour = it },
+        onRemindersChange = { reminders = it },
+
         onSaveCalendar = provideInScope(scope) {
-            calendarViewModel.createCalendar(owner!!, name, description, colour.colour)
+            calendarViewModel.createCalendar(owner!!, name, description, colour.colour, reminders)
             onDismissRequest()
         },
         onDismissRequest = onDismissRequest,

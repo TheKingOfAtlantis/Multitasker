@@ -201,6 +201,7 @@ val EventCategories = listOf(
     start: ZonedDateTime,
     end: ZonedDateTime,
     allDay: Boolean,
+    reminders: List<Duration>,
 
     onCalendarChange: (CalendarModel?) -> Unit,
     onColourChange: (NamedColour?) -> Unit,
@@ -212,6 +213,7 @@ val EventCategories = listOf(
     onStartChange: (ZonedDateTime) -> Unit,
     onEndChange: (ZonedDateTime) -> Unit,
     onAllDayChange: (Boolean) -> Unit,
+    onRemindersChange: (List<Duration>) -> Unit,
 
     childrenEditor: @Composable ColumnScope.() -> Unit,
 
@@ -382,6 +384,17 @@ val EventCategories = listOf(
 
             Divider(Modifier.padding(vertical = 16.dp))
 
+            ReminderField(
+                reminders = reminders,
+                onNewReminder = {
+                    if(it !in reminders)
+                        onRemindersChange(reminders + it)
+                },
+                onRemoveReminder = { removed -> onRemindersChange(reminders.filterNot { it == removed }) }
+            )
+
+            Divider(Modifier.padding(vertical = 16.dp))
+
             OutlinedTextField(
                 modifier = Modifier.padding(top = 8.dp),
                 label = { Text("Description") },
@@ -443,17 +456,24 @@ val EventCategories = listOf(
     calendarViewModel: CalendarViewModel = hiltViewModel()
 ) {
     val calendars by calendarViewModel.calendars.collectAsState(emptyList())
-    
-    var calendar: CalendarModel? by rememberSaveableMutableState(calendars.firstOrNull(), calendars)
-    var colour: NamedColour?     by rememberSaveableMutableState(null)
-    var name: String             by rememberSaveableMutableState("")
-    var description: String      by rememberSaveableMutableState("")
-    var category: String         by rememberSaveableMutableState(EventCategories[0])
+
+    var calendar: CalendarModel?  by rememberSaveableMutableState(calendars.firstOrNull(), calendars)
+    val calendarRules             by calendarViewModel.notificationsOf(calendar).collectAsState(emptyList())
+
+    var colour: NamedColour?      by rememberSaveableMutableState(null)
+    var name: String              by rememberSaveableMutableState("")
+    var description: String       by rememberSaveableMutableState("")
+    var category: String          by rememberSaveableMutableState(EventCategories[0])
     var location: String         by rememberSaveableMutableState("")
-    var tags: List<String>       by rememberSaveableMutableState(emptyList())
-    var start: ZonedDateTime     by rememberSaveableMutableState(ZonedDateTime.now())
-    var end: ZonedDateTime       by rememberSaveableMutableState(start + Duration.ofHours(1))
-    var allDay: Boolean          by rememberSaveableMutableState(false)
+    var tags: List<String>        by rememberSaveableMutableState(emptyList())
+    var start: ZonedDateTime      by rememberSaveableMutableState(ZonedDateTime.now())
+    var end: ZonedDateTime        by rememberSaveableMutableState(start + Duration.ofHours(1))
+    var allDay: Boolean           by rememberSaveableMutableState(false)
+
+    var reminders: List<Duration> by rememberSaveableMutableState(
+        calendarRules.map(NotificationRuleModel::duration),
+        calendarRules
+    )
 
     EventEditorLayout(
         calendar    = calendar,
@@ -466,6 +486,7 @@ val EventCategories = listOf(
         start       = start,
         end         = end,
         allDay      = allDay,
+        reminders   = reminders,
 
         onCalendarChange    = { calendar    = it },
         onColourChange      = { colour      = it },
@@ -474,9 +495,10 @@ val EventCategories = listOf(
         onCategoryChange    = { category    = it },
         onLocationChange    = { location    = it },
         onTagsChange        = { tags        = it },
+        onAllDayChange      = { allDay      = it },
         onStartChange       = { start       = it },
         onEndChange         = { end         = it },
-        onAllDayChange      = { allDay      = it },
+        onRemindersChange   = { reminders   = it },
 
         childrenEditor = {
             Text("Save first to add nested events")
@@ -509,6 +531,7 @@ val EventCategories = listOf(
                 start       = actualStart,
                 duration    = Duration.between(actualStart, actualEnd),
                 endTimeZone = actualEnd.timezone,
+                reminders   = reminders
             )
             onDismissRequest()
         },
