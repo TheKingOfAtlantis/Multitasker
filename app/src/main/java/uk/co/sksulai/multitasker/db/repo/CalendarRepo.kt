@@ -6,12 +6,13 @@ import java.util.*
 import javax.inject.Inject
 
 import kotlinx.coroutines.*
-import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.*
 
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 
 import androidx.room.withTransaction
+
 import uk.co.sksulai.multitasker.db.LocalDB
 import uk.co.sksulai.multitasker.db.dao.*
 import uk.co.sksulai.multitasker.db.model.*
@@ -282,7 +283,6 @@ class CalendarRepo @Inject constructor(
         // Convert the list of given tags to EventTagModel
         // Create tags which don't exist yet and retrieve those which do
         val tagModels = createTags(tags) // Luckily createTags does all of that
-
         // Get the current list of tags associated with the event
         updateAssociatedTags(getEventWithTags(event.eventID).first()!!, tagModels)
     }
@@ -346,8 +346,8 @@ class CalendarRepo @Inject constructor(
     }
     /**
      * Updates the list of notification rules associated with an event
-     * @param event The event to modify
-     * @param tags  List of notification times to be added to the event
+     * @param eventWithNotifications An event with its current notification rules
+     * @param rules The new list of notification offsets
      */
     suspend fun updateAssociatedReminders(eventWithNotifications: EventWithNotifications, rules: List<Duration>) = withTransaction {
         // First we need to ensure that we don't add rules already covered by the calendar
@@ -387,12 +387,22 @@ class CalendarRepo @Inject constructor(
      * Deletes a calendar from the database
      * @param calendar Calendar to be removed
      */
-    suspend fun delete(calendar: CalendarModel) = withTransaction { calendarDao.delete(calendar) }
+    suspend fun delete(calendar: CalendarModel) = withTransaction {
+        // Need to ensure we don't leave notification rules behind before deleting
+        getNotificationRulesFor(calendar).first()?.let { delete(it.notificationRules) }
+        calendarDao.delete(calendar)
+    }
     /**
      * Deletes an event from the database
      * @param event Event to be removed
      */
-    suspend fun delete(event: EventModel) = withTransaction { eventDao.delete(event) }
+    suspend fun delete(event: EventModel) = withTransaction {
+        // Need to ensure that we remove tags and notification rules before deleting
+        // to ensure nothing is left behind
+        getEventWithTags(event.eventID).first()?.let { delete(it.tags) }
+        getNotificationRulesFor(event).first()?.let { delete(it.notificationRules) }
+        eventDao.delete(event)
+    }
     /**
      * Deletes tags from the database
      * @param tags Tags to be removed
@@ -512,8 +522,10 @@ class CalendarRepo @Inject constructor(
      * @param queryParam Query parameters to apply to the search
      * @return Flow containing a list of tags with a match
      */
-    fun getTagFrom(contents: List<String>, queryParam: QueryBuilder.() -> Unit = {}) =
-        tagDao.fromContent(contents.map { SearchQuery.local(it, queryParam) })
+    fun getTagFrom(contents: List<String>, queryParam: QueryBuilder.() -> Unit = {}) = flow {
+        if(contents.isEmpty()) emit(emptyList())
+        else emitAll(tagDao.fromContent(contents.map { SearchQuery.local(it, queryParam) }))
+    }
 
     /**
      * Retrieves the notification rules which are associated with a [calendar]

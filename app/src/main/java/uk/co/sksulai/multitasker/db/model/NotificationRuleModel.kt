@@ -38,12 +38,14 @@ data class NotificationRuleModel(
         ForeignKey(
             entity = CalendarModel::class,
             parentColumns = ["calendarID"],
-            childColumns  = ["calendarID"]
+            childColumns  = ["calendarID"],
+            onDelete = ForeignKey.CASCADE
         ),
         ForeignKey(
             entity = NotificationRuleModel::class,
             parentColumns = ["notificationID"],
-            childColumns  = ["notificationID"]
+            childColumns  = ["notificationID"],
+            onDelete = ForeignKey.CASCADE
         ),
     ]
 ) data class CalendarNotificationJunction(
