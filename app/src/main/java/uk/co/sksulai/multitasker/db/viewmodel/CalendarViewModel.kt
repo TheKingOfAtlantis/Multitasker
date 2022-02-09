@@ -191,19 +191,25 @@ import uk.co.sksulai.multitasker.db.repo.CalendarRepo
 
 
     /**
-     * Retrieves the notifications associated with an [event]
-     */
-    fun notificationsOf(event: EventModel) = calendarRepo
-        .getNotificationRulesFor(event)
-        .filterNotNull()
-        .map { it.notificationRules }
-    /**
      * Retrieves the notifications associated with a [calendar]
      */
-    fun notificationsOf(calendar: CalendarModel) = calendarRepo
-        .getNotificationRulesFor(calendar)
-        .filterNotNull()
-        .map { it.notificationRules }
+    fun notificationsOf(calendar: CalendarModel?) = flow {
+        if(calendar == null) emit(emptyList())
+        else emitAll(
+            calendarRepo.getNotificationRulesFor(calendar)
+                .filterNotNull()
+                .map { it.notificationRules }
+        )
+    }
+
+    /**
+     * Retrieves the notifications associated with a [event]
+     * Applying the calendar and override rules to the event
+     */
+    fun notificationsOf(event: EventModel?) = flow {
+        if(event == null) emit(emptyList())
+        else emitAll(calendarRepo.determineNotificationsOf(event))
+    }
 
     /**
      * Updates the list of tags associated with an event
@@ -276,56 +282,6 @@ import uk.co.sksulai.multitasker.db.repo.CalendarRepo
             // Event needs to end after the start date or during the start date
             event.start.toLocalDate().run { isEqual(end) || isBefore(end) } &&
                     event.end.toLocalDate().run { isEqual(start) || isAfter(start) }
-        }
-    }
-
-    /**
-     * Retrieves the notifications associated with a [calendar]
-     */
-    fun notificationsFor(calendar: CalendarModel?) = flow {
-        if(calendar == null) emit(emptyList())
-        else emitAll(
-            calendarRepo.getNotificationRulesFor(calendar)
-                .filterNotNull()
-                .map { it.notificationRules }
-        )
-    }
-
-    /**
-     * Retrieves the notifications associated with a [event]
-     * Applying the calendar and override rules to the event
-     */
-    fun notificationsFor(event: EventModel?) = flow {
-        if(event == null) emit(emptyList())
-        else emitAll(
-            calendarRepo.getEventWithCalendar(event.eventID)
-                .filterNotNull()
-                .flatMapLatest { notificationsFor(it) }
-        )
-    }
-    /**
-     * Retrieves the notification rules for a given event
-     * Applying the calendar and override rules to the event
-     */
-    fun notificationsFor(eventWithCalendar: EventWithCalendar) = with(eventWithCalendar) {
-        // We are guaranteed results since both should not be null
-        val calendarRules = calendarRepo.getNotificationRulesFor(calendar).filterNotNull()
-        val eventRules    = calendarRepo.getNotificationRulesFor(event).filterNotNull()
-        val overrideRules = calendarRepo.getNotificationOverridesFor(event)
-
-        combine(calendarRules, eventRules, overrideRules) { calendar, event, overrides ->
-            when {
-                // If the event has no rules then we just use those that come with the calendar
-                event.notificationRules.isEmpty() -> calendar.notificationRules
-                // If the calendar has not rules then just use those that come with the event
-                calendar.notificationRules.isEmpty() -> event.notificationRules
-                else -> {
-                    // If both have rules then we need to combine the two together
-                    // However, we need to ensure that apply overrides associated with the event
-                    event.notificationRules + calendar.notificationRules
-                        .filterNot { overrides[it.notificationID]?.ignore == true }
-                }
-            }
         }
     }
 

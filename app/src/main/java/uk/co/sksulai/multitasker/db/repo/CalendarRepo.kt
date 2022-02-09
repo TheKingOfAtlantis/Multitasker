@@ -540,4 +540,62 @@ class CalendarRepo @Inject constructor(
      * Retrieves the notfication override rules for a given [event]
      */
     fun getNotificationOverridesFor(event: EventModel) = notificationDao.overridesOf(event.eventID)
+
+    /**
+     * Determines the notifications which applies to an [event]; given its own
+     * notification rules, the rules of the calendar and the overrides specified
+     * by the event
+     */
+    @OptIn(ExperimentalCoroutinesApi::class)
+    fun determineNotificationsOf(event: EventModel) =
+        getEventWithCalendar(event.eventID)
+            .filterNotNull()
+            .flatMapLatest { determineNotificationsOf(it) }
+    /**
+     * Determines the notifications which applies to an [eventWithCalendar]; given
+     * the events notification rules, the rules of the calendar and the overrides
+     * specified by the event
+     */
+    fun determineNotificationsOf(eventWithCalendar: EventWithCalendar) = with(eventWithCalendar) {
+        // We are guaranteed results since both should not be null
+        val calendarRules = getNotificationRulesFor(calendar).filterNotNull()
+        val eventRules    = getNotificationRulesFor(event).filterNotNull()
+        val overrideRules = getNotificationOverridesFor(event)
+
+        /**
+         * Applies overrides to the calendar rules
+         *
+         * @param calendarRules List of rules from the calendar which could apply
+         *                      to this event
+         * @param overrideRules Rules specified by the event about how it overrides
+         *                      the application of the calendar rules to itself
+         * @return The [calendarRules] with the [overrideRules] applied to them
+         */
+        fun applyOverrides(
+            calendarRules: List<NotificationRuleModel>,
+            overrideRules: Map<UUID, NotificationOverride>
+        ) = calendarRules.filter {
+            if(it.notificationID in overrideRules.keys) {
+                val rules = overrideRules.getValue(it.notificationID)
+                !rules.ignore
+            } else true
+        }
+
+        combine(calendarRules, eventRules, overrideRules) { calendar, event, overrides ->
+            when {
+                // If the event has no rules then we just use those that come with the calendar
+                event.notificationRules.isEmpty() -> calendar.notificationRules
+                // If the calendar has not rules then just use those that come with the event
+                calendar.notificationRules.isEmpty() -> event.notificationRules
+                else -> {
+                    // If both have rules then we need to combine the two together
+                    // However, we need to ensure that apply overrides associated with the event
+                    event.notificationRules + applyOverrides(
+                        calendar.notificationRules,
+                        overrides
+                    )
+                }
+            }
+        }
+    }
 }
