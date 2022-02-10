@@ -25,16 +25,16 @@ interface EventNotificationScheduleDataSource {
     /**
      * Deletes all scheduled notifications
      */
-    fun deleteAll()
+    suspend fun deleteAll()
     /**
      * Deletes all scheduled notifications which have been posted
      */
-    fun deleteHaveOccurred()
+    suspend fun deletePosted()
     /**
      * Delete all scheduled notifications associated with an event
      * @param id The id of the event
      */
-    fun deleteFromEvent(id: UUID)
+    suspend fun deleteFromEvent(id: UUID)
 
     /**
      * Retrieve a schedule from its [alarmID]

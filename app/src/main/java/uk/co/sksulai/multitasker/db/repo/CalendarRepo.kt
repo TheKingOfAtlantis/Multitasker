@@ -528,6 +528,10 @@ class CalendarRepo @Inject constructor(
     }
 
     /**
+     * Retrieves the notification rule given its [notificationID]
+     */
+    fun getNotificationRuleFrom(notificationID: UUID) = notificationDao.fromID(notificationID)
+    /**
      * Retrieves the notification rules which are associated with a [calendar]
      */
     fun getNotificationRulesFor(calendar: CalendarModel) = notificationDao.fromCalendar(calendar.calendarID)
