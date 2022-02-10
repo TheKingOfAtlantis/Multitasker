@@ -50,6 +50,7 @@ import uk.co.sksulai.multitasker.db.datasource.NotificationRuleDataSource
         )
     )
 
+    @SuppressWarnings(RoomWarnings.CURSOR_MISMATCH) // Use expandProjection so not actually an issue
     @MapInfo(keyColumn = "notificationID")
     @Query("Select * From EventNotificationJunction Where eventID == :eventID")
     abstract override fun overridesOf(eventID: UUID): Flow<Map<UUID, NotificationOverride>>

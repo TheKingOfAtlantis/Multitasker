@@ -10,7 +10,7 @@ import uk.co.sksulai.multitasker.db.model.CalendarModel
 import uk.co.sksulai.multitasker.db.model.EventModel
 
 object Notification {
-    sealed class Group(
+    sealed class ChannelGroup(
         val id: String,
         val name: String,
         val description: String
@@ -24,7 +24,7 @@ object Notification {
                 .createNotificationChannelGroup(group)
         }
 
-        object Calendar : Group(
+        object Calendar : ChannelGroup(
             "calendar",
             "Calendars",
             "Notifications from calendars"
@@ -38,7 +38,7 @@ object Notification {
         val importance: ChannelImportance = ChannelImportance.Default,
         val visibility: NotificationVisibility = NotificationVisibility.Private,
         val vibration: LongArray = longArrayOf(1000, 1000),
-        val group: Group? = null,
+        val group: ChannelGroup? = null,
     ) {
         fun create(context: Context) {
             val channel = NotificationChannel(
@@ -58,7 +58,7 @@ object Notification {
         }
 
         class Calendar(calendar: CalendarModel) : Channel(
-            group = Group.Calendar,
+            group = ChannelGroup.Calendar,
             id = idOf(calendar),
             name = calendar.name,
             description = "Enabled/Disable notification from the ${calendar.name} calendar",

@@ -7,6 +7,7 @@ import android.app.Application
 import androidx.work.Configuration
 import androidx.hilt.work.HiltWorkerFactory
 import dagger.hilt.android.HiltAndroidApp
+import uk.co.sksulai.multitasker.notification.Notification
 
 abstract class BaseMultitaskerApp : Application()
 @HiltAndroidApp class MultitaskerApp : BaseMultitaskerApp(), Configuration.Provider {
@@ -16,4 +17,12 @@ abstract class BaseMultitaskerApp : Application()
         Configuration.Builder()
             .setWorkerFactory(workerFactory)
             .build()
+
+    override fun onCreate() {
+        super.onCreate()
+
+        // Register Notification groups + channels
+        Notification.ChannelGroup.Calendar.create(applicationContext)
+
+    }
 }
