@@ -107,3 +107,21 @@ inline fun <reified Receiver : BroadcastReceiver> ListenableWorker.AlarmSchedule
     AlarmScheduler<Receiver>(applicationContext)
 
 
+/**
+ * Extension of [BroadcastReceiver] which extracts the alarm ID from the
+ * extra parameter and provides it as part of the [onReceive] interface
+ */
+abstract class AlarmBroadcastReceiver : BroadcastReceiver() {
+    override fun onReceive(context: Context, intent: Intent) {
+        val alarmID = intent.getIntExtra(AlarmScheduler.AlarmID, 0)
+        onReceive(context, alarmID)
+    }
+
+    /**
+     * @see [BroadcastReceiver.onReceive]
+     */
+    abstract fun onReceive(
+        context: Context,
+        alarmID: Int
+    )
+}

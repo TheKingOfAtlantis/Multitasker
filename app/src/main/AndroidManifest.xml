@@ -31,6 +31,8 @@
                 tools:node="remove" />
         </provider>
 
+        <receiver android:name=".service.EventNotificationReceiver" />
+
         <!-- Multitasker -->
 
         <activity

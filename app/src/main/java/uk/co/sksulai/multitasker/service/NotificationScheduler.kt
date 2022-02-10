@@ -4,20 +4,20 @@ import javax.inject.Inject
 import java.time.Duration
 
 import androidx.work.*
-import android.content.Context
 import androidx.hilt.work.HiltWorker
-import dagger.assisted.Assisted
-import dagger.assisted.AssistedInject
-import uk.co.sksulai.multitasker.db.model.CalendarModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 
-import uk.co.sksulai.multitasker.db.model.EventModel
-import uk.co.sksulai.multitasker.db.repo.CalendarRepo
-import java.time.LocalTime
+import uk.co.sksulai.multitasker.R
+import uk.co.sksulai.multitasker.db.model.*
+import uk.co.sksulai.multitasker.db.repo.*
+import uk.co.sksulai.multitasker.notification.*
+import uk.co.sksulai.multitasker.notification.Notification
 
 @HiltWorker class NotificationScheduler @AssistedInject constructor(
     @Assisted context: Context,
     @Assisted params: WorkerParameters,
 ) : CoroutineWorker(context, params) {
+    private val alarmScheduler = AlarmScheduler<EventNotificationReceiver>()
 
     object WorkerTags {
         const val Routine = "notification-scheduler-routine"
@@ -94,5 +94,51 @@ import java.time.LocalTime
         // If nothing given then must be the routine scheduler
 
         return Result.success()
+    }
+}
+
+class EventNotificationReceiver @Inject constructor(
+    private val schedulerRepo: SchedulerRepo,
+    private val calendarRepo: CalendarRepo
+) : AlarmBroadcastReceiver() {
+
+    fun Context.makeEventNotification(
+        event: EventModel
+    ) {
+        val notification = buildNotification(
+            this,
+            Notification.Channel.Calendar.idOf(event)
+        ) {
+            smallIcon = R.drawable.ic_logo_small
+            title     = event.name
+            content   = DateUtils.formatDateRange(
+                this@makeEventNotification,
+                event.start.toInstant().toEpochMilli(),
+                event.end.toInstant().toEpochMilli(),
+                DateUtils.FORMAT_ABBREV_ALL or
+                        DateUtils.FORMAT_SHOW_TIME
+            )
+
+            `when`          = event.start.toInstant()
+            whenAsStopwatch = true
+            contentIntent   = null // TODO: Replace with intent to event viewer
+        }
+        getNotificationManager(this)
+            .notify(event.eventID.hashCode(), notification)
+    }
+
+    override fun onReceive(context: Context, alarmID: Int) {
+        runBlocking {
+            // While we could assume that the events/schedule/etc all still exist
+            // Safer to assume that they don't rather than sending a notification for something
+            // that no longer exists
+            val schedule = schedulerRepo.fromAlarmID(alarmID).first()
+            if(schedule != null) {
+                calendarRepo.getEventFrom(schedule.notificationID).first()?.let { event ->
+                    context.makeEventNotification(event)
+                    schedulerRepo.markPosted(schedule)
+                }
+            }
+        }
     }
 }
