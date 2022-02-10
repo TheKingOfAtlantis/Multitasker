@@ -6,6 +6,9 @@ import android.app.*
 import android.content.Context
 import android.os.Build
 
+import uk.co.sksulai.multitasker.db.model.CalendarModel
+import uk.co.sksulai.multitasker.db.model.EventModel
+
 object Notification {
     sealed class Group(
         val id: String,
@@ -20,6 +23,12 @@ object Notification {
             getNotificationManager(context)
                 .createNotificationChannelGroup(group)
         }
+
+        object Calendar : Group(
+            "calendar",
+            "Calendars",
+            "Notifications from calendars"
+        )
     }
 
     sealed class Channel(
@@ -46,6 +55,20 @@ object Notification {
             }
             getNotificationManager(context)
                 .createNotificationChannel(channel)
+        }
+
+        class Calendar(calendar: CalendarModel) : Channel(
+            group = Group.Calendar,
+            id = idOf(calendar),
+            name = calendar.name,
+            description = "Enabled/Disable notification from the ${calendar.name} calendar",
+            importance = ChannelImportance.High,
+        ) {
+            companion object {
+                fun idOf(id: UUID) = "calendar/$id"
+                fun idOf(calendar: CalendarModel) = idOf(calendar.calendarID)
+                fun idOf(event: EventModel) = idOf(event.calendarID)
+            }
         }
     }
 }
