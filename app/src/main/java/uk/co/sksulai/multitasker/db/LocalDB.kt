@@ -38,7 +38,9 @@ fun LocalDB.Companion.createDatabase(context: Context, inMemory: Boolean = false
 
     NotificationRuleModel::class,
     CalendarNotificationJunction::class,
-    EventNotificationJunction::class
+    EventNotificationJunction::class,
+
+    EventNotificationScheduleModel::class
 ], autoMigrations = [
     AutoMigration(from = 5, to = 6)
 ]) abstract class LocalDB : RoomDatabase() {
@@ -50,4 +52,6 @@ fun LocalDB.Companion.createDatabase(context: Context, inMemory: Boolean = false
     abstract fun getEventDao(): EventDao
     abstract fun getTagDao(): TagDao
     abstract fun getNotificationRuleDao(): NotificationRuleDao
+
+    abstract fun getEventNotificationDao(): EventNotificationScheduleDao
 }
