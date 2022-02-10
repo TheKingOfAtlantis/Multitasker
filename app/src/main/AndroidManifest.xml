@@ -4,6 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     package="uk.co.sksulai.multitasker">
 
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
     <uses-permission android:name="android.permission.VIBRATE"/>
 
     <application
