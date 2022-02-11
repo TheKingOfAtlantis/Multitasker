@@ -1,5 +1,6 @@
 package uk.co.sksulai.multitasker.db.viewmodel
 
+import android.app.Application
 import java.util.*
 import java.time.*
 
@@ -8,20 +9,23 @@ import kotlinx.coroutines.flow.*
 
 import javax.inject.Inject
 import androidx.compose.ui.graphics.Color
+import androidx.lifecycle.AndroidViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 
-import androidx.lifecycle.ViewModel
 import androidx.work.WorkManager
 
+import uk.co.sksulai.multitasker.util.*
 import uk.co.sksulai.multitasker.db.model.*
 import uk.co.sksulai.multitasker.db.repo.CalendarRepo
+import uk.co.sksulai.multitasker.notification.Notification
 import uk.co.sksulai.multitasker.service.NotificationScheduler.Companion.startOneOffScheduling
 
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel class CalendarViewModel @Inject constructor(
+    application: Application,
     private val calendarRepo: CalendarRepo,
     private val workManager: WorkManager
-) : ViewModel() {
+) : AndroidViewModel(application) {
 
     val calendars = calendarRepo.calendars
     val events = calendarRepo.events
@@ -43,7 +47,9 @@ import uk.co.sksulai.multitasker.service.NotificationScheduler.Companion.startOn
         description: String,
         colour: Color,
         notifications: List<Duration> = emptyList()
-    ) = calendarRepo.createCalendar(owner, name, description, colour, notifications)
+    ) = calendarRepo.createCalendar(owner, name, description, colour, notifications).also {
+        Notification.Channel.Calendar(it).create(applicationContext)
+    }
     /**
      * Creates a event with a list of tags
      *
@@ -260,6 +266,7 @@ import uk.co.sksulai.multitasker.service.NotificationScheduler.Companion.startOn
      */
     suspend fun delete(calendar: CalendarModel) = calendarRepo.delete(calendar).also {
         workManager.startOneOffScheduling(calendar)
+        Notification.Channel.Calendar(calendar).delete(applicationContext)
     }
     /**
      * Deletes a event from the database

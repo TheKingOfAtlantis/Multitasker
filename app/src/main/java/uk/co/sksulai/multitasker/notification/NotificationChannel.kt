@@ -4,10 +4,18 @@ import java.util.*
 
 import android.app.*
 import android.content.Context
+import android.media.AudioAttributes
+import android.net.Uri
 import android.os.Build
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.isUnspecified
+import androidx.compose.ui.graphics.toArgb
+import androidx.core.app.NotificationChannelCompat
+import androidx.core.app.NotificationChannelGroupCompat
 
 import uk.co.sksulai.multitasker.db.model.CalendarModel
 import uk.co.sksulai.multitasker.db.model.EventModel
+import uk.co.sksulai.multitasker.ui.MultitaskerPalette
 
 object Notification {
     sealed class ChannelGroup(
@@ -16,12 +24,13 @@ object Notification {
         val description: String
     ) {
         open fun create(context: Context) {
-            val group = NotificationChannelGroup(id, name).apply {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P)
-                    this.description = description
-            }
             getNotificationManager(context)
-                .createNotificationChannelGroup(group)
+                .createNotificationChannelGroup(
+                    NotificationChannelGroupCompat.Builder(id).apply {
+                        setName(name)
+                        setDescription(description)
+                    }.build()
+                )
         }
 
         object Calendar : ChannelGroup(
@@ -39,30 +48,41 @@ object Notification {
         val visibility: NotificationVisibility = NotificationVisibility.Private,
         val vibration: LongArray = longArrayOf(1000, 1000),
         val group: ChannelGroup? = null,
+        val light: Color = MultitaskerPalette.Primary,
+        val showBadge: Boolean = true,
+        val sound: Uri? = null,
+        val audioAttributes: AudioAttributes? = null
     ) {
-        fun create(context: Context) {
-            val channel = NotificationChannel(
-                id,
-                name,
-                importance.value
-            ).apply {
-                description = this@Channel.description
-                this@Channel.group?.id?.let { group = it }
-                lockscreenVisibility = visibility.level
-                if (vibration.isNotEmpty())
-                    enableVibration(true)
-                vibrationPattern = vibration
-            }
-            getNotificationManager(context)
-                .createNotificationChannel(channel)
-        }
+        /**
+         * Used to create a channel
+         */
+        fun create(context: Context) = getNotificationManager(context)
+                .createNotificationChannel(
+                    NotificationChannelCompat.Builder(id, importance.value)
+                        .setGroup(group?.id)
+                        .setName(name)
+                        .setDescription(description)
+                        .setVibrationEnabled(vibration.isNotEmpty())
+                        .setVibrationPattern(vibration.takeIf { it.isNotEmpty() })
+                        .setLightsEnabled(light.isUnspecified)
+                        .setLightColor(light.toArgb())
+                        .setShowBadge(showBadge)
+                        .setSound(sound, audioAttributes)
+                        .build()
+                )
+
+        /**
+         * Used to delete a channel
+         */
+        fun delete(context: Context) = getNotificationManager(context)
+            .deleteNotificationChannel(id)
 
         class Calendar(calendar: CalendarModel) : Channel(
-            group = ChannelGroup.Calendar,
-            id = idOf(calendar),
-            name = calendar.name,
+            group       = ChannelGroup.Calendar,
+            id          = idOf(calendar),
+            name        = calendar.name,
             description = "Enabled/Disable notification from the ${calendar.name} calendar",
-            importance = ChannelImportance.High,
+            importance  = ChannelImportance.High,
         ) {
             companion object {
                 fun idOf(id: UUID) = "calendar/$id"
