@@ -30,11 +30,6 @@ interface EventNotificationScheduleDataSource {
      * Deletes all scheduled notifications which have been posted
      */
     suspend fun deletePosted()
-    /**
-     * Delete all scheduled notifications associated with an event
-     * @param id The id of the event
-     */
-    suspend fun deleteFromEvent(id: UUID)
 
     /**
      * Retrieve a schedule from its [alarmID]

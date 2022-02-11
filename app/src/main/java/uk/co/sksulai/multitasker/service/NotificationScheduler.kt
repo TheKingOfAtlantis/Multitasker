@@ -95,6 +95,124 @@ import uk.co.sksulai.multitasker.notification.Notification
     }
 
     /**
+     * Ensures that changes made to a calendar regarding it's notification rules are
+     * reflected in the scheduling of upcoming event notifications (if affected).
+     */
+    private suspend fun handleCalendar(id: String) = calendarRepo.withTransaction {
+        calendarRepo.getCalendarFrom(UUID.fromString(id)).first()?.let {
+            handleCalendar(it)
+        } ?: let {
+            // If null then the calendar was deleted
+            // We could either delete everything or just let the alarm happen and deal
+            // with the even not existing then
+
+            // Probably best to deal with it now rather than potentially waking (and wasting battery)
+            // just to find out all the event no longer exists
+            // TODO: Work out a better way to do this
+            schedulerRepo.getAll().first().filter {
+                // rational: not checking event since some notification ids cover multiple events
+                //          (and not the other way round)
+                calendarRepo.getNotificationRuleFrom(it.notificationID).first() == null
+            }
+            .onEach { alarmScheduler.cancel(it.alarmID) }
+            .let {schedulerRepo.delete(*it.toTypedArray()) }
+        }
+    }
+    @OptIn(ExperimentalCoroutinesApi::class)
+    private suspend fun handleCalendar(calendar: CalendarModel) = calendarRepo.withTransaction {
+        val events = calendarRepo.getEventFrom(calendar).flatMapLatest {
+            combine(
+                it.map { event ->
+                    calendarRepo.determineNotificationsOf(event)
+                        .map { EventWithNotifications(event, it) }
+                }
+            ) { it.toList() }
+        }
+        handleEvents(events.first())
+    }
+
+    private suspend fun handleEvent(id: String) = calendarRepo.withTransaction {
+        calendarRepo.getEventFrom(UUID.fromString(id)).first()?.let {
+            handleEvent(it)
+        } ?: let {
+            // If null then the calendar was deleted
+            // Unlike with the calendar we know precisely who to remove
+            // So we retrieve all schedule entries for this event
+            //   => Cancel the alarms
+            //   => Remove from the database
+
+            schedulerRepo.fromEvent(UUID.fromString(id)).first()
+                .onEach { alarmScheduler.cancel(it.alarmID) }
+                .let { schedulerRepo.delete(*it.toTypedArray()) }
+        }
+    }
+    private suspend fun handleEvent(event: EventModel) = calendarRepo.withTransaction {
+        val events = calendarRepo.determineNotificationsOf(event)
+            .map { EventWithNotifications(event, it) }
+            .first()
+        handleEvents(listOf(events))
+    }
+
+
+    /**
+     * General handler for a list of events to ensure proper scheduling regardless of
+     * if has already been scheduled, the schedule needs to be modified or if nothing
+     * needs to be done
+     */
+    private suspend fun handleEvents(events: List<EventWithNotifications>) = calendarRepo.withTransaction {
+        events.forEach { (event, rules) ->
+            val existing = schedulerRepo.fromEvent(event).first()
+            if(existing.isNotEmpty()) {
+                // If we've already got the event scheduled need to do a couple things:
+                //  1) Check if any new notifications have been added
+                //         => Create new schedule entry
+                //         => Post to alarm manager
+                //  2) Check if any notifications have been removed
+                //         => Remove schedule entry
+                //         => Remove from alarm manager
+                //  3) Check if the start of the event has changed
+                //         => Update schedule entries
+                //         => Update alarm manager
+                //  4) Check if any of the notification rules have changed
+                //         => Update schedule entries
+                //         => Update alarm manager
+
+                // 1)
+                rules.filter { it.notificationID !in existing.map { it.notificationID } }
+                    .mapNotNull { schedulerRepo.createEventNotification(event, it) }
+                    .forEach { alarmScheduler.create(it.alarmID, it.scheduledTime) }
+
+                // 2)
+                existing.filter { it.notificationID !in rules.map { it.notificationID } }
+                    .onEach { alarmScheduler.cancel(it.alarmID) }
+                    .let { schedulerRepo.delete(*it.toTypedArray()) }
+
+                // 3 + 4)
+                existing
+                    .filter { schedule ->
+                        val eventChanged = schedule.start != event.start
+                        val notificationChange = rules
+                            .find { schedule.notificationID == it.notificationID  }
+                            ?.let { schedule.reminder != it.duration }
+
+                        eventChanged || (notificationChange ?: true)
+                    }
+                    .associateWith { schedulerRepo.update(it.alarmID) }
+                    .forEach { (original, new) ->
+                        if(new == null) // If the original was removed => cancel the alarm
+                            alarmScheduler.cancel(original.alarmID)
+                        else alarmScheduler.update(new.alarmID, new.scheduledTime)
+                    }
+            } else {
+                // If instead no existing records exist
+                //  1) Create schedule entry
+                //  2) Post to alarm manager
+                rules.mapNotNull { schedulerRepo.createEventNotification(event, it) }
+                    .forEach { alarmScheduler.create(it.alarmID, it.scheduledTime) }
+            }
+        }
+    }
+    /**
      * This method handles the routine/period scheduling of notifications which
      * takes place once each day.
      * It handles cleaning up the table of posted notifications and works out
@@ -147,8 +265,10 @@ import uk.co.sksulai.multitasker.notification.Notification
         // If nothing given then must be the routine scheduler
 
         when {
-            inputData.hasKeyWithValueOfType<String>(DataType.CalendarID) -> TODO()
-            inputData.hasKeyWithValueOfType<String>(DataType.EventID) -> TODO()
+            inputData.hasKeyWithValueOfType<String>(DataType.CalendarID) ->
+                handleCalendar(inputData.getString(DataType.CalendarID)!!)
+            inputData.hasKeyWithValueOfType<String>(DataType.EventID) ->
+                handleEvent(inputData.getString(DataType.EventID)!!)
             else -> handleRoutine()
         }
 

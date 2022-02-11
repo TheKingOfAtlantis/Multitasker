@@ -156,6 +156,10 @@ class SchedulerRepo @Inject constructor(
     }
 
     /**
+     * Retrieves the entire schedule
+     */
+    fun getAll() = eventScheduleDao.getAll()
+    /**
      * Retrieves the schedule associated with [alarmID]
      * @param alarmID The ID which was given to the alarm
      */
@@ -177,5 +181,4 @@ class SchedulerRepo @Inject constructor(
      * Retrieves the scheduling associated with a particular [notification] of an [event]
      */
     fun fromNotification(event: UUID, notification: UUID) = eventScheduleDao.fromNotification(event, notification)
-
 }

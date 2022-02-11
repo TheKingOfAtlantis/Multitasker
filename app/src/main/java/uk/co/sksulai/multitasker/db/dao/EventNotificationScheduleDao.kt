@@ -14,8 +14,6 @@ import uk.co.sksulai.multitasker.db.datasource.EventNotificationScheduleDataSour
     @Delete override suspend fun delete(vararg schedule: EventNotificationScheduleModel)
 
     @Query("Delete from EventSchedule") override suspend fun deleteAll()
-    @Query("Delete from EventSchedule where eventID = :id")
-    override suspend fun deleteFromEvent(id: UUID)
     @Query("Delete from EventSchedule where posted = 1")
     override suspend fun deletePosted()
 
