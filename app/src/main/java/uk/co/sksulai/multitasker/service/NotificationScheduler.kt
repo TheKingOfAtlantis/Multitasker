@@ -1,11 +1,22 @@
 package uk.co.sksulai.multitasker.service
 
+import java.util.*
+import java.time.*
+
+import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.*
+
 import javax.inject.Inject
-import java.time.Duration
+import dagger.assisted.Assisted
+import dagger.assisted.AssistedInject
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+
+import android.app.*
+import android.content.*
+import android.text.format.DateUtils
 
 import androidx.work.*
 import androidx.hilt.work.HiltWorker
-import dagger.hilt.android.qualifiers.ApplicationContext
 
 import uk.co.sksulai.multitasker.R
 import uk.co.sksulai.multitasker.db.model.*
@@ -16,6 +27,8 @@ import uk.co.sksulai.multitasker.notification.Notification
 @HiltWorker class NotificationScheduler @AssistedInject constructor(
     @Assisted context: Context,
     @Assisted params: WorkerParameters,
+    private val calendarRepo: CalendarRepo,
+    private val schedulerRepo: SchedulerRepo
 ) : CoroutineWorker(context, params) {
     private val alarmScheduler = AlarmScheduler<EventNotificationReceiver>()
 
@@ -81,6 +94,46 @@ import uk.co.sksulai.multitasker.notification.Notification
         )
     }
 
+    /**
+     * This method handles the routine/period scheduling of notifications which
+     * takes place once each day.
+     * It handles cleaning up the table of posted notifications and works out
+     * which events need scheduling and does the necessary work
+     */
+    @OptIn(ExperimentalCoroutinesApi::class)
+    suspend fun handleRoutine() {
+        schedulerRepo.withTransaction {
+            // First prune the table
+            // Then retrieve events which have yet to start
+            // Determine when their reminders are
+            // Schedule the reminders taking place in the next 24hrs
+            schedulerRepo.prune()
+            calendarRepo.getEventAfter(ZonedDateTime.now())
+                .flatMapLatest {
+                    it.associateWith(calendarRepo::determineNotificationsOf)
+                      .map { (event, rules) -> rules.map { EventWithNotifications(event, it) } }
+                      .let { combine(it) { it.toList() } }
+                }
+                .first()
+                .forEach { (event, rules) ->
+                    // Filter notifications where either it yet to be sent or was due some
+                    // time in the past
+                    rules.filter {
+                        val time = event.start - it.duration
+                        // Ensure the notification will take place some time between now
+                        // and 24hrs from now
+                        time.isAfter(ZonedDateTime.now()) &&
+                        time.isBefore(ZonedDateTime.now().plusDays(1))
+                    }.forEach {
+                        // For those left lets create an entry in the schedule (if it already doesn't exist)
+                        val schedule = schedulerRepo.createEventNotification(event, it)
+                        if(schedule != null) // Not already scheduled so lets create it
+                            alarmScheduler.create(schedule.alarmID, schedule.scheduledTime)
+                    }
+                }
+            }
+        }
+
     override suspend fun doWork(): Result {
         // Create a table in which we record the next 24hrs work of reminders
         //     It will contain a reference to both the event and the notification rule
@@ -92,6 +145,12 @@ import uk.co.sksulai.multitasker.notification.Notification
         // If we get given a calendar retrieve all of its events then work scheduling for each
         // If given an event then work out its schedule
         // If nothing given then must be the routine scheduler
+
+        when {
+            inputData.hasKeyWithValueOfType<String>(DataType.CalendarID) -> TODO()
+            inputData.hasKeyWithValueOfType<String>(DataType.EventID) -> TODO()
+            else -> handleRoutine()
+        }
 
         return Result.success()
     }

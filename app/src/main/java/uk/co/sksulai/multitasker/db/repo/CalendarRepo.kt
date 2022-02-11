@@ -602,4 +602,17 @@ class CalendarRepo @Inject constructor(
             }
         }
     }
+
+    /**
+     * Retrieves all events which occur after a given [dateTime]
+     */
+    fun getEventAfter(dateTime: ZonedDateTime) = events.map {
+        it.map { it.event }.filter { it.start.isAfter(dateTime) }
+    }
+    /**
+     * Retrieves all events which before after a given [dateTime]
+     */
+    fun getEventBefore(dateTime: ZonedDateTime) = events.map {
+        it.map { it.event }.filter { it.start.isBefore(dateTime) }
+    }
 }

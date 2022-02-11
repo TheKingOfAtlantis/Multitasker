@@ -36,19 +36,19 @@ class SchedulerRepo @Inject constructor(
      * use to identify the alarm.
      *
      * @return The [EventNotificationScheduleModel] which was created and inserted
-     *         into the database
+     *         into the database or null if already exists
      */
     suspend fun createEventNotification(
         event: EventModel,
         rule: NotificationRuleModel
-    ) = createEventNotification(
+    ) = if(!contains(event, rule)) createEventNotification(
         alarm = generateAlarmID(),
         event = event.eventID,
         rule  = rule.notificationID,
         time  = (event.start - rule.duration).toInstant(),
         start = event.start,
         reminder = rule.duration
-    )
+    ) else null
     /**
      * Create and inserts [EventNotificationScheduleModel]
      */
@@ -127,6 +127,12 @@ class SchedulerRepo @Inject constructor(
     }
 
     /**
+     * Checks if an entry for a [notification] for a given [event] exists
+     */
+    suspend fun contains(event: EventModel, notification: NotificationRuleModel) =
+        fromNotification(event, notification).first() != null
+
+    /**
      * Inserts a [schedule] for a notification of an event
      */
     suspend fun insert(vararg schedule: EventNotificationScheduleModel) =
@@ -157,7 +163,11 @@ class SchedulerRepo @Inject constructor(
     /**
      * Retrieves all scheduled notifications for an [event]
      */
-    fun fromEvent(event: EventModel) = eventScheduleDao.fromEvent(event.eventID)
+    fun fromEvent(event: EventModel) = fromEvent(event.eventID)
+    /**
+     * Retrieves all scheduled notifications for an [event]
+     */
+    fun fromEvent(event: UUID) = eventScheduleDao.fromEvent(event)
     /**
      * Retrieves the scheduling associated with a particular [notification] of an [event]
      */
