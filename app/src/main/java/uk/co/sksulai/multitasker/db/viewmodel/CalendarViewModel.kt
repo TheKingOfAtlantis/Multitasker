@@ -11,13 +11,16 @@ import androidx.compose.ui.graphics.Color
 import dagger.hilt.android.lifecycle.HiltViewModel
 
 import androidx.lifecycle.ViewModel
+import androidx.work.WorkManager
 
 import uk.co.sksulai.multitasker.db.model.*
 import uk.co.sksulai.multitasker.db.repo.CalendarRepo
+import uk.co.sksulai.multitasker.service.NotificationScheduler.Companion.startOneOffScheduling
 
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel class CalendarViewModel @Inject constructor(
-    private val calendarRepo: CalendarRepo
+    private val calendarRepo: CalendarRepo,
+    private val workManager: WorkManager
 ) : ViewModel() {
 
     val calendars = calendarRepo.calendars
@@ -81,7 +84,7 @@ import uk.co.sksulai.multitasker.db.repo.CalendarRepo
         reminders,
         colour, category, location, tags,
         parentID
-    )
+    ).also { workManager.startOneOffScheduling(it.event) }
     /**
      * Creates a event without a list of tags
      *
@@ -225,14 +228,18 @@ import uk.co.sksulai.multitasker.db.repo.CalendarRepo
      * @param reminders The new list of reminders
      */
     suspend fun updateNotificationRules(event: EventModel, reminders: List<Duration>) =
-        calendarRepo.updateAssociatedReminders(event, reminders)
+        calendarRepo.updateAssociatedReminders(event, reminders).also {
+            workManager.startOneOffScheduling(event)
+        }
     /**
      * Updates the list of notification rules associated with an event
      * @param calendar  The calendar to be updated
      * @param reminders The new list of reminders
      */
     suspend fun updateNotificationRules(calendar: CalendarModel, reminders: List<Duration>) =
-        calendarRepo.updateAssociatedReminders(calendar, reminders)
+        calendarRepo.updateAssociatedReminders(calendar, reminders).also {
+            workManager.startOneOffScheduling(calendar)
+        }
 
     /**
      * Updates a calendar
@@ -243,18 +250,24 @@ import uk.co.sksulai.multitasker.db.repo.CalendarRepo
      * Updates a event
      * @param event Event model which has been modified
      */
-    suspend fun update(event: EventModel) = calendarRepo.update(event)
+    suspend fun update(event: EventModel) = calendarRepo.update(event).also {
+        workManager.startOneOffScheduling(event)
+    }
 
     /**
      * Deletes a calendar from the database
      * @param calendar Calendar to be removed
      */
-    suspend fun delete(calendar: CalendarModel) = calendarRepo.delete(calendar)
+    suspend fun delete(calendar: CalendarModel) = calendarRepo.delete(calendar).also {
+        workManager.startOneOffScheduling(calendar)
+    }
     /**
      * Deletes a event from the database
      * @param event Event to be removed
      */
-    suspend fun delete(event: EventModel) = calendarRepo.delete(event)
+    suspend fun delete(event: EventModel) = calendarRepo.delete(event).also {
+        workManager.startOneOffScheduling(event)
+    }
     /**
      * Deletes tag(s) from the database
      * @param tags Tags to be removed
