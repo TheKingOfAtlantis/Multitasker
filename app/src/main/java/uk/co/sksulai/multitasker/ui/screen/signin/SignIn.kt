@@ -150,6 +150,7 @@ fun Modifier.addAutofillNode(
     ErrorText(
         emailError,
         modifier = Modifier
+            .width(TextFieldDefaults.MinWidth)
             .paddingFromBaseline(24.dp)
             .padding(start = 16.dp),
         textStyle = MaterialTheme.typography.caption
@@ -206,6 +207,7 @@ fun Modifier.addAutofillNode(
     ErrorText(
         passwordError,
         modifier = Modifier
+            .width(TextFieldDefaults.MinWidth)
             .paddingFromBaseline(24.dp)
             .padding(start = 16.dp),
         textStyle = MaterialTheme.typography.caption
