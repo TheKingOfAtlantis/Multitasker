@@ -160,6 +160,7 @@ private fun GoogleIntentLauncher.launch(intent: SavePasswordResult) = launch(int
      * @param password      The password to sign in with
      * @param saverLauncher Intent launcher to save the password
      */
+    @Suppress("NAME_SHADOWING")
     suspend fun authenticate(
         email: String,
         password: String,

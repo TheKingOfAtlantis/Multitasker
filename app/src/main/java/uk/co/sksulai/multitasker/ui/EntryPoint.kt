@@ -115,7 +115,7 @@ enum class GraphLevel {
         composable(Destinations.CalendarView.route) { }
 
         composable(
-            "FirebaseAction?mode={mode}&oobCode={oobCode}&apiKey={apiKey}&continueUrl={continueUrl}&lang={lang}",
+            "Action?mode={mode}&oobCode={oobCode}&apiKey={apiKey}&continueUrl={continueUrl}&lang={lang}",
             deepLinks = listOf(
                 NavDeepLink("$MultitaskerBaseUrl/user/action?mode={mode}&oobCode={oobCode}&apiKey={apiKey}&continueUrl={continueUrl}&lang={lang}"),
             ),
@@ -133,9 +133,9 @@ enum class GraphLevel {
             it.arguments?.let { bundle ->
                 val mode:        String by bundle
                 val oobCode:     String by bundle
-                val apiKey:      String by bundle
+                // val apiKey:      String by bundle
                 val continueUrl: String by bundle
-                val lang:        String by bundle
+                // val lang:        String by bundle
 
                 // Where ever we end up we only need the oobCode and continueUrl
                 fun buildUrl(path: String) =

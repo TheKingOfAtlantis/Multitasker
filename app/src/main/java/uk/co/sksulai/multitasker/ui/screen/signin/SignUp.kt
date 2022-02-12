@@ -30,8 +30,6 @@ import uk.co.sksulai.multitasker.util.*
 ) = Surface {
     val pageController = rememberNavController()
 
-    val user by userViewModel.currentUser.collectAsState(initial = null)
-
     NavHost(
         navController = pageController,
         startDestination =
@@ -39,7 +37,6 @@ import uk.co.sksulai.multitasker.util.*
             else EmailVerificationRoute
     ) {
         EmailVerificationPage( // Need to verify user email
-            user?.Email ?: "",
             userViewModel.emailVerification
         )
         UserDetailsPage( // Then add the user's details
@@ -51,14 +48,12 @@ import uk.co.sksulai.multitasker.util.*
 
 const val EmailVerificationRoute = "verify"
 fun NavGraphBuilder.EmailVerificationPage(
-    email: String,
     emailVerification: UserRepository.EmailVerification
 ) = composable(EmailVerificationRoute) {
     val scope = rememberCoroutineScope()
     var linkSent by rememberSaveableMutableState(false)
 
     if(!linkSent) EmailVerification(
-        email,
         onSubmitRequest = provideInScope(scope) {
             emailVerification.request("signup#details")
             linkSent = true

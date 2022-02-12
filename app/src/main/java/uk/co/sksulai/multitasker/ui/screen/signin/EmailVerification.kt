@@ -21,7 +21,6 @@ import uk.co.sksulai.multitasker.db.viewmodel.UserViewModel
 import uk.co.sksulai.multitasker.util.rememberSaveableMutableState
 
 @Composable fun EmailVerification(
-    email: String,
     onSubmitRequest: () -> Unit,
     onCancelRequest: (() -> Unit)? = null,
     preamble: @Composable (() -> Unit)? = null,
