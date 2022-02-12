@@ -23,12 +23,12 @@ import uk.co.sksulai.multitasker.db.createDatabase
 @InstallIn(
     SingletonComponent::class
 ) @Module object DaoModule {
-    @Provides fun provideUserDao(db: LocalDB)         = db.getUserDao()
+    @Provides fun provideUserDao(db: LocalDB)         = db.userDao
 
-    @Provides fun provideCalendarDao(db: LocalDB)     = db.getCalendarDao()
-    @Provides fun provideEventDao(db: LocalDB)        = db.getEventDao()
-    @Provides fun provideTagDao(db: LocalDB)          = db.getTagDao()
+    @Provides fun provideCalendarDao(db: LocalDB)     = db.calendarDao
+    @Provides fun provideEventDao(db: LocalDB)        = db.eventDao
+    @Provides fun provideTagDao(db: LocalDB)          = db.tagDao
 
-    @Provides fun provideNotificationDao(db: LocalDB) = db.getNotificationRuleDao()
-    @Provides fun provideEventNotificationScheduleDao(db: LocalDB) = db.getEventNotificationDao()
+    @Provides fun provideNotificationDao(db: LocalDB) = db.notificationRuleDao
+    @Provides fun provideEventNotificationScheduleDao(db: LocalDB) = db.eventNotificationDao
 }

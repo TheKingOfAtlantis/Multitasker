@@ -46,12 +46,12 @@ fun LocalDB.Companion.createDatabase(context: Context, inMemory: Boolean = false
 ]) abstract class LocalDB : RoomDatabase() {
     companion object { const val DBName = "Multitasker.db" }
 
-    abstract fun getUserDao(): UserDao
+    abstract val userDao: UserDao
 
-    abstract fun getCalendarDao(): CalendarDao
-    abstract fun getEventDao(): EventDao
-    abstract fun getTagDao(): TagDao
-    abstract fun getNotificationRuleDao(): NotificationRuleDao
+    abstract val calendarDao: CalendarDao
+    abstract val eventDao: EventDao
+    abstract val tagDao: TagDao
+    abstract val notificationRuleDao: NotificationRuleDao
 
-    abstract fun getEventNotificationDao(): EventNotificationScheduleDao
+    abstract val eventNotificationDao: EventNotificationScheduleDao
 }
