@@ -467,9 +467,9 @@ val EventCategories = listOf(
     var location: String         by rememberSaveableMutableState("")
     var tags: List<String>        by rememberSaveableMutableState(emptyList())
     var start: ZonedDateTime      by rememberSaveableMutableState(ZonedDateTime.now())
-    var end: ZonedDateTime        by rememberSaveableMutableState(start + Duration.ofHours(1))
+    var duration: Duration        by rememberSaveableMutableState(Duration.ofHours(1))
+    var endTimezone: TimeZone     by rememberSaveableMutableState(TimeZone.getDefault())
     var allDay: Boolean           by rememberSaveableMutableState(false)
-
     var reminders: List<Duration> by rememberSaveableMutableState(
         calendarRules.map(NotificationRuleModel::duration),
         calendarRules
@@ -484,7 +484,7 @@ val EventCategories = listOf(
         location    = location,
         tags        = tags,
         start       = start,
-        end         = end,
+        end         = (start + duration).withZoneSameInstant(endTimezone.toZoneId()),
         allDay      = allDay,
         reminders   = reminders,
 
@@ -497,8 +497,11 @@ val EventCategories = listOf(
         onTagsChange        = { tags        = it },
         onAllDayChange      = { allDay      = it },
         onStartChange       = { start       = it },
-        onEndChange         = { end         = it },
-        onRemindersChange   = { reminders   = it },
+        onEndChange         = {
+            duration = Duration.between(start, it)
+            endTimezone = it.timezone
+        },
+        onRemindersChange = { reminders = it },
 
         childrenEditor = {
             Text("Save first to add nested events")
@@ -515,6 +518,7 @@ val EventCategories = listOf(
             // at the start and end of the day (as required)
             // eg. if start and end on the same day => need actual start to be 00:00:01 and end to be 23:59:59
 
+            val end = start + duration
             val actualStart = if (!allDay) start else start.toLocalDate().atStartOfDay(start.zone)
             val actualEnd   = if (!allDay) end   else end.toLocalDate().atTime(LocalTime.MAX).atZone(end.zone)
 
