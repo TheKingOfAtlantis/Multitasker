@@ -205,7 +205,7 @@ class CalendarRepo @Inject constructor(
         category    = category,
         location    = location,
         allDay      = allDay,
-        start       = start,
+        start       = start.withSecond(0),
         duration    = duration,
         endTimezone = endTimeZone
     ))
