@@ -114,14 +114,14 @@ private fun GoogleIntentLauncher.launch(intent: SavePasswordResult) = launch(int
         saverLauncher: GoogleIntentLauncher
     ) {
         action(email, password)
-//        TODO: Once we can force the one-tap saver ui to appear switch to it
-//        val saver = Identity.getCredentialSavingClient(app)
-//            .savePassword(
-//                SavePasswordRequest.builder()
-//                    .setSignInPassword(SignInPassword(email, password))
-//                    .build()
-//            ).await()
-//        saverLauncher.launch(saver)
+//      TODO: See if we can force the one-tap saver ui to appear
+        val saver = Identity.getCredentialSavingClient(app)
+            .savePassword(
+                SavePasswordRequest.builder()
+                    .setSignInPassword(SignInPassword(email, password))
+                    .build()
+            ).await()
+        saverLauncher.launch(saver)
     }
 
     /**

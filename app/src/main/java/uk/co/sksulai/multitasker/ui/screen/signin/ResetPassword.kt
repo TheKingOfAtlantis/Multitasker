@@ -179,6 +179,7 @@ enum class EmailActionState {
     var error by rememberSaveableMutableState<String?>(null)
     var email by rememberSaveableMutableState("")
 
+    @Suppress("NON_EXHAUSTIVE_WHEN")
     when(state) {
         EmailActionState.Verifying -> {
             LaunchedEffect(Unit) {
