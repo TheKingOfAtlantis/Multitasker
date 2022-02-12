@@ -31,18 +31,15 @@ enum class GraphLevel {
 @Composable fun rememberInitialRoute(
     level: GraphLevel,
     appState: Preferences
-) = rememberSaveable(
-    level, appState
-) { when(level) {
-    GraphLevel.Root -> when {
-        !appState[AppState.CurrentUser].isNullOrEmpty() -> Destinations.CalendarView.route
-        !(appState[AppState.OnBoarded] ?: false) -> Destinations.SignInFlow.route
-        else -> Destinations.SignInFlow.route
-    }
-    GraphLevel.SignInFlow ->  when {
-        !(appState[AppState.OnBoarded] ?: false) -> Destinations.OnBoarding.route
-        else -> Destinations.SignIn.route
-    }
+) = rememberSaveable(level, appState) { when(level) {
+    GraphLevel.Root ->
+        if(!appState[AppState.CurrentUser].isNullOrEmpty())
+            Destinations.CalendarView.route
+        else Destinations.SignInFlow.route
+    GraphLevel.SignInFlow ->
+        if(!appState.contains(AppState.OnBoarded)) 
+            Destinations.OnBoarding.route
+        else Destinations.SignIn.route
 } }
 
 @Composable private fun handleDynamicLinks(
@@ -61,13 +58,13 @@ enum class GraphLevel {
     val appState by AppState.retrieveData(emptyPreferences())
 
     val rootInitialRoot = rememberInitialRoute(GraphLevel.Root, appState)
-    val signinFlowInitialRoot = rememberInitialRoute(GraphLevel.SignInFlow, appState)
+    val signInFlowInitialRoot = rememberInitialRoute(GraphLevel.SignInFlow, appState)
 
     handleDynamicLinks(navController)
     NavHost(navController, rootInitialRoot) {
         navigation(
             route = Destinations.SignInFlow.route,
-            startDestination = signinFlowInitialRoot
+            startDestination = signInFlowInitialRoot
         ) {
             composable(Destinations.OnBoarding.route) { OnBoardingScreen(navController) }
             composable(
