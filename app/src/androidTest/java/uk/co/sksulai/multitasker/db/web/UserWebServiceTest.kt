@@ -9,6 +9,7 @@ import org.junit.runner.RunWith
 import com.google.common.truth.Truth.*
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule
+import androidx.test.filters.MediumTest
 
 import dagger.hilt.android.testing.HiltAndroidRule
 import dagger.hilt.android.testing.HiltAndroidTest
@@ -21,10 +22,10 @@ import uk.co.sksulai.multitasker.util.AuthParam
 import uk.co.sksulai.multitasker.util.UserTestUtil
 import uk.co.sksulai.multitasker.util.FirebaseEmulatorUtil
 
-@HiltAndroidTest @RunWith(AndroidJUnit4::class)
-class UserWebServiceTest {
-    @get:Rule var hiltAndroidRule     = HiltAndroidRule(this)
-    @get:Rule var instantExecutorRule = InstantTaskExecutorRule()
+@HiltAndroidTest
+@MediumTest class UserWebServiceTest {
+    @get:Rule(order = 0) var hiltAndroidRule     = HiltAndroidRule(this)
+    @get:Rule(order = 1) var instantExecutorRule = InstantTaskExecutorRule()
 
     @Inject lateinit var web: UserWebService
 
@@ -72,7 +73,7 @@ class UserWebServiceTest {
         assertThat(web.fromID(user.ID).first()).isNull()
     }
     @Test fun writeUserAndUpdate(): Unit = runBlocking {
-        val auth = AuthParam.random()
+        val auth = AuthParam.random
         val user = UserTestUtil.createSingle(useAuth = true)
 
         // Assert that does exist now that we have added it

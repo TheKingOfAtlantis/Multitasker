@@ -28,8 +28,8 @@ data class AuthParam(
     val password: String
 ) {
     companion object {
-        fun random() = AuthParam(
-            email    = RandomUtil.nextEmail(),
+        val random get() = AuthParam(
+            email = RandomUtil.nextEmail(),
             password = RandomUtil.nextString(8, 12)
         )
     }
@@ -41,7 +41,7 @@ object UserTestUtil {
         Creation = Instant.now(),
         LastModified = Instant.now(),
         null, null, "", null, null, null, null
-    ) else AuthParam.random().let { auth -> Firebase.auth.createUserWithEmailAndPassword(auth.email, auth.password).await().let {
+    ) else AuthParam.random.let { auth -> Firebase.auth.createUserWithEmailAndPassword(auth.email, auth.password).await().let {
         createSingle().copy(
             ID     = it.user!!.uid,
             Email  = it.user?.email,

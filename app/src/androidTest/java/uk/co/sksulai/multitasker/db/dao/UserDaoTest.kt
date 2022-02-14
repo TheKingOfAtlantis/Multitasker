@@ -14,20 +14,17 @@ import org.junit.After
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
-import org.junit.runner.RunWith
-
-import androidx.test.filters.SmallTest
-import androidx.test.ext.junit.runners.AndroidJUnit4
 
 import com.google.common.truth.Truth.assertThat
 
 import android.content.Context
+import androidx.test.filters.MediumTest
 
 import uk.co.sksulai.multitasker.db.LocalDB
 import uk.co.sksulai.multitasker.util.UserTestUtil
 
-@HiltAndroidTest @RunWith(AndroidJUnit4::class)
-@SmallTest class UserDaoTest {
+@HiltAndroidTest
+@MediumTest class UserDaoTest {
     @get:Rule var hiltAndroidRule = HiltAndroidRule(this)
 
     @Inject @ApplicationContext lateinit var context: Context

@@ -14,6 +14,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule
 
 import android.content.Context
+import androidx.test.filters.MediumTest
 import com.google.firebase.auth.FirebaseAuthException
 
 import kotlinx.coroutines.*
@@ -31,10 +32,10 @@ import uk.co.sksulai.multitasker.util.DatastoreLocators.AppState
 private suspend fun UserRepository.create(auth: AuthParam)       = create(auth.email, auth.password)
 private suspend fun UserRepository.authenticate(auth: AuthParam) = authenticate(getCredentials(auth.email, auth.password))
 
-@HiltAndroidTest @RunWith(AndroidJUnit4::class)
-class UserRepositoryTest {
-    @get:Rule var hiltAndroidRule     = HiltAndroidRule(this)
-    @get:Rule var instantExecutorRule = InstantTaskExecutorRule()
+@HiltAndroidTest
+@MediumTest class UserRepositoryTest {
+    @get:Rule(order = 0) val hiltAndroidRule     = HiltAndroidRule(this)
+    @get:Rule(order = 1) val instantExecutorRule = InstantTaskExecutorRule()
 
     @ApplicationContext @Inject lateinit var context: Context
     @Inject lateinit var repo: UserRepository
@@ -52,13 +53,13 @@ class UserRepositoryTest {
 
     @Test fun createAndRetrieve(): Unit = runBlocking {
         // Create a user then assert that we get the same thing from both the local and web database
-        val user = repo.create(AuthParam.random())
+        val user = repo.create(AuthParam.random)
         assertThat(dao.fromID(user.ID).first()).isEqualTo(user)
         assertThat(web.fromID(user.ID).first()).isEqualTo(user)
     }
 
     @Test fun createAndUpdate(): Unit = runBlocking {
-        val user = repo.create(AuthParam.random())
+        val user = repo.create(AuthParam.random)
 
         val userFlow = repo.fromID(user.ID)
         assertThat(userFlow.first()).isEqualTo(user)
@@ -82,7 +83,7 @@ class UserRepositoryTest {
         }
     }
     @Test fun updateIndirectViaWeb(): Unit = runBlocking {
-        val user = repo.create(AuthParam.random())
+        val user = repo.create(AuthParam.random)
 
         val userFlow = repo.fromID(user.ID)
         assertThat(userFlow.first()).isEqualTo(user)
@@ -109,7 +110,7 @@ class UserRepositoryTest {
     }
 
     @Test fun createAndDeleteEverywhere(): Unit = runBlocking {
-        val auth = AuthParam.random()
+        val auth = AuthParam.random
         val user = repo.create(auth)
 
         repo.delete(user, localOnly = false)
@@ -121,7 +122,7 @@ class UserRepositoryTest {
         assertThat(web.fromID(user.ID).first()).isNull()
     }
     @Test fun createAndDeleteLocal(): Unit = runBlocking {
-        val auth = AuthParam.random()
+        val auth = AuthParam.random
         val user = repo.create(auth)
 
         repo.delete(user, localOnly = true)
@@ -137,7 +138,7 @@ class UserRepositoryTest {
     }
     @Test(expected = FirebaseAuthException::class) fun throwWhenSignInAsNonexistentUser(): Unit = runBlocking {
         // Trying to sign in (since we have no users) should throw an exception
-        repo.authenticate(AuthParam.random())
+        repo.authenticate(AuthParam.random)
     }
 
     @Test fun validateCurrentUserState(): Unit = runBlocking {
@@ -161,7 +162,7 @@ class UserRepositoryTest {
             }
         }
 
-        val auth = AuthParam.random()
+        val auth = AuthParam.random
 
         // We create our first user
         // Expect that the current user is equal to this new user
@@ -172,7 +173,7 @@ class UserRepositoryTest {
         // Create another user
         // Expect the current user to switch to that new user
         lastUser    = currentUser
-        currentUser = repo.create(AuthParam.random())
+        currentUser = repo.create(AuthParam.random)
         runAsserts()
 
         // Now we sign in as the first user
@@ -195,10 +196,10 @@ class UserRepositoryTest {
     }
 
     @Test fun writeUserAndReadByActualName(): Unit = runBlocking {
-        List(3) { repo.create(AuthParam.random()) }
+        List(3) { repo.create(AuthParam.random) }
             .map { it.copy(ActualName = "Dave")  }
             .onEach { dao.insert(it) }
-        List(2) { repo.create(AuthParam.random()) }
+        List(2) { repo.create(AuthParam.random) }
             .map { it.copy(ActualName = "Harry") }
             .onEach { dao.insert(it) }
 
@@ -217,7 +218,7 @@ class UserRepositoryTest {
         assertThat(repo.fromActualName("Bob").first()).isEmpty()
     }
     @Test fun writeUserAndReadByDisplayName(): Unit = runBlocking {
-        List(5) { repo.create(AuthParam.random()) }
+        List(5) { repo.create(AuthParam.random) }
             .mapIndexed { index, user -> user.copy(DisplayName = "Username$index") }
             .onEach { repo.update(it) }
         val users = dao.getAll().first() // Should be the same so we can get around LastModified not being the same
@@ -227,7 +228,7 @@ class UserRepositoryTest {
     }
 
     @Test fun searchByDisplayName(): Unit = runBlocking {
-        List(5) { repo.create(AuthParam.random()) }
+        List(5) { repo.create(AuthParam.random) }
             .mapIndexed { index, user -> user.copy(DisplayName = "Username$index") }
             .onEach { dao.update(it) }
         val users = dao.getAll().first() // Should be the same so we can get around LastModified not being the same
@@ -243,7 +244,7 @@ class UserRepositoryTest {
         }
     }
     @Test fun searchByActualName(): Unit = runBlocking {
-        List(5) { repo.create(AuthParam.random()) }
+        List(5) { repo.create(AuthParam.random) }
             .mapIndexed { index, user -> user.copy(ActualName = "Actual Name$index")  }
             .onEach { repo.update(it) }
         val users = dao.getAll().first() // Should be the same so we can get around LastModified not being the same
