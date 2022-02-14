@@ -2,16 +2,16 @@ package uk.co.sksulai.multitasker.util
 
 import kotlinx.coroutines.*
 import androidx.compose.runtime.*
-import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.saveable.autoSaver
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.activity.ComponentActivity
 
 /**
  * Provides the [AppCompatActivity] in which this composition is taking place in
  * @see ProvideActivity
  */
-val LocalActivity = staticCompositionLocalOf<AppCompatActivity> {
+val LocalActivity = staticCompositionLocalOf<ComponentActivity> {
     error("CompositionLocal LocalActivity not present")
 }
 
@@ -22,7 +22,7 @@ val LocalActivity = staticCompositionLocalOf<AppCompatActivity> {
  * @param content  The contents of the composition which will be able to access the value of [activity]
  */
 @Composable fun ProvideActivity(
-    activity: AppCompatActivity,
+    activity: ComponentActivity,
     content: @Composable () -> Unit
 ) = CompositionLocalProvider(
     LocalActivity provides activity,

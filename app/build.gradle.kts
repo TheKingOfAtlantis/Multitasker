@@ -27,69 +27,61 @@ plugins {
 }
 
 android {
-    compileSdk        = 31
-    buildToolsVersion = "32.0.0-rc1"
+    compileSdk = 31
 
     defaultConfig {
         applicationId = "uk.co.sksulai.multitasker"
-        minSdk        = 26
-        targetSdk     = 31
         versionCode   = 2
         versionName   = "0.0.2"
 
+        minSdk        = 26
+        targetSdk     = 31
+
         testInstrumentationRunner = "uk.co.sksulai.multitasker.test.Runner"
-        testInstrumentationRunnerArguments += mapOf(
-            "clearPackageData" to "true"
-        )
+        testInstrumentationRunnerArguments += mapOf("clearPackageData" to "true")
     }
 
     buildTypes {
-        getByName("debug") {
+        debug {
             isMinifyEnabled = false
             isTestCoverageEnabled = true
         }
-        getByName("release") {
-            isMinifyEnabled = true
-            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+        release {
+            isMinifyEnabled = false
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
         }
     }
+    testOptions {
+        unitTests.isIncludeAndroidResources = true
+        execution = "ANDROIDX_TEST_ORCHESTRATOR"
+    }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_1_8
         targetCompatibility = JavaVersion.VERSION_1_8
     }
     kotlinOptions {
         jvmTarget = "1.8"
-        freeCompilerArgs += listOf(
-            "-Xskip-prerelease-check",
-            "-XXLanguage:+InlineClasses",
-            "-Xopt-in=kotlin.RequiresOptIn"
-        )
+        freeCompilerArgs += "-Xopt-in=kotlin.RequiresOptIn"
     }
     buildFeatures.compose = true
-    composeOptions { kotlinCompilerExtensionVersion = "1.1.0-beta02" }
-    testOptions {
-        unitTests.isIncludeAndroidResources = true
-    }
+    composeOptions { kotlinCompilerExtensionVersion = Version.compose }
 
     dependenciesInfo {
         includeInApk    = true
         includeInBundle = true
     }
     packagingOptions {
-        resources.excludes += setOf(
-            "/META-INF/AL2.0",
-            "/META-INF/LGPL2.1"
-        )
+        resources.excludes += "/META-INF/{AL2.0,LGPL2.1}"
     }
     bundle {
         language { enableSplit = true }
         density  { enableSplit = true }
         abi      { enableSplit = true }
     }
-
-    useLibrary("android.test.runner")
-    useLibrary("android.test.base")
-    useLibrary("android.test.mock")
 }
 
 kapt {
@@ -102,12 +94,9 @@ kapt {
 }
 
 dependencies {
-    implementation(kotlin("stdlib", version = "1.5.31"))
-
-    // Kotlin Coroutine
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.5.2-native-mt")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.5.2-native-mt")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.5.2-native-mt")
+    // Androidx Core
+    implementation("androidx.core:core-ktx:1.7.0")
+    implementation("androidx.window:window:1.0.0")
 
     // Hilt
     implementation("com.google.dagger:hilt-android:${Version.hilt}")
@@ -120,26 +109,17 @@ dependencies {
     // Coil
     implementation("io.coil-kt:coil-compose:1.4.0")
 
-    // Androidx
-    implementation("androidx.core:core-ktx:1.7.0")
-    implementation("androidx.appcompat:appcompat:1.4.0")
-    implementation("com.google.android.material:material:1.4.0")
-    implementation("androidx.window:window:1.0.0-rc01")
-
     // Jetpack Compose
-    implementation("androidx.compose.ui:ui:${Version.compose}")
-    implementation("androidx.compose.ui:ui-test:${Version.compose}")
-    implementation("androidx.compose.ui:ui-tooling:${Version.compose}")
-    implementation("androidx.compose.foundation:foundation:${Version.compose}")
-    implementation("androidx.compose.material:material:${Version.compose}")
+    implementation("androidx.activity:activity-compose:1.4.0")
+    implementation("androidx.compose.ui:ui:1.1.0")
+    implementation("androidx.compose.material:material:1.1.0")
     implementation("androidx.compose.material:material-icons-core:${Version.compose}")
     implementation("androidx.compose.material:material-icons-extended:${Version.compose}")
 
-    implementation("androidx.compose.foundation:foundation-layout:1.0.5")
-    implementation("androidx.compose.animation:animation:1.1.0-rc01")
+    debugImplementation("androidx.compose.ui:ui-tooling:1.1.0")
+    implementation("androidx.compose.ui:ui-tooling-preview:1.1.0")
 
-    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:${Version.lifecycle}")
-
+    //Compose: Accompanist
     implementation("com.google.accompanist:accompanist-insets:${Version.accompanist}")
     implementation("com.google.accompanist:accompanist-insets-ui:${Version.accompanist}")
     implementation("com.google.accompanist:accompanist-pager:${Version.accompanist}")
@@ -148,29 +128,13 @@ dependencies {
     implementation("com.google.accompanist:accompanist-permissions:${Version.accompanist}")
     implementation("com.google.accompanist:accompanist-systemuicontroller:${Version.accompanist}")
     implementation("com.google.accompanist:accompanist-drawablepainter:${Version.accompanist}")
-    implementation("com.google.accompanist:accompanist-navigation-material:0.22.1-SNAPSHOT")
-
-    // Firebase & Google
-    implementation("com.google.android.gms:play-services-auth:20.0.1")
-
-    implementation(platform("com.google.firebase:firebase-bom:29.0.3"))
-    implementation("com.google.guava:listenablefuture:9999.0-empty-to-avoid-conflict-with-guava")
-    implementation("com.google.firebase:firebase-analytics-ktx")
-    implementation("com.google.firebase:firebase-crashlytics-ktx")
-    implementation("com.google.firebase:firebase-firestore-ktx")
-    implementation("com.google.firebase:firebase-auth-ktx")
-    implementation("com.google.firebase:firebase-dynamic-links-ktx")
-    implementation("com.google.firebase:firebase-storage-ktx")
-
+    implementation("com.google.accompanist:accompanist-navigation-material:${Version.accompanist}")
 
     // Arch: Lifecycle
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:${Version.lifecycle}")
-    implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:${Version.lifecycle}")
-    implementation("androidx.lifecycle:lifecycle-livedata-ktx:${Version.lifecycle}")
-    implementation("androidx.lifecycle:lifecycle-viewmodel-savedstate:${Version.lifecycle}")
     implementation("androidx.lifecycle:lifecycle-common-java8:${Version.lifecycle}")
-    implementation("androidx.lifecycle:lifecycle-service:${Version.lifecycle}")
-    implementation("androidx.lifecycle:lifecycle-process:${Version.lifecycle}")
+    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:${Version.lifecycle}")
+    implementation("androidx.lifecycle:lifecycle-viewmodel-savedstate")
 
     // Arch: DataStore
     implementation("androidx.datastore:datastore:${Version.datastore}")
@@ -182,25 +146,34 @@ dependencies {
     implementation("androidx.room:room-ktx:${Version.room}")
 
     // Arch: Navigation
-    implementation("androidx.navigation:navigation-fragment-ktx:${Version.nav}")
-    implementation("androidx.navigation:navigation-ui-ktx:${Version.nav}")
-    implementation("androidx.navigation:navigation-compose:2.4.0-rc01")
-    implementation("androidx.hilt:hilt-navigation-compose:1.0.0-rc01")
+    implementation("androidx.navigation:navigation-compose:2.5.0-alpha01")
+    implementation("androidx.hilt:hilt-navigation-compose:1.0.0")
 
     // Arch: WorkManager
     implementation("androidx.work:work-runtime-ktx:${Version.workmanager}")
     implementation("androidx.work:work-gcm:${Version.workmanager}")
 
+    // Firebase & Google
+    implementation("com.google.android.gms:play-services-auth:20.1.0")
+
+    implementation(platform("com.google.firebase:firebase-bom:29.0.3"))
+    implementation("com.google.firebase:firebase-analytics-ktx")
+    implementation("com.google.firebase:firebase-firestore-ktx")
+    implementation("com.google.firebase:firebase-auth-ktx")
+    implementation("com.google.firebase:firebase-dynamic-links-ktx")
+    implementation("com.google.firebase:firebase-storage-ktx")
+
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.6.0-native-mt")
+
     // Testing: Instrumentation Testing
-
-    androidTestImplementation("androidx.test.ext:junit:+")
-    androidTestImplementation("androidx.test.espresso:espresso-core:+")
-
-    androidTestImplementation("androidx.test.ext:junit-ktx:1.1.3")
+    androidTestImplementation("androidx.test:runner:1.4.0")
+    androidTestImplementation("androidx.test:rules:1.4.0")
     androidTestImplementation("androidx.test.ext:truth:1.4.0")
-    androidTestImplementation("com.google.truth:truth:1.1.3")
+    androidTestUtil("androidx.test:orchestrator:1.4.1")
 
     androidTestImplementation("androidx.compose.ui:ui-test-junit4:${Version.compose}")
+    debugImplementation("androidx.compose.ui:ui-test-manifest:${Version.compose}")
+
     androidTestImplementation("androidx.arch.core:core-testing:2.1.0")
 
     androidTestImplementation("com.google.dagger:hilt-android-testing:${Version.hilt}")
