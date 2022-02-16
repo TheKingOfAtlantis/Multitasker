@@ -7,10 +7,6 @@ import androidx.compose.ui.test.junit4.ComposeContentTestRule
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
-import dagger.hilt.android.testing.HiltAndroidRule
-import dagger.hilt.android.testing.HiltAndroidTest
-import org.junit.Before
-import org.junit.rules.RuleChain
 
 /**
  * Wrapper just so to avoid needing to call composeTestRule everytime
@@ -30,7 +26,7 @@ abstract class ComposeTest {
  * Extends the functionality of [ComposeTest] to ensure that a navController
  * is provided everytime we set the content
  */
-open class NavigableComposeTest : ComposeTest() {
+abstract class NavigableComposeTest : ComposeTest() {
     lateinit var navController: NavHostController
     /**
      * Calls [ComposeContentTestRule.setContent] on the [block] and initialises

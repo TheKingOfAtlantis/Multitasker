@@ -45,11 +45,8 @@ import uk.co.sksulai.multitasker.R
 import uk.co.sksulai.multitasker.ui.*
 import uk.co.sksulai.multitasker.ui.component.*
 import uk.co.sksulai.multitasker.db.repo.GoogleIntent
-import uk.co.sksulai.multitasker.db.viewmodel.GoogleIntentLauncher
-import uk.co.sksulai.multitasker.db.viewmodel.UserViewModel
-import uk.co.sksulai.multitasker.util.provideInScope
-import uk.co.sksulai.multitasker.util.rememberMutableState
-import uk.co.sksulai.multitasker.util.rememberSaveableMutableState
+import uk.co.sksulai.multitasker.db.viewmodel.*
+import uk.co.sksulai.multitasker.util.*
 
 @OptIn(ExperimentalComposeUiApi::class)
 fun View.getManager() = context.getSystemService<AutofillManager>()
@@ -98,40 +95,42 @@ fun Modifier.addAutofillNode(
  * @param modifier          The modifier to apply to the form
  */
 @ExperimentalComposeUiApi
-@Composable fun SignInForm(
+@Composable fun EmailCredentialsForm(
     email: String,
     password: String,
     onEmailChanged: (String) -> Unit,
     onPasswordChanged: (String) -> Unit,
-    emailError: String?,
-    passwordError: String?,
+    emailError: String,
+    passwordError: String,
     onFilled: (() -> Unit)?,
     modifier: Modifier = Modifier,
+    passwordVisibility: Boolean = false,
+    onVisibilityChange: (Boolean) -> Unit = { },
 ) = Column(modifier) {
-    val (emailFocus, passwordFocus) = remember { FocusRequester.createRefs() }
-
-    LaunchedEffect(emailError, passwordError) {
-        if(!emailError.isNullOrEmpty()) emailFocus.requestFocus()
-        else if(!passwordError.isNullOrEmpty()) passwordFocus.requestFocus()
-    }
+    val emailFocus    = remember { FocusRequester() }
+    val passwordFocus = remember { FocusRequester() }
 
     val view         = LocalView.current
     val autofillTree = LocalAutofillTree.current
     val autofill     = LocalAutofill.current
+    val focusManager = LocalFocusManager.current
 
     val (emailNode, onEmailNodeChange) = rememberMutableState<AutofillNode?>(null)
     OutlinedTextField(
         modifier = Modifier
+            .width(TextFieldDefaults.MinWidth)
             .focusOrder(emailFocus)
             .addAutofillNode(
                 autofillTree, autofill, onEmailChanged,
                 AutofillType.EmailAddress,
                 onNodeCreated = onEmailNodeChange
-            ),
+            )
+            .testTag("EmailField")
+        ,
         label = {
             LabelText(
                 stringResource(id = R.string.email),
-                !emailError.isNullOrEmpty()
+                emailError.isNotEmpty()
             )
         },
         value = email,
@@ -140,7 +139,7 @@ fun Modifier.addAutofillNode(
             emailNode?.onValueChanged(view, it)
         },
         singleLine       = true,
-        isError          = !emailError.isNullOrEmpty(),
+        isError          = emailError.isNotEmpty(),
         keyboardActions  = KeyboardActions { passwordFocus.requestFocus() },
         keyboardOptions  = KeyboardOptions(
             keyboardType = KeyboardType.Email,
@@ -150,29 +149,30 @@ fun Modifier.addAutofillNode(
     ErrorText(
         emailError,
         modifier = Modifier
-            .width(TextFieldDefaults.MinWidth)
-            .paddingFromBaseline(24.dp)
-            .padding(start = 16.dp),
+            .textFieldHelperPadding()
+            .testTag("EmailError")
+        ,
         textStyle = MaterialTheme.typography.caption
     )
 
     Spacer(Modifier.height(8.dp))
 
     val (passwordNode, onPasswordNodeChange) = rememberMutableState<AutofillNode?>(null)
-    var visible by rememberMutableState(false)
     OutlinedTextField(
         modifier = Modifier
+            .width(TextFieldDefaults.MinWidth)
             .focusRequester(passwordFocus)
             .addAutofillNode(
                 autofillTree, autofill, onPasswordChanged,
                 AutofillType.Password, AutofillType.NewPassword,
                 onNodeCreated = onPasswordNodeChange
             )
+            .testTag("PasswordField")
         ,
         label = {
             LabelText(
                 stringResource(id = R.string.password),
-                !passwordError.isNullOrEmpty()
+                passwordError.isNotEmpty()
             )
         },
         value = password,
@@ -181,37 +181,45 @@ fun Modifier.addAutofillNode(
             passwordNode?.onValueChanged(view, it)
         },
         singleLine    = true,
-        isError       = !passwordError.isNullOrEmpty(),
+        isError       = passwordError.isNotEmpty(),
         trailingIcon  = {
-            IconToggleButton(checked = visible, onCheckedChange = { visible = it }) {
+            IconToggleButton(
+                checked = passwordVisibility,
+                onCheckedChange = onVisibilityChange,
+                modifier = Modifier.testTag("PasswordVisibility")
+            ) {
                 Icon(
                     imageVector =
-                        if(visible) Icons.Default.Visibility
+                        if(passwordVisibility) Icons.Default.Visibility
                         else Icons.Default.VisibilityOff,
                     contentDescription = null
                 )
             }
         },
         visualTransformation =
-            if(visible) VisualTransformation.None
+            if(passwordVisibility) VisualTransformation.None
             else PasswordVisualTransformation(),
         keyboardOptions  = KeyboardOptions(
             keyboardType = KeyboardType.Password,
             imeAction    = ImeAction.Done
         ),
         keyboardActions = KeyboardActions {
-            passwordFocus.freeFocus()
+            focusManager.clearFocus()
             onFilled?.invoke()
         }
     )
     ErrorText(
         passwordError,
         modifier = Modifier
-            .width(TextFieldDefaults.MinWidth)
-            .paddingFromBaseline(24.dp)
-            .padding(start = 16.dp),
+            .textFieldHelperPadding()
+            .testTag("PasswordError")
+        ,
         textStyle = MaterialTheme.typography.caption
     )
+    LaunchedEffect(emailError, passwordError) {
+        if(emailError.isNotEmpty()) emailFocus.requestFocus()
+        else if(passwordError.isNotEmpty()) passwordFocus.requestFocus()
+    }
 }
 
 /**
@@ -223,17 +231,16 @@ fun Modifier.addAutofillNode(
  * @param modifier Modifier to be applied to this component
  *
  * @param onSignIn Used to handle sign in requests
- * @param onSignUp Used to handle sign up requests. If marked as null the
- *                 button adjacent to the sign in button will be removed
- *                 and the sign in button will take up the remaining space
- * @param onForgot Used to handle forgotten password request. If marked
- *                 as null the button below the sign in (and sign up if
- *                 present) will be removed
+ * @param onSignUp Used to handle sign up requests. If marked as null the button
+ *                 adjacent to the sign in button will be removed and the sign
+ *                 in button will take up the remaining space
+ * @param onForgot Used to handle forgotten password request. If marked as null
+ *                 the button below the sign in (and sign up if present) will
+ *                 be removed
  *
  * @param signInLabel The sign in button label (default: [R.string.signin])
  * @param signUpLabel The sign up button label (default: [R.string.signup])
- * @param forgotPasswordLabel The forgotten password button label (default:
- *                            [R.string.forgot_password])
+ * @param forgotPasswordLabel The forgotten password button label (default: [R.string.forgot_password])
  */
 @Composable fun EmailActions(
     onSignIn: () -> Unit,
@@ -334,8 +341,8 @@ fun Modifier.addAutofillNode(
 }
 
 /**
- * Layouts out the contents of the sign in form such that the width
- * of everything matches the text fields
+ * Layouts out the contents of the sign in form such that the width of everything
+ * matches the text fields
  */
 @Composable fun SignInScreenLayout(
     logo: @Composable () -> Unit,
@@ -428,8 +435,8 @@ fun Modifier.addAutofillNode(
 
     var email    by rememberSaveableMutableState("")
     var password by rememberSaveableMutableState("")
-    var emailError: String?    by rememberSaveableMutableState(null)
-    var passwordError: String? by rememberSaveableMutableState(null)
+    var emailError: String    by rememberSaveableMutableState("")
+    var passwordError: String by rememberSaveableMutableState("")
 
     val passwordSaver = rememberLauncherForActivityResult(ActivityResultContracts.StartIntentSenderForResult()) { }
     fun emailAction(
@@ -437,8 +444,8 @@ fun Modifier.addAutofillNode(
         action: suspend (email: String, password: String) -> Unit
     ) {
         scope.launch {
-            emailError    = null
-            passwordError = null
+            emailError    = ""
+            passwordError = ""
             when {
                 email.isEmpty() -> {
                     emailError = "No email provided"
@@ -499,15 +506,18 @@ fun Modifier.addAutofillNode(
                 )
             },
             emailForm = {
-                SignInForm(
+                val (visibility, onVisibilityChange) = rememberSaveableMutableState(false)
+                EmailCredentialsForm(
                     modifier = Modifier.padding(bottom = 16.dp),
                     email    = email,
                     password = password,
-                    onEmailChanged    = { email = it },
-                    onPasswordChanged = { password = it },
-                    emailError    = emailError,
-                    passwordError = passwordError,
-                    onFilled      = ::signInAction
+                    onEmailChanged     = { email = it },
+                    onPasswordChanged  = { password = it },
+                    emailError         = emailError,
+                    passwordError      = passwordError,
+                    passwordVisibility = visibility,
+                    onVisibilityChange = onVisibilityChange,
+                    onFilled           = ::signInAction
                 )
             },
             emailActions = {
