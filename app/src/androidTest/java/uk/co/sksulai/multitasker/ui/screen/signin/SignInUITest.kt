@@ -11,16 +11,13 @@ import androidx.compose.ui.test.*
 
 import androidx.compose.runtime.*
 import androidx.compose.ui.ExperimentalComposeUiApi
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.semantics.SemanticsProperties
-import androidx.compose.ui.unit.DpRect
-import androidx.compose.ui.unit.width
-
-import kotlinx.coroutines.runBlocking
+import androidx.compose.ui.unit.*
 
 import uk.co.sksulai.multitasker.ui.*
 import uk.co.sksulai.multitasker.util.*
-import uk.co.sksulai.multitasker.db.LocalDB
-import uk.co.sksulai.multitasker.db.repo.UserRepository
 
 @LargeTest class SignInScreen : NavigableComposeTest() {
 
@@ -423,17 +420,32 @@ import uk.co.sksulai.multitasker.db.repo.UserRepository
     }
 }
 @LargeTest class EmailActions : ComposeTest() {
+
+    private val signInButton = composeTestRule.onNodeWithTag("SignInButton")
+    private val signUpButton = composeTestRule.onNodeWithTag("SignUpButton")
+    private val forgotButton = composeTestRule.onNodeWithTag("ForgotButton")
+
     /**
      * Ensures that when we only have a onSignIn callback that:
      *  - The sign in button is provided filling the full width
      *  - That both the sign up and forgot password button are not composed
-     *  - Assert that the sign in button label parameter adjusts the label of the sign in button
      */
     @Test fun SignInButtonOnly() {
+        var layoutSize: DpSize? = null
         setContent {
-
+            EmailActions(
+                onSignIn = { },
+                signInLabel = "Sign-in",
+                modifier = Modifier.onGloballyPositioned {
+                    with(composeTestRule.density) {
+                        layoutSize = it.size.toSize().toDpSize()
+                    }
+                }
+            )
         }
-        fail()
+        signInButton.assertWidthIsEqualTo(layoutSize!!.width)
+        signUpButton.assertDoesNotExist()
+        forgotButton.assertDoesNotExist()
     }
     /**
      * Ensures that when we have both a onSignIn and onSignUp callback that:
@@ -442,10 +454,31 @@ import uk.co.sksulai.multitasker.db.repo.UserRepository
      *  - That the forgot password button is not composed
      */
     @Test fun SignInAndUpButtons() {
+        var layoutSize: DpSize? = null
         setContent {
-
+            EmailActions(
+                onSignIn = { },
+                onSignUp = { },
+                signInLabel = "Sign-in",
+                signUpLabel = "Sign-up",
+                modifier = Modifier.onGloballyPositioned {
+                    with(composeTestRule.density) {
+                        layoutSize = it.size.toSize().toDpSize()
+                    }
+                }
+            )
         }
-        fail()
+        val width = (layoutSize!!.width - 8.dp)/2
+        signInButton.assertWidthIsEqualTo(width)
+        signUpButton.assertWidthIsEqualTo(width)
+        forgotButton.assertDoesNotExist()
+
+        // Assert positioning
+        val signInBounds = signInButton.getUnclippedBoundsInRoot()
+        val signUpBounds = signUpButton.getUnclippedBoundsInRoot()
+
+        assertThat(signInBounds.top).isEqualTo(signUpBounds.top) // Both should be at the same level
+        assertThat(signInBounds.right).isLessThan(signUpBounds.left) // Sign in should be to the left/start of sign up
     }
     /**
      * Ensures that when we have both a onSignIn and onSignUp callback that:
@@ -461,10 +494,80 @@ import uk.co.sksulai.multitasker.db.repo.UserRepository
      *      - The forgot password button label parameter should adjusts the label of the forgot password button
      */
     @Test fun AllButtons() {
-        setContent {
+        var layoutSize: DpSize? = null
 
+        var onSignInCalls = 0
+        var onSignUpCalls = 0
+        var onForgotCalls = 0
+        
+        fun resetCallCount() {
+            onSignInCalls = 0
+            onSignUpCalls = 0
+            onForgotCalls = 0
         }
-        fail()
+
+        setContent {
+            EmailActions(
+                onSignIn = { onSignInCalls++ },
+                onSignUp = { onSignUpCalls++ },
+                onForgot = { onForgotCalls++ },
+                signInLabel = "Sign-in",
+                signUpLabel = "Sign-up",
+                forgotPasswordLabel = "Forgot Password",
+                modifier = Modifier.onGloballyPositioned {
+                    with(composeTestRule.density) {
+                        layoutSize = it.size.toSize().toDpSize()
+                    }
+                }
+            )
+        }
+
+        val width = (layoutSize!!.width - 8.dp)/2
+        signInButton.assertWidthIsEqualTo(width)
+        signUpButton.assertWidthIsEqualTo(width)
+        forgotButton.assertWidthIsEqualTo(layoutSize?.width!!)
+
+        // Assert positioning
+        val signInBounds = signInButton.getUnclippedBoundsInRoot()
+        val signUpBounds = signUpButton.getUnclippedBoundsInRoot()
+        val forgotBounds = forgotButton.getUnclippedBoundsInRoot()
+
+        assertThat(signInBounds.top).isEqualTo(signUpBounds.top)        // Both should be at the same level
+        assertThat(signInBounds.right).isLessThan(signUpBounds.left)    // Sign in should be to the left/start of sign up
+        assertThat(forgotBounds.top).isGreaterThan(signInBounds.bottom) // Forgot should be below sign in button
+        assertThat(forgotBounds.left).isEqualTo(signInBounds.left)      // Forgot should start for the start of the sign in button
+        assertThat(forgotBounds.right).isEqualTo(signUpBounds.right)    // and start at the end of the sign up button
+
+        //// Assert field correspondence
+        // Assert labels assigned to correct button
+        signInButton.assertTextContains("Sign-in")
+        signUpButton.assertTextContains("Sign-up")
+        forgotButton.assertTextContains("Forgot Password")
+        // Assert onClick callback assigned to correct button
+        signInButton.apply {
+            assertHasClickAction()
+            performClick()
+            assertThat(onSignInCalls).isEqualTo(1)
+            assertThat(onSignUpCalls).isEqualTo(0)
+            assertThat(onForgotCalls).isEqualTo(0)
+            resetCallCount()
+        }
+        signUpButton.apply {
+            assertHasClickAction()
+            performClick()
+            assertThat(onSignInCalls).isEqualTo(0)
+            assertThat(onSignUpCalls).isEqualTo(1)
+            assertThat(onForgotCalls).isEqualTo(0)
+            resetCallCount()
+        }
+        forgotButton.apply {
+            assertHasClickAction()
+            performClick()
+            assertThat(onSignInCalls).isEqualTo(0)
+            assertThat(onSignUpCalls).isEqualTo(0)
+            assertThat(onForgotCalls).isEqualTo(1)
+            resetCallCount()
+        }
     }
 }
 

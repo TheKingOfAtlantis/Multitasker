@@ -253,14 +253,18 @@ fun Modifier.addAutofillNode(
 ) = Column(modifier) {
     Row {
         Button(
-            modifier = Modifier.weight(1f),
+            modifier = Modifier
+                .weight(1f)
+                .testTag("SignInButton"),
             onClick  = onSignIn,
             content  = { Text(signInLabel) }
         )
         if(onSignUp != null) {
             Spacer(Modifier.width(8.dp))
             Button(
-                modifier = Modifier.weight(1f),
+                modifier = Modifier
+                    .weight(1f)
+                    .testTag("SignUpButton"),
                 onClick = onSignUp,
                 content = { Text(signUpLabel) }
             )
@@ -268,8 +272,10 @@ fun Modifier.addAutofillNode(
     }
     if(onForgot != null) {
         TextButton(
-            modifier = Modifier.fillMaxWidth(),
             onClick  = onForgot,
+            modifier = Modifier
+                .fillMaxWidth()
+                .testTag("ForgotButton"),
             content  = { Text(forgotPasswordLabel) }
         )
     }
