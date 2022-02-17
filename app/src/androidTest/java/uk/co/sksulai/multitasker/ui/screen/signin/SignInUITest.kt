@@ -10,6 +10,7 @@ import androidx.test.filters.LargeTest
 import androidx.compose.ui.test.*
 
 import androidx.compose.runtime.*
+import androidx.compose.material.Text
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.onGloballyPositioned
@@ -18,6 +19,7 @@ import androidx.compose.ui.unit.*
 
 import uk.co.sksulai.multitasker.ui.*
 import uk.co.sksulai.multitasker.util.*
+import uk.co.sksulai.multitasker.db.repo.UserRepository
 
 @LargeTest class SignInScreen : NavigableComposeTest() {
 
@@ -419,8 +421,8 @@ import uk.co.sksulai.multitasker.util.*
         }
     }
 }
-@LargeTest class EmailActions : ComposeTest() {
 
+@LargeTest class EmailActions : ComposeTest() {
     private val signInButton = composeTestRule.onNodeWithTag("SignInButton")
     private val signUpButton = composeTestRule.onNodeWithTag("SignUpButton")
     private val forgotButton = composeTestRule.onNodeWithTag("ForgotButton")
@@ -571,11 +573,108 @@ import uk.co.sksulai.multitasker.util.*
     }
 }
 
+typealias AuthProviderEnum = UserRepository.AuthProvider
 @LargeTest class AuthProvider : ComposeTest() {
-    @Test fun googleButton() {
-        setContent {
+    /**
+     * List of providers that should be available in the AuthProvider
+     */
+    private val providers = listOf(
+        AuthProviderEnum.Google
+    )
 
+    /**
+     * Used to retrieve the column containing the preamble and button
+     *
+     * @param tag   The tag associated with the specific auth provider
+     * @param block Callback which performs the testing on the provider
+     */
+    private fun onTestProvider(
+        tag: String,
+        block: (
+            /** The root single provider layout node */
+            root: SemanticsNodeInteraction,
+            /** The preamble in the provider layout **/
+            preamble: SemanticsNodeInteraction,
+            /** The button in the provider layout **/
+            button: SemanticsNodeInteraction,
+        ) -> Unit
+    ) {
+        // Ensure only one provider with the tag
+        composeTestRule
+            .onAllNodesWithTag(tag)
+            .assertCountEquals(1)
+
+        // Get all the components and pass it to [block]
+        composeTestRule.onNodeWithTag(tag).let {
+            it.onChildren().apply {
+                val preamble = filterToOne(hasTestTag("preamble"))
+                val button   = filterToOne(hasTestTag("button"))
+                block(it, preamble, button)
+            }
         }
-        fail()
+    }
+    /**
+     * Asserts the behaviour of AuthProvider without preamblesApplies to all auth
+     * providers including those yet to be added
+     */
+    @Test fun withoutPreamble() {
+        val buttonText   = providers.associateWith { "${it.name} button text" }
+        val onCalls      = providers.associateWith { 0 }.toMutableMap()
+
+        setContent {
+            AuthProviders(
+                onGoogle = { onCalls[AuthProviderEnum.Google] = onCalls[AuthProviderEnum.Google]!! + 1 },
+                googleText = { Text(buttonText[AuthProviderEnum.Google]!!) },
+                googlePreamble = null
+            )
+        }
+
+        providers.forEach {
+            onTestProvider(it.name) { _, preamble, button ->
+                preamble.assertDoesNotExist()
+                button.apply {
+                    assertTextContains(buttonText[it]!!)
+                    assertHasClickAction()
+                    performClick()
+                    assertThat(onCalls[it]!!).isEqualTo(1)
+                }
+            }
+        }
+    }
+    /**
+     * Asserts the behaviour of AuthProvider with preamble. Applies to all auth
+     * providers including those yet to be added
+     */
+    @Test fun withPreamble() {
+        val buttonText   = providers.associateWith { "${it.name} button text" }
+        val preambleText = providers.associateWith { "${it.name} preamble text" }
+        val onCalls      = providers.associateWith { 0 }.toMutableMap()
+
+        setContent {
+            AuthProviders(
+                onGoogle = { onCalls[AuthProviderEnum.Google] = onCalls[AuthProviderEnum.Google]!! + 1 },
+                googleText = { Text(buttonText[AuthProviderEnum.Google]!!) },
+                googlePreamble = { Text(preambleText[AuthProviderEnum.Google]!!) }
+            )
+        }
+
+        providers.forEach {
+            onTestProvider(it.name) { _, preamble, button ->
+                // Assert association between parameters and auth provider preamble + button
+                preamble.assertTextContains(preambleText[it]!!)
+                button.apply {
+                    assertTextContains(buttonText[it]!!)
+                    assertHasClickAction()
+                    performClick()
+                    assertThat(onCalls[it]!!).isEqualTo(1)
+                }
+                // Assert relative positioning of preamble and button
+                // Ensuring preamble is place above the button
+                val preambleBounds = preamble.getUnclippedBoundsInRoot()
+                val buttonBounds = button.getUnclippedBoundsInRoot()
+
+                assertThat(preambleBounds.bottom).isLessThan(buttonBounds.top)
+            }
+        }
     }
 }

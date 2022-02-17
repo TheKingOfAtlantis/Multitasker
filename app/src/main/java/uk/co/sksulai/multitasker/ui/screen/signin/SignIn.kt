@@ -48,7 +48,6 @@ import uk.co.sksulai.multitasker.db.repo.GoogleIntent
 import uk.co.sksulai.multitasker.db.viewmodel.*
 import uk.co.sksulai.multitasker.util.*
 
-@OptIn(ExperimentalComposeUiApi::class)
 fun View.getManager() = context.getSystemService<AutofillManager>()
 @OptIn(ExperimentalComposeUiApi::class)
 fun AutofillNode.onValueChanged(
@@ -313,17 +312,23 @@ fun Modifier.addAutofillNode(
         onClick: () -> Unit,
         icon: Painter,
         text: @Composable () -> Unit,
-        preamble: @Composable (() -> Unit)? = null
-    ) = Column {
+        preamble: @Composable (() -> Unit)? = null,
+        modifier: Modifier = Modifier
+    ) = Column(modifier) {
         preamble?.let {
-            Box(Modifier.padding(vertical = 4.dp)) {
+            Box(Modifier
+                .padding(vertical = 4.dp)
+                .testTag("preamble")
+            ) {
                 // TODO: Potentially pick a particular text style and content
                 //       alpha (potentially set it to medium)
                 preamble()
             }
         }
         Button(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .testTag("button"),
             onClick  = onClick
         ) {
             Icon(
@@ -342,7 +347,8 @@ fun Modifier.addAutofillNode(
         onClick  = onGoogle,
         icon     = painterResource(R.drawable.ic_google_g_logo),
         text     = googleText,
-        preamble = googlePreamble
+        preamble = googlePreamble,
+        modifier = Modifier.testTag("google")
     )
 }
 
