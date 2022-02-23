@@ -3,7 +3,7 @@ package uk.co.sksulai.multitasker.db.converter
 import java.time.*
 import kotlin.random.Random
 
-const val testListLength = 4096
+const val testListLength = 512
 
 val testDateList get() = List(testListLength) {
     val year = Random.nextInt(4000)
