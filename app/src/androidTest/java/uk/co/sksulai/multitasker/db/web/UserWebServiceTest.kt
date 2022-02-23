@@ -3,26 +3,24 @@ package uk.co.sksulai.multitasker.db.web
 import kotlin.random.Random
 
 import javax.inject.Inject
+import dagger.hilt.android.testing.HiltAndroidRule
+import dagger.hilt.android.testing.HiltAndroidTest
 
 import org.junit.*
 import org.junit.runner.RunWith
-import com.google.common.truth.Truth.*
+import androidx.test.filters.MediumTest
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule
-import androidx.test.filters.MediumTest
-
-import dagger.hilt.android.testing.HiltAndroidRule
-import dagger.hilt.android.testing.HiltAndroidTest
+import com.google.common.truth.Truth.*
 
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 
 import uk.co.sksulai.multitasker.db.dao.SearchQuery
-import uk.co.sksulai.multitasker.util.AuthParam
-import uk.co.sksulai.multitasker.util.UserTestUtil
-import uk.co.sksulai.multitasker.util.FirebaseEmulatorUtil
+import uk.co.sksulai.multitasker.util.*
 
 @HiltAndroidTest
+@RunWith(AndroidJUnit4::class)
 @MediumTest class UserWebServiceTest {
     @get:Rule(order = 0) var hiltAndroidRule     = HiltAndroidRule(this)
     @get:Rule(order = 1) var instantExecutorRule = InstantTaskExecutorRule()

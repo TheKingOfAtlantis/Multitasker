@@ -48,7 +48,7 @@ object DateConverter : IConverter<LocalDate?, String?> {
 // Misc converter
 
 object TimeZoneConverter : IConverter<TimeZone?, String?> {
-    @TypeConverter override fun from(value: TimeZone?): String? = value?.let(TimeZone::getID)
+    @TypeConverter override fun from(value: TimeZone?): String? = value?.let(TimeZone::toZoneId)?.let(ZoneId::toString)
     @TypeConverter override fun to(value: String?): TimeZone?   = value?.let(TimeZone::getTimeZone)
 }
 object DurationConverter : IConverter<Duration?, String?> {

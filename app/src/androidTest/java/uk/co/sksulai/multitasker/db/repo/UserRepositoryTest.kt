@@ -2,10 +2,10 @@ package uk.co.sksulai.multitasker.db.repo
 
 import org.junit.*
 import org.junit.runner.RunWith
+import androidx.test.filters.MediumTest
 import com.google.common.truth.Truth.*
 
 import javax.inject.Inject
-
 import dagger.hilt.android.testing.HiltAndroidRule
 import dagger.hilt.android.testing.HiltAndroidTest
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -13,12 +13,11 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule
 
-import android.content.Context
-import androidx.test.filters.MediumTest
-import com.google.firebase.auth.FirebaseAuthException
-
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.first
+
+import android.content.Context
+import com.google.firebase.auth.FirebaseAuthException
 
 import uk.co.sksulai.multitasker.db.LocalDB
 import uk.co.sksulai.multitasker.db.dao.UserDao
@@ -33,6 +32,7 @@ private suspend fun UserRepository.create(auth: AuthParam)       = create(auth.e
 private suspend fun UserRepository.authenticate(auth: AuthParam) = authenticate(getCredentials(auth.email, auth.password))
 
 @HiltAndroidTest
+@RunWith(AndroidJUnit4::class)
 @MediumTest class UserRepositoryTest {
     @get:Rule(order = 0) val hiltAndroidRule     = HiltAndroidRule(this)
     @get:Rule(order = 1) val instantExecutorRule = InstantTaskExecutorRule()

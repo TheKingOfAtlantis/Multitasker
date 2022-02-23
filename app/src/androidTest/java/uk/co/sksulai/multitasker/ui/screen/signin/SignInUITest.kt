@@ -4,33 +4,74 @@ import kotlin.random.Random
 
 import org.junit.*
 import org.junit.Assert.fail
-import com.google.common.truth.Truth.*
-
+import org.junit.runner.RunWith
 import androidx.test.filters.LargeTest
-import androidx.compose.ui.test.*
+import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.arch.core.executor.testing.InstantTaskExecutorRule
+import com.google.common.truth.Truth.*
+import dagger.hilt.android.testing.*
+
+import android.app.Application
+import javax.inject.Inject
+
+import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.*
 
 import androidx.compose.runtime.*
 import androidx.compose.material.Text
-import androidx.compose.ui.ExperimentalComposeUiApi
-import androidx.compose.ui.Modifier
+import androidx.compose.ui.*
+import androidx.compose.ui.test.*
 import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.semantics.*
 import androidx.compose.ui.unit.*
+import androidx.navigation.compose.*
 
 import uk.co.sksulai.multitasker.ui.*
 import uk.co.sksulai.multitasker.util.*
+import uk.co.sksulai.multitasker.db.LocalDB
 import uk.co.sksulai.multitasker.db.repo.UserRepository
+import uk.co.sksulai.multitasker.db.viewmodel.UserViewModel
 
+@HiltAndroidTest
+@RunWith(AndroidJUnit4::class)
 @LargeTest class SignInScreen : NavigableComposeTest() {
+    @get:Rule(order = -2) val hiltTestRule = HiltAndroidRule(this)
+    @get:Rule(order = 1) val instantExecutorRule = InstantTaskExecutorRule()
 
+    @Inject lateinit var app: Application
+    @Inject lateinit var db: LocalDB
+    @Inject lateinit var userRepo: UserRepository
+    val viewModel get() = UserViewModel(app, userRepo)
+
+    @Before fun setup() = hiltTestRule.inject()
+    @After fun cleanup() = runBlocking {
+        FirebaseEmulatorUtil.auth.deleteAccounts()
+        FirebaseEmulatorUtil.db.deleteDocuments()
+        db.close()
+    }
+
+    private val emailField    get() = composeTestRule.onNodeWithTag("EmailField")
+    private val passwordField get() = composeTestRule.onNodeWithTag("PasswordField")
+    private val emailError    get() = composeTestRule.onNodeWithTag("EmailError")
+    private val passwordError get() = composeTestRule.onNodeWithTag("PasswordError")
+    private val signInButton  get() = composeTestRule.onNodeWithTag("SignInButton")
+    private val signUpButton  get() = composeTestRule.onNodeWithTag("SignUpButton")
+
+    fun setContent() {
+        setContent {
+            NavHost(navController, "test") {
+                composable("test") { SignInScreen(navController, viewModel) }
+                composable(Destinations.SignUp.route) { }
+                composable(Destinations.CalendarView.route) { }
+            }
+        }
+    }
     /**
      * Tests the sign in screen to check for a successful sign in attempt
      * using the sign-in button
      */
     @Test fun SignIn_Success_Button() {
-        setContent {
-
-        }
+        setContent()
         fail()
     }
     /**
@@ -38,19 +79,14 @@ import uk.co.sksulai.multitasker.db.repo.UserRepository
      * using the Ime action to sign in
      */
     @Test fun SignIn_Success_ImeAction() {
-        setContent {
-
-        }
+        setContent()
         fail()
-    }
     }
     /**
      * Tests the sign in screen to check for a successful sign up attempt
      */
     @Test fun SignUp_Success() {
-        setContent {
-
-        }
+        setContent()
         fail()
     }
     /**
@@ -58,19 +94,15 @@ import uk.co.sksulai.multitasker.db.repo.UserRepository
      * using plausibly valid credentials of a non-existent account
      */
     @Test fun SignIn_NonexistentAccount() {
-        setContent {
-
-        }
+        setContent()
         fail()
     }
     /**
      * Tests the sign in screen to check for a unsuccessful sign in attempt
-     * using an invalid email
+     * when no email is provided
      */
-    @Test fun SignIn_InvalidEmail() {
-        setContent {
-
-        }
+    @Test fun SignIn_MissingEmail() {
+        setContent()
         fail()
     }
     /**
@@ -78,9 +110,7 @@ import uk.co.sksulai.multitasker.db.repo.UserRepository
      * using a valid email but a incorrect password
      */
     @Test fun SignIn_InvalidPassword() {
-        setContent {
-
-        }
+        setContent()
         fail()
     }
     /**
@@ -88,9 +118,7 @@ import uk.co.sksulai.multitasker.db.repo.UserRepository
      * using a valid email but a missing password
      */
     @Test fun SignIn_MissingPassword() {
-        setContent {
-
-        }
+        setContent()
         fail()
     }
 }

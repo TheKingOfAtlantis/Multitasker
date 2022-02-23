@@ -18,7 +18,7 @@ fun Random.nextString(
  * with a length in the [range] specified
  */
 fun Random.nextString(
-    from: Int = 0,
+    from: Int = 1,
     until: Int,
     charset: CharArray = defaultCharset
 ): String = nextString(from..until, charset)
