@@ -3,7 +3,6 @@ package uk.co.sksulai.multitasker.ui.screen.signin
 import kotlin.random.Random
 
 import org.junit.*
-import org.junit.Assert.fail
 import org.junit.runner.RunWith
 import androidx.test.filters.LargeTest
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -209,7 +208,6 @@ import uk.co.sksulai.multitasker.db.viewmodel.UserViewModel
         }
     }
     @Test fun SignUp_InvalidEmail() {
-
         setContent()
 
         val credentials = AuthParam.random
@@ -546,11 +544,6 @@ import uk.co.sksulai.multitasker.db.viewmodel.UserViewModel
         val emailErrorMessage    = "Email Error"
         val passwordErrorMessage = ""
 
-        // FIXME: Requesting focus in LaunchedEffect causes the instrumentation to crash
-        //        Feels like a compose problem
-        //        Especially since focusing otherwise works in a non-testing environment
-        fail("Pre-emptively failing to stop the testing stalling until issue with requesting focus is fixed")
-
         setContent {
             EmailCredentialsForm("", "", {}, {}, emailErrorMessage, passwordErrorMessage, {})
         }
@@ -584,11 +577,6 @@ import uk.co.sksulai.multitasker.db.viewmodel.UserViewModel
         val emailErrorMessage    = ""
         val passwordErrorMessage = "Password Error"
 
-        // FIXME: Requesting focus in LaunchedEffect causes the instrumentation to crash
-        //        Feels like a compose problem
-        //        Especially since focusing otherwise works in a non-testing environment
-        fail("Pre-emptively failing to stop the testing stalling until issue with requesting focus is fixed")
-
         setContent {
             EmailCredentialsForm("", "", {}, {}, emailErrorMessage, passwordErrorMessage, {})
         }
@@ -621,11 +609,6 @@ import uk.co.sksulai.multitasker.db.viewmodel.UserViewModel
     @Test fun BothErrors_Focused()  {
         val emailErrorMessage    = "Email Error"
         val passwordErrorMessage = "Password Error"
-
-        // FIXME: Requesting focus in LaunchedEffect causes the instrumentation to crash
-        //        Feels like a compose problem
-        //        Especially since focusing otherwise works in a non-testing environment
-        fail("Pre-emptively failing to stop the testing stalling until issue with requesting focus is fixed")
 
         setContent {
             EmailCredentialsForm("", "", {}, {}, emailErrorMessage, passwordErrorMessage, {})
