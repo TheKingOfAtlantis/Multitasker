@@ -58,6 +58,14 @@ android {
         unitTests.isIncludeAndroidResources = true
         execution = "ANDROIDX_TEST_ORCHESTRATOR"
     }
+    sourceSets {
+        getByName("test") {
+            java.srcDir("src/sharedTest/java")
+        }
+        getByName("androidTest") {
+            java.srcDir("src/sharedTest/java")
+        }
+    }
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_1_8
@@ -164,6 +172,23 @@ dependencies {
     implementation("com.google.firebase:firebase-storage-ktx")
 
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.6.0-native-mt")
+
+    // Testing: Local Unit Testing
+    testImplementation("junit:junit:4.13.2")
+    testImplementation("io.mockk:mockk:1.12.2")
+    testImplementation("androidx.test:runner:1.4.0")
+    testImplementation("androidx.test:rules:1.4.0")
+    testImplementation("androidx.test:core-ktx:1.4.0")
+    testImplementation("androidx.test.ext:truth:1.4.0")
+    testImplementation("org.robolectric:robolectric:4.7.3")
+
+    testImplementation("androidx.compose.ui:ui-test-junit4:${Version.compose}")
+    debugImplementation("androidx.compose.ui:ui-test-manifest:${Version.compose}")
+
+    testImplementation("androidx.arch.core:core-testing:2.1.0")
+
+    testImplementation("com.google.dagger:hilt-android-testing:2.40.5")
+    kaptTest("com.google.dagger:hilt-android-compiler:2.40.5")
 
     // Testing: Instrumentation Testing
     androidTestImplementation("androidx.test:runner:1.4.0")

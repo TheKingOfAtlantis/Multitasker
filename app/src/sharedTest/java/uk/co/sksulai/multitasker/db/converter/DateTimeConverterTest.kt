@@ -7,12 +7,6 @@ import org.junit.runners.Suite
 
 import java.time.*
 
-@RunWith(Suite::class) @Suite.SuiteClasses(
-    ZonedDateTimeConverterTest::class,
-    OffsetDateTimeConverterTest::class,
-    LocalDateTimeConverterTest::class
-) class DateTimeConverterSuite
-
 @RunWith(AndroidJUnit4::class)
 @SmallTest class ZonedDateTimeConverterTest : ConverterTest<ZonedDateTime, String>(
     ZonedDateTimeConverter,

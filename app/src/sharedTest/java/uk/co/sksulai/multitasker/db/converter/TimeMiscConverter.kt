@@ -8,12 +8,6 @@ import org.junit.runners.Suite
 import java.util.*
 import java.time.*
 
-@RunWith(Suite::class) @Suite.SuiteClasses(
-    DurationConverterTest::class,
-    TimeZoneConverterTest::class,
-    InstantConverterTest::class,
-) class TimeMiscConverterSuite
-
 @RunWith(AndroidJUnit4::class)
 @SmallTest class DurationConverterTest : ConverterTest<Duration, String>(
     DurationConverter,
