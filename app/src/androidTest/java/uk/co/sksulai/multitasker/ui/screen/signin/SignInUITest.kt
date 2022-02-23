@@ -66,13 +66,66 @@ import uk.co.sksulai.multitasker.db.viewmodel.UserViewModel
             }
         }
     }
+
+    /**
+     * Ensure that we show a progress indicator to the user when they sign in or up
+     */
+    @Test fun Both_ProgressIndicator() {
+        setContent()
+        val credentials = AuthParam.random
+
+        fun assertProgressIndicator() = composeTestRule
+            .onNode(isPopup())
+            .onChild()
+            .assert(hasProgressBarRangeInfo(ProgressBarRangeInfo.Indeterminate))
+
+        emailField.performTextInput(credentials.email)
+        passwordField.performTextInput(credentials.password)
+
+        // Check get progress indicator when signing-in
+        signInButton.performClick()
+        assertProgressIndicator()
+        composeTestRule.mainClock.advanceTimeBy(200)
+
+        // Check get progress indicator when signing-in
+        signUpButton.performClick()
+        assertProgressIndicator()
+    }
+
     /**
      * Tests the sign in screen to check for a successful sign in attempt
      * using the sign-in button
      */
     @Test fun SignIn_Success_Button() {
         setContent()
-        fail()
+
+        // We'll create a user whom we'll create an account for and then immediately sign out
+        val (credentials, user) = runBlocking {
+            AuthParam.random
+                .let { it to userRepo.create(it.email, it.password) }
+                .also { userRepo.signOut() }
+        }
+
+        // Fill in the email/password text field and submit via Ime
+        emailField.performTextInput(credentials.email)
+        passwordField.performTextInput(credentials.password)
+        signInButton.performClick()
+
+        // Now check that the user has been updated and that the
+        // current destination has changed navController
+        runBlocking {
+            delay(100)
+            assertThat(
+                userRepo.currentUser
+                    .filterNotNull()
+                    .first()
+            ).isEqualTo(user)
+        }
+
+        composeTestRule.mainClock.advanceTimeBy(100) // Ensures we've actually navigated
+        assertThat(navController.currentBackStackEntry?.destination?.route).apply {
+            isEqualTo(Destinations.CalendarView.route)
+        }
     }
     /**
      * Tests the sign in screen to check for a successful sign in attempt
@@ -80,22 +133,119 @@ import uk.co.sksulai.multitasker.db.viewmodel.UserViewModel
      */
     @Test fun SignIn_Success_ImeAction() {
         setContent()
-        fail()
+
+        // We'll create a user whom we'll create an account for and then immediately sign out
+        val (credentials, user) = runBlocking {
+            AuthParam.random
+                .let { it to userRepo.create(it.email, it.password) }
+                .also { userRepo.signOut() }
+        }
+
+        // Fill in the email/password text field and submit via Ime
+        emailField.apply {
+            performTextInput(credentials.email)
+            performImeAction()
+        }
+        passwordField.apply {
+            performTextInput(credentials.password)
+            performImeAction()
+        }
+
+        // Now check that the user has been updated and that the
+        // current destination has changed navController
+        runBlocking {
+            assertThat(
+                userRepo.currentUser
+                    .filterNotNull()
+                    .first()
+            ).isEqualTo(user)
+        }
+        composeTestRule.mainClock.advanceTimeBy(100) // Ensures we've actually navigated
+        assertThat(navController.currentBackStackEntry?.destination?.route).apply {
+            isEqualTo(Destinations.CalendarView.route)
+        }
     }
     /**
      * Tests the sign in screen to check for a successful sign up attempt
      */
     @Test fun SignUp_Success() {
         setContent()
-        fail()
+
+        val credentials = AuthParam.random
+
+        // Fill in the email/password text field and submit via Ime
+        emailField.performTextInput(credentials.email)
+        passwordField.performTextInput(credentials.password)
+        signUpButton.performClick()
+
+        // Now check that the user has been updated and that the
+        // current destination has changed navController
+        runBlocking {
+            assertThat(
+                userRepo.currentUser
+                    .filterNotNull()
+                    .first()
+            ).isNotNull()
+        }
+
+        assertThat(navController.currentBackStackEntry?.destination?.route).apply {
+            isEqualTo(Destinations.SignUp.route)
+        }
     }
+    @Test fun SignUp_WeakPassword() {
+        setContent()
+
+        val credentials = AuthParam.random
+
+        // Fill in the email/password text field and submit via Ime
+        emailField.performTextInput(credentials.email)
+        passwordField.performTextInput(Random.nextString(5))
+        signUpButton.performClick()
+
+
+        passwordError.apply {
+            assertExists()
+            assertTextContains(UserViewModel.authErrorMessages["ERROR_WEAK_PASSWORD"]!!)
+        }
+    }
+    @Test fun SignUp_InvalidEmail() {
+
+        setContent()
+
+        val credentials = AuthParam.random
+
+        // Fill in the email/password text field and submit via Ime
+        emailField.performTextInput(Random.nextString(20))
+        passwordField.performTextInput(credentials.password)
+        signUpButton.performClick()
+
+        emailError.apply {
+            assertExists()
+            assertTextContains(UserViewModel.authErrorMessages["ERROR_INVALID_EMAIL"]!!)
+        }
+    }
+
     /**
      * Tests the sign in screen to check for a unsuccessful sign in attempt
      * using plausibly valid credentials of a non-existent account
      */
     @Test fun SignIn_NonexistentAccount() {
         setContent()
-        fail()
+
+        // Get credentials for an account which doesn't exist
+        val credentials = AuthParam.random
+
+        emailField.performTextInput(credentials.email)
+        passwordField.performTextInput(credentials.password)
+        signInButton.performClick()
+
+        // Assert that we don't use the email/password fields to show error
+        // Instead shown in the snackbar at the bottom
+        emailError.assertDoesNotExist()
+        passwordError.assertDoesNotExist()
+        composeTestRule
+            .onNodeWithText(UserViewModel.authErrorMessages["ERROR_USER_NOT_FOUND"]!!)
+            .assertExists()
     }
     /**
      * Tests the sign in screen to check for a unsuccessful sign in attempt
@@ -103,7 +253,20 @@ import uk.co.sksulai.multitasker.db.viewmodel.UserViewModel
      */
     @Test fun SignIn_MissingEmail() {
         setContent()
-        fail()
+
+        // We'll create a user whom we'll create an account for and then immediately sign out
+        val credentials = AuthParam.random
+
+        // Don't fill in the email but fill the password field and submit via Ime
+        emailField.performImeAction()
+        passwordField.apply {
+            performTextInput(credentials.password)
+            performImeAction()
+        }
+        emailError.apply {
+            assertExists()
+            assertTextContains("No email provided")
+        }
     }
     /**
      * Tests the sign in screen to check for a unsuccessful sign in attempt
@@ -111,7 +274,28 @@ import uk.co.sksulai.multitasker.db.viewmodel.UserViewModel
      */
     @Test fun SignIn_InvalidPassword() {
         setContent()
-        fail()
+
+        // We'll create a user whom we'll create an account for and then immediately sign out
+        val credentials = AuthParam.random.also {
+            runBlocking {
+                userRepo.create(it.email, it.password)
+                userRepo.signOut()
+            }
+        }
+
+        emailField.apply { // Pass the email of an actual account
+            performTextInput(credentials.email)
+            performImeAction()
+        }
+        passwordField.apply { // Pass a random password
+            performTextInput(Random.nextString(12))
+            performImeAction()
+        }
+
+        passwordError.apply { // Ensure we get a particular error message
+            assertExists()
+            assertTextContains(UserViewModel.authErrorMessages["ERROR_WRONG_PASSWORD"]!!)
+        }
     }
     /**
      * Tests the sign in screen to check for a unsuccessful sign in attempt
@@ -119,11 +303,30 @@ import uk.co.sksulai.multitasker.db.viewmodel.UserViewModel
      */
     @Test fun SignIn_MissingPassword() {
         setContent()
-        fail()
+
+        // We'll create a user whom we'll create an account for and then immediately sign out
+        val credentials = AuthParam.random.also {
+            runBlocking {
+                userRepo.create(it.email, it.password)
+                userRepo.signOut()
+            }
+        }
+
+        // Fill in the email/password text field and submit via Ime
+        emailField.apply {
+            performTextInput(credentials.email)
+            performImeAction()
+        }
+        passwordField.performImeAction()
+        passwordError.apply {
+            assertExists()
+            assertTextContains("No password provided")
+        }
     }
 }
 
 @OptIn(ExperimentalComposeUiApi::class)
+@RunWith(AndroidJUnit4::class)
 @LargeTest class SignInForm : ComposeTest() {
     private val emailField    get() = composeTestRule.onNodeWithTag("EmailField")
     private val passwordField get() = composeTestRule.onNodeWithTag("PasswordField")
@@ -450,6 +653,7 @@ import uk.co.sksulai.multitasker.db.viewmodel.UserViewModel
     }
 }
 
+@RunWith(AndroidJUnit4::class)
 @LargeTest class EmailActions : ComposeTest() {
     private val signInButton = composeTestRule.onNodeWithTag("SignInButton")
     private val signUpButton = composeTestRule.onNodeWithTag("SignUpButton")
@@ -602,6 +806,8 @@ import uk.co.sksulai.multitasker.db.viewmodel.UserViewModel
 }
 
 typealias AuthProviderEnum = UserRepository.AuthProvider
+
+@RunWith(AndroidJUnit4::class)
 @LargeTest class AuthProvider : ComposeTest() {
     /**
      * List of providers that should be available in the AuthProvider
