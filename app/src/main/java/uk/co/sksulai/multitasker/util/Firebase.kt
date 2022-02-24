@@ -1,7 +1,16 @@
 package uk.co.sksulai.multitasker.util
 
-import com.google.firebase.firestore.DocumentReference
-import com.google.firebase.firestore.Query
-import kotlinx.coroutines.tasks.await
-suspend fun Query.getAwait() = get().await()
-suspend fun DocumentReference.getAwait() = get().await()
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+
+import com.google.firebase.analytics.FirebaseAnalytics
+import com.google.firebase.analytics.ktx.*
+import com.google.firebase.ktx.Firebase
+
+@Composable fun setScreen(name: String, className: String? = null) { remember(name) {
+    Firebase.analytics.logEvent(FirebaseAnalytics.Event.SCREEN_VIEW) {
+        param(FirebaseAnalytics.Param.SCREEN_NAME, name)
+        param(FirebaseAnalytics.Param.SCREEN_CLASS, className ?: name)
+    }
+    name
+} }

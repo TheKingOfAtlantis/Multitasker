@@ -7,10 +7,11 @@ import uk.co.sksulai.multitasker.db.converter.*
 import uk.co.sksulai.multitasker.db.model.*
 import uk.co.sksulai.multitasker.db.dao.*
 
-inline fun <reified DB : RoomDatabase> databaseBuilder(context: Context, name: String)
-        = Room.databaseBuilder(context, DB::class.java, name)
-fun LocalDB.Companion.createDatabase(context: Context)
-        = databaseBuilder<LocalDB>(context, DBName)
+inline fun <reified DB : RoomDatabase> databaseBuilder(context: Context, name: String, inMemory: Boolean = false)
+        = if(!inMemory) Room.databaseBuilder(context, DB::class.java, name)
+          else Room.inMemoryDatabaseBuilder(context, DB::class.java)
+fun LocalDB.Companion.createDatabase(context: Context, inMemory: Boolean = false)
+        = databaseBuilder<LocalDB>(context, DBName, inMemory)
             .fallbackToDestructiveMigration()
             .build()
 
