@@ -33,7 +33,7 @@ import uk.co.sksulai.multitasker.db.viewmodel.UserViewModel
 
 @HiltAndroidTest
 @RunWith(AndroidJUnit4::class)
-@LargeTest class SignInScreen : NavigableComposeTest() {
+@LargeTest class SignInScreenTest : NavigableComposeTest() {
     @get:Rule(order = -2) val hiltTestRule = HiltAndroidRule(this)
     @get:Rule(order = 1) val instantExecutorRule = InstantTaskExecutorRule()
 
@@ -325,7 +325,7 @@ import uk.co.sksulai.multitasker.db.viewmodel.UserViewModel
 
 @OptIn(ExperimentalComposeUiApi::class)
 @RunWith(AndroidJUnit4::class)
-@LargeTest class SignInForm : ComposeTest() {
+@LargeTest class SignInFormTest : ComposeTest() {
     private val emailField    get() = composeTestRule.onNodeWithTag("EmailField")
     private val passwordField get() = composeTestRule.onNodeWithTag("PasswordField")
     private val emailError    get() = composeTestRule.onNodeWithTag("EmailError")
@@ -637,7 +637,7 @@ import uk.co.sksulai.multitasker.db.viewmodel.UserViewModel
 }
 
 @RunWith(AndroidJUnit4::class)
-@LargeTest class EmailActions : ComposeTest() {
+@LargeTest class EmailActionsTest : ComposeTest() {
     private val signInButton = composeTestRule.onNodeWithTag("SignInButton")
     private val signUpButton = composeTestRule.onNodeWithTag("SignUpButton")
     private val forgotButton = composeTestRule.onNodeWithTag("ForgotButton")
@@ -791,7 +791,7 @@ import uk.co.sksulai.multitasker.db.viewmodel.UserViewModel
 typealias AuthProviderEnum = UserRepository.AuthProvider
 
 @RunWith(AndroidJUnit4::class)
-@LargeTest class AuthProvider : ComposeTest() {
+@LargeTest class AuthProviderTest : ComposeTest() {
     /**
      * List of providers that should be available in the AuthProvider
      */
