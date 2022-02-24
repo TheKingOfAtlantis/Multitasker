@@ -1,13 +1,13 @@
 
 object Version {
-    const val hilt        = "2.40.5"
-    const val lifecycle   = "2.4.0"
-    const val workmanager = "2.7.1"
+    const val hilt        = "2.41"
+    const val lifecycle   = "2.5.0-alpha02"
+    const val workmanager = "2.8.0-alpha01"
     const val datastore   = "1.0.0"
-    const val room        = "2.4.0"
+    const val room        = "2.4.1"
 
-    const val compose     = "1.1.0-rc01"
-    const val accompanist = "0.22.0-rc"
+    const val compose     = "1.2.0-alpha03"
+    const val accompanist = "0.24.2-alpha"
     const val nav         = "2.4.0-rc01"
 
     const val testing     = "1.4.1-alpha03"

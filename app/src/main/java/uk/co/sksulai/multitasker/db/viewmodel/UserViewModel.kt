@@ -6,6 +6,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import android.app.Application
 import android.app.PendingIntent
 import androidx.activity.result.*
+import androidx.annotation.VisibleForTesting
 import androidx.lifecycle.AndroidViewModel
 
 import com.google.firebase.auth.FirebaseAuthException
