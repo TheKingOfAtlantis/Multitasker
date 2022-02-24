@@ -11,6 +11,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.ui.*
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.graphics.ExperimentalGraphicsApi
+import androidx.compose.ui.unit.ExperimentalUnitApi
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.lerp
 
@@ -21,6 +23,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.hilt.navigation.compose.hiltViewModel
 
 import com.google.accompanist.navigation.material.*
+import com.google.accompanist.pager.ExperimentalPagerApi
 
 import uk.co.sksulai.multitasker.db.viewmodel.CalendarViewModel
 import uk.co.sksulai.multitasker.ui.Destinations
@@ -54,6 +57,9 @@ import uk.co.sksulai.multitasker.util.rememberMutableState
     ExperimentalComposeUiApi::class,
     ExperimentalMaterialApi::class,
     ExperimentalMaterialNavigationApi::class,
+    ExperimentalGraphicsApi::class,
+    ExperimentalPagerApi::class,
+    ExperimentalUnitApi::class,
 ) @Composable fun CalendarScreen(
     navController: NavHostController,
     calendarViewModel: CalendarViewModel = hiltViewModel()
@@ -122,7 +128,7 @@ import uk.co.sksulai.multitasker.util.rememberMutableState
         composable(Destinations.Month.route) { /*MonthView(currentDate)*/ }
 
         bottomSheet(Destinations.CalendarCreation.route) { CalendarCreation({ calendarNavController.navigateUp() }, calendarViewModel) }
-        bottomSheet(Destinations.EventCreation.route) { /*EventCreation(calendarNavController, calendarViewModel)*/ }
+        bottomSheet(Destinations.EventCreation.route) { EventCreation({ calendarNavController.navigateUp() }, calendarViewModel) }
     }
 
     val shape by rememberBottomSheetShape(bottomSheetNavigator.navigatorSheetState)
