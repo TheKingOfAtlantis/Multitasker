@@ -27,17 +27,31 @@ fun LocalDB.Companion.createDatabase(context: Context, inMemory: Boolean = false
     InstantConverter::class,
     UriConverter::class,
     UUIDConverter::class
-) @Database(version = 5, entities = [
+) @Database(version = 6, entities = [
     UserModel::class,
+
     CalendarModel::class,
     EventModel::class,
+
     EventTagModel::class,
-    EventTagJunction::class
+    EventTagJunction::class,
+
+    NotificationRuleModel::class,
+    CalendarNotificationJunction::class,
+    EventNotificationJunction::class,
+
+    EventNotificationScheduleModel::class
+], autoMigrations = [
+    AutoMigration(from = 5, to = 6)
 ]) abstract class LocalDB : RoomDatabase() {
     companion object { const val DBName = "Multitasker.db" }
 
-    abstract fun getUserDao(): UserDao
-    abstract fun getCalendarDao(): CalendarDao
-    abstract fun getEventDao(): EventDao
-    abstract fun getTagDao(): TagDao
+    abstract val userDao: UserDao
+
+    abstract val calendarDao: CalendarDao
+    abstract val eventDao: EventDao
+    abstract val tagDao: TagDao
+    abstract val notificationRuleDao: NotificationRuleDao
+
+    abstract val eventNotificationDao: EventNotificationScheduleDao
 }

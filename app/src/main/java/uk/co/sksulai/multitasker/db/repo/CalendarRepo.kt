@@ -6,30 +6,36 @@ import java.util.*
 import javax.inject.Inject
 
 import kotlinx.coroutines.*
-import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.*
 
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 
+import androidx.room.withTransaction
+
+import uk.co.sksulai.multitasker.db.LocalDB
 import uk.co.sksulai.multitasker.db.dao.*
 import uk.co.sksulai.multitasker.db.model.*
-import uk.co.sksulai.multitasker.di.DispatcherIO
 
 class CalendarRepo @Inject constructor(
+    private val db: LocalDB,
     private val calendarDao: CalendarDao,
     private val eventDao: EventDao,
     private val tagDao: TagDao,
-    @DispatcherIO private val ioDispatcher: CoroutineDispatcher
+    private val notificationDao: NotificationRuleDao
 ) {
     // Creation
+    
+    suspend fun <R> withTransaction(block: suspend () -> R) = db.withTransaction(block)
 
     /**
      * Creates a calendar
      *
-     * @param owner       The owner of this calendar
-     * @param name        The name of this calendar
-     * @param description A description of this calendar
-     * @param colour      The colour of this calendar
+     * @param owner         The owner of this calendar
+     * @param name          The name of this calendar
+     * @param description   Description of this calendar
+     * @param colour        The colour of this calendar
+     * @param reminders The set of notification rules to apply to this calendar
      *
      * @return [CalendarModel] instance of the newly created calendar
      */
@@ -37,12 +43,14 @@ class CalendarRepo @Inject constructor(
         owner: UserModel,
         name: String,
         description: String,
-        colour: Color
+        colour: Color,
+        reminders: List<Duration>
     ) = createCalendar(
-        owner.userID,
-        name,
-        description,
-        colour
+        owner       = owner.userID,
+        name        = name,
+        description = description,
+        colour      = colour,
+        reminders   = reminders,
     )
     /**
      * Creates a calendar
@@ -58,15 +66,18 @@ class CalendarRepo @Inject constructor(
         owner: String,
         name: String,
         description: String,
-        colour: Color
-    ) = create(CalendarModel(
-        calendarID  = generateID(),
-        ownerID     = owner,
-        name        = name,
-        description = description,
-        colour      = colour.toArgb(),
-        visible     = true
-    ))
+        colour: Color,
+        reminders: List<Duration>
+    ) = withTransaction {
+        create(CalendarModel(
+            calendarID  = generateID(),
+            ownerID     = owner,
+            name        = name,
+            description = description,
+            colour      = colour.toArgb(),
+            visible     = true
+        )).also { notificationDao.associate(it, *createNotificationRules(reminders).toTypedArray()) }
+    }
 
     /**
      * Creates a event with a set of tags
@@ -78,6 +89,7 @@ class CalendarRepo @Inject constructor(
      * @param start       When the event starts
      * @param duration    How long the event lasts
      * @param endTimeZone The timezone in which the event ends
+     * @param reminders   List of reminder offsets
      * @param colour      Optional colour to associated with the event
      * @param category    Category to associate with the event
      * @param tags        Tags associated with the event
@@ -93,24 +105,25 @@ class CalendarRepo @Inject constructor(
         start: ZonedDateTime,
         duration: Duration,
         endTimeZone: TimeZone,
+        reminders: List<Duration> = emptyList(),
         colour: Color?         = null,
         category: String       = "",
         location: String       = "",
         tags: List<String>     = emptyList(),
         parentID: UUID?        = null,
-    ) = EventWithTags(
-        createEvent(
+    ) = withTransaction {
+        EventWithTags(createEvent(
             calendar,
             name,
             description,
             allDay, start, duration, endTimeZone,
+            reminders,
             colour, category, location,
             parentID
-        ),
-        createTags(tags)
-    ).also { (event, tags) -> tagDao.associate(event, tags) }
+        ), createTags(tags)).also { (event, tags) -> tagDao.associate(event, tags) }
+    }
     /**
-     * Creates a event
+     * Creates a event with reminders
      *
      * @param calendar    The calendar to add the event to
      * @param name        The name of the event
@@ -119,6 +132,7 @@ class CalendarRepo @Inject constructor(
      * @param start       When the event starts
      * @param duration    How long the event lasts
      * @param endTimeZone The timezone in which the event ends
+     * @param reminders   List of reminder offsets
      * @param colour      Optional colour to associated with the event
      * @param category    Category to associate with the event
      * @param parentID    ID of the parent event
@@ -133,23 +147,26 @@ class CalendarRepo @Inject constructor(
         start: ZonedDateTime,
         duration: Duration,
         endTimeZone: TimeZone,
+        reminders: List<Duration>,
         colour: Color?   = null,
         category: String = "",
         location: String = "",
         parentID: UUID?  = null,
-    ) = createEvent(
-        calendarId  = calendar.calendarID,
-        name        = name,
-        description = description,
-        allDay      = allDay,
-        start       = start,
-        duration    = duration,
-        endTimeZone = endTimeZone,
-        colour      = colour?.toArgb(),
-        category    = category,
-        location    = location,
-        parentID    = parentID,
-    )
+    ) = withTransaction {
+        createEvent(
+            calendarId  = calendar.calendarID,
+            name        = name,
+            description = description,
+            allDay      = allDay,
+            start       = start,
+            duration    = duration,
+            endTimeZone = endTimeZone,
+            colour      = colour?.toArgb(),
+            category    = category,
+        	location    = location,
+            parentID    = parentID,
+        ).also { updateAssociatedReminders(it, reminders) }
+    }
     /**
      * Creates a event
      *
@@ -188,7 +205,7 @@ class CalendarRepo @Inject constructor(
         category    = category,
         location    = location,
         allDay      = allDay,
-        start       = start,
+        start       = start.withSecond(0),
         duration    = duration,
         endTimezone = endTimeZone
     ))
@@ -199,7 +216,7 @@ class CalendarRepo @Inject constructor(
      * @param tags List containing the requested tag contents
      * @return List of [EventTagModel]s which have been added to the database
      */
-    suspend fun createTags(tags: List<String>): List<EventTagModel> {
+    suspend fun createTags(tags: List<String>): List<EventTagModel> = withTransaction {
         // Get list of existing tags
         // Remove them from the given list to get those we need to create
         val exist = getTagFrom(tags).first()
@@ -210,12 +227,18 @@ class CalendarRepo @Inject constructor(
 
         // Just for niceness return the list in the same order as it was given
         val order = tags.mapIndexed { i, s -> s to i }.toMap()
-        return result.sortedBy { it.content.let(order::getValue) }
+        result.sortedBy { it.content.let(order::getValue) }
     }
+
+    suspend fun createNotificationRules(notifications: List<Duration>): List<NotificationRuleModel> =
+        create(notifications.map { NotificationRuleModel(generateID(), it) })
 
     private suspend fun create(calendar: CalendarModel)   = calendar.also { insert(it) }
     private suspend fun create(event: EventModel)         = event.also { insert(it) }
+    @JvmName("create_tags")
     private suspend fun create(tags: List<EventTagModel>) = tags.also { insert(*it.toTypedArray()) }
+    @JvmName("create_notifications")
+    private suspend fun create(notifications: List<NotificationRuleModel>) = notifications.also { insert(*it.toTypedArray()) }
 
     // Manipulation
 
@@ -223,43 +246,48 @@ class CalendarRepo @Inject constructor(
      * Inserts a calendar into the database
      * @param calendar The calendar that is to be added
      */
-    suspend fun insert(calendar: CalendarModel): Unit = withContext(ioDispatcher) { calendar.also(calendarDao::insert) }
+    suspend fun insert(calendar: CalendarModel): Unit = withTransaction { calendarDao.insert(calendar) }
     /**
      * Inserts an event into the database
      * @param event The calendar that is to be added
      */
-    suspend fun insert(event: EventModel): Unit = withContext(ioDispatcher) { event.also(eventDao::insert) }
+    suspend fun insert(event: EventModel): Unit = withTransaction { eventDao.insert(event) }
+    
     /**
      * Inserts a number of tags into the database
      * @param tags The tags that are to be added
      */
-    suspend fun insert(vararg tags: EventTagModel): Unit = withContext(ioDispatcher) { tags.also(tagDao::insert) }
+    suspend fun insert(vararg tags: EventTagModel): Unit = withTransaction { tagDao.insert(*tags) }
+    /**
+     * Inserts a number of notification rules into the database
+     * @param rules The rules that are to be added
+     */
+    suspend fun insert(vararg notifications: NotificationRuleModel): Unit = withTransaction { notificationDao.insert(*notifications) }
     /**
      * Updates a calendar
      * @param calendar Calendar model which has been modified
      */
-    suspend fun update(calendar: CalendarModel) = withContext(ioDispatcher) { calendarDao.update(calendar) }
+    suspend fun update(calendar: CalendarModel) = withTransaction { calendarDao.update(calendar) }
     /**
      * Updates an event
      * @param event Event model which has been modified
      */
-    suspend fun update(event: EventModel) = withContext(ioDispatcher) { eventDao.update(event) }
+    suspend fun update(event: EventModel) = withTransaction { eventDao.update(event) }
 
     /**
      * Updates the list of tags associated with an event
      * @param event The event to modify
      * @param tags  List of tags to be added to the event
      */
-    suspend fun updateAssociatedTags(event: EventModel, tags: List<String>) {
+    suspend fun updateAssociatedTags(event: EventModel, tags: List<String>) = db.withTransaction {
         // Convert the list of given tags to EventTagModel
         // Create tags which don't exist yet and retrieve those which do
         val tagModels = createTags(tags) // Luckily createTags does all of that
-
         // Get the current list of tags associated with the event
         updateAssociatedTags(getEventWithTags(event.eventID).first()!!, tagModels)
     }
 
-    private suspend fun updateAssociatedTags(event: EventWithTags, tags: List<EventTagModel>) {
+    private suspend fun updateAssociatedTags(event: EventWithTags, tags: List<EventTagModel>) = db.withTransaction {
         // Work out which are tags are new and which have been removed from the event
         // If no more events are associated with a tag remove the tag
 
@@ -279,20 +307,116 @@ class CalendarRepo @Inject constructor(
     }
 
     /**
+     * Updates the list of notification rules associated with a [calendar]
+     * @param rules The new list of notification offsets
+     */
+    suspend fun updateAssociatedReminders(calendar: CalendarModel, rules: List<Duration>) = withTransaction {
+        updateAssociatedReminders(
+            notificationDao.fromCalendar(calendar.calendarID).first()!!,
+            rules
+        )
+    }
+    /**
+     * Updates the list of notification rules associated with a calendar
+     * @param calendarWithNotifications A calendar with its current notification rules
+     * @param rules The new list of notification offsets
+     */
+    suspend fun updateAssociatedReminders(calendarWithNotifications: CalendarWithNotifications, rules: List<Duration>) = withTransaction {
+        with(calendarWithNotifications) {
+            // Remove any rules which are in currently associated with the calendar but not in new rules
+            val notifications = notificationRules.associateWith { it.duration }
+            notifications
+                .filterValues { it !in rules }
+                .let { delete(it.keys.toList()) }
+            // Remove any rules which are in not associated with the calendar but are in new rules
+            createNotificationRules(
+                rules.filter { it !in notifications.values }
+            )
+        }
+    }
+    /**
+     * Updates the list of notification rules associated with an [event]
+     * @param rules The new list of notification offsets
+     */
+    suspend fun updateAssociatedReminders(event: EventModel, rules: List<Duration>) = withTransaction {
+        updateAssociatedReminders(
+            notificationDao.fromEvent(event.eventID).first()!!,
+            rules
+        )
+    }
+    /**
+     * Updates the list of notification rules associated with an event
+     * @param eventWithNotifications An event with its current notification rules
+     * @param rules The new list of notification offsets
+     */
+    suspend fun updateAssociatedReminders(eventWithNotifications: EventWithNotifications, rules: List<Duration>) = withTransaction {
+        // First we need to ensure that we don't add rules already covered by the calendar
+        // and any rules covered by the calendar but removed by the event are marked as ignore
+
+        val event = eventWithNotifications.event
+        val calendar = notificationDao.fromCalendar(event.calendarID).first()!!
+
+        val eventRules = eventWithNotifications.notificationRules.associateWith { it.duration }
+        val calendarRules = calendar.notificationRules.associateWith { it.duration }
+
+        // Ignore calendar rules
+        calendarRules
+            // Get calendar rules not in the event rules
+            .filterValues { it !in rules }
+            // Mark them as ignore
+            .forEach { (rule, _) -> notificationDao.override(event, rule, NotificationOverride(true)) }
+
+        // Get list of those not contained in calendar rules
+        rules.filterNot { calendarRules.containsValue(it) }.let { notifications ->
+            // Now we have list of the events reminders we need to check against what it already has
+            notifications.filterNot { eventRules.containsValue(it) }.let {
+                // Create the rules and associate them with the event
+                val reminders = createNotificationRules(it)
+                notificationDao.associate(event, *reminders.toTypedArray())
+            }
+            // Also need to check for values the old list contains but have been removed
+            delete(
+                eventRules
+                    .filterValues { it !in notifications }
+                    .keys.toList()
+            )
+        }
+    }
+
+    /**
      * Deletes a calendar from the database
      * @param calendar Calendar to be removed
      */
-    suspend fun delete(calendar: CalendarModel) = withContext(ioDispatcher) { calendarDao.delete(calendar) }
+    suspend fun delete(calendar: CalendarModel) = withTransaction {
+        // Need to ensure we don't leave notification rules behind before deleting
+        getNotificationRulesFor(calendar).first()?.let { delete(it.notificationRules) }
+        calendarDao.delete(calendar)
+    }
     /**
      * Deletes an event from the database
      * @param event Event to be removed
      */
-    suspend fun delete(event: EventModel) = withContext(ioDispatcher) { eventDao.delete(event) }
+    suspend fun delete(event: EventModel) = withTransaction {
+        // Need to ensure that we remove tags and notification rules before deleting
+        // to ensure nothing is left behind
+        getEventWithTags(event.eventID).first()?.let { delete(it.tags) }
+        getNotificationRulesFor(event).first()?.let { delete(it.notificationRules) }
+        eventDao.delete(event)
+    }
     /**
      * Deletes tags from the database
      * @param tags Tags to be removed
      */
-    suspend fun delete(tags: List<EventTagModel>) = withContext(ioDispatcher) { tagDao.delete(*tags.toTypedArray()) }
+    @JvmName("delete_tags")
+    suspend fun delete(tags: List<EventTagModel>) = withTransaction { tagDao.delete(*tags.toTypedArray()) }
+    /**
+     * Deletes notification rules from the database
+     * @param tags Tags to be removed
+     */
+    @JvmName("delete_notifications")
+    suspend fun delete(rules: List<NotificationRuleModel>) = withTransaction {
+        notificationDao.delete(*rules.toTypedArray())
+    }
 
     // Getters
 
@@ -398,6 +522,97 @@ class CalendarRepo @Inject constructor(
      * @param queryParam Query parameters to apply to the search
      * @return Flow containing a list of tags with a match
      */
-    fun getTagFrom(contents: List<String>, queryParam: QueryBuilder.() -> Unit = {}) =
-        tagDao.fromContent(contents.map { SearchQuery.local(it, queryParam) })
+    fun getTagFrom(contents: List<String>, queryParam: QueryBuilder.() -> Unit = {}) = flow {
+        if(contents.isEmpty()) emit(emptyList())
+        else emitAll(tagDao.fromContent(contents.map { SearchQuery.local(it, queryParam) }))
+    }
+
+    /**
+     * Retrieves the notification rule given its [notificationID]
+     */
+    fun getNotificationRuleFrom(notificationID: UUID) = notificationDao.fromID(notificationID)
+    /**
+     * Retrieves the notification rules which are associated with a [calendar]
+     */
+    fun getNotificationRulesFor(calendar: CalendarModel) = notificationDao.fromCalendar(calendar.calendarID)
+    /**
+     * Retrieves the notification rules which are associated with an [event]
+     * _n.b._ Does not retrieve those associated with the calendar
+     */
+    fun getNotificationRulesFor(event: EventModel) = notificationDao.fromEvent(event.eventID)
+    /**
+     * Retrieves the notfication override rules for a given [event]
+     */
+    fun getNotificationOverridesFor(event: EventModel) = notificationDao.overridesOf(event.eventID)
+
+    /**
+     * Determines the notifications which applies to an [event]; given its own
+     * notification rules, the rules of the calendar and the overrides specified
+     * by the event
+     */
+    @OptIn(ExperimentalCoroutinesApi::class)
+    fun determineNotificationsOf(event: EventModel) =
+        getEventWithCalendar(event.eventID)
+            .filterNotNull()
+            .flatMapLatest { determineNotificationsOf(it) }
+    /**
+     * Determines the notifications which applies to an [eventWithCalendar]; given
+     * the events notification rules, the rules of the calendar and the overrides
+     * specified by the event
+     */
+    fun determineNotificationsOf(eventWithCalendar: EventWithCalendar) = with(eventWithCalendar) {
+        // We are guaranteed results since both should not be null
+        val calendarRules = getNotificationRulesFor(calendar).filterNotNull()
+        val eventRules    = getNotificationRulesFor(event).filterNotNull()
+        val overrideRules = getNotificationOverridesFor(event)
+
+        /**
+         * Applies overrides to the calendar rules
+         *
+         * @param calendarRules List of rules from the calendar which could apply
+         *                      to this event
+         * @param overrideRules Rules specified by the event about how it overrides
+         *                      the application of the calendar rules to itself
+         * @return The [calendarRules] with the [overrideRules] applied to them
+         */
+        fun applyOverrides(
+            calendarRules: List<NotificationRuleModel>,
+            overrideRules: Map<UUID, NotificationOverride>
+        ) = calendarRules.filter {
+            if(it.notificationID in overrideRules.keys) {
+                val rules = overrideRules.getValue(it.notificationID)
+                !rules.ignore
+            } else true
+        }
+
+        combine(calendarRules, eventRules, overrideRules) { calendar, event, overrides ->
+            when {
+                // If the event has no rules then we just use those that come with the calendar
+                event.notificationRules.isEmpty() -> calendar.notificationRules
+                // If the calendar has not rules then just use those that come with the event
+                calendar.notificationRules.isEmpty() -> event.notificationRules
+                else -> {
+                    // If both have rules then we need to combine the two together
+                    // However, we need to ensure that apply overrides associated with the event
+                    event.notificationRules + applyOverrides(
+                        calendar.notificationRules,
+                        overrides
+                    )
+                }
+            }
+        }
+    }
+
+    /**
+     * Retrieves all events which occur after a given [dateTime]
+     */
+    fun getEventAfter(dateTime: ZonedDateTime) = events.map {
+        it.map { it.event }.filter { it.start.isAfter(dateTime) }
+    }
+    /**
+     * Retrieves all events which before after a given [dateTime]
+     */
+    fun getEventBefore(dateTime: ZonedDateTime) = events.map {
+        it.map { it.event }.filter { it.start.isBefore(dateTime) }
+    }
 }

@@ -1,5 +1,6 @@
 package uk.co.sksulai.multitasker.db.viewmodel
 
+import android.app.Application
 import java.util.*
 import java.time.*
 
@@ -8,17 +9,23 @@ import kotlinx.coroutines.flow.*
 
 import javax.inject.Inject
 import androidx.compose.ui.graphics.Color
+import androidx.lifecycle.AndroidViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 
-import androidx.lifecycle.ViewModel
+import androidx.work.WorkManager
 
+import uk.co.sksulai.multitasker.util.*
 import uk.co.sksulai.multitasker.db.model.*
 import uk.co.sksulai.multitasker.db.repo.CalendarRepo
+import uk.co.sksulai.multitasker.notification.Notification
+import uk.co.sksulai.multitasker.service.NotificationScheduler.Companion.startOneOffScheduling
 
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel class CalendarViewModel @Inject constructor(
-    private val calendarRepo: CalendarRepo
-) : ViewModel() {
+    application: Application,
+    private val calendarRepo: CalendarRepo,
+    private val workManager: WorkManager
+) : AndroidViewModel(application) {
 
     val calendars = calendarRepo.calendars
     val events = calendarRepo.events
@@ -26,10 +33,11 @@ import uk.co.sksulai.multitasker.db.repo.CalendarRepo
     /**
      * Creates a calendar
      *
-     * @param owner       The owner of this calendar
-     * @param name        The name of this calendar
-     * @param description A description of this calendar
-     * @param colour      The colour of this calendar
+     * @param owner         The owner of this calendar
+     * @param name          The name of this calendar
+     * @param description   A description of this calendar
+     * @param colour        The colour of this calendar
+     * @param notifications The set of notification rules to apply to this calendar
      *
      * @return [CalendarModel] instance of the newly created calendar
      */
@@ -37,8 +45,11 @@ import uk.co.sksulai.multitasker.db.repo.CalendarRepo
         owner: UserModel,
         name: String,
         description: String,
-        colour: Color
-    ) = calendarRepo.createCalendar(owner, name, description, colour)
+        colour: Color,
+        notifications: List<Duration> = emptyList()
+    ) = calendarRepo.createCalendar(owner, name, description, colour, notifications).also {
+        Notification.Channel.Calendar(it).create(applicationContext)
+    }
     /**
      * Creates a event with a list of tags
      *
@@ -65,6 +76,8 @@ import uk.co.sksulai.multitasker.db.repo.CalendarRepo
         allDay: Boolean,
         endTimeZone: TimeZone,
 
+        reminders: List<Duration>,
+
         colour: Color?,
         category: String,
         location: String,
@@ -74,9 +87,10 @@ import uk.co.sksulai.multitasker.db.repo.CalendarRepo
         calendar,
         name, description,
         allDay, start, duration, endTimeZone,
+        reminders,
         colour, category, location, tags,
         parentID
-    )
+    ).also { workManager.startOneOffScheduling(it.event) }
     /**
      * Creates a event without a list of tags
      *
@@ -103,6 +117,8 @@ import uk.co.sksulai.multitasker.db.repo.CalendarRepo
         duration: Duration,
         endTimeZone: TimeZone,
 
+        reminders: List<Duration>,
+
         colour: Color?,
         category: String,
         location: String,
@@ -111,6 +127,7 @@ import uk.co.sksulai.multitasker.db.repo.CalendarRepo
         calendar,
         name, description,
         allDay, start, duration, endTimeZone,
+        reminders,
         colour, category, location,
         parentID
     )
@@ -181,13 +198,54 @@ import uk.co.sksulai.multitasker.db.repo.CalendarRepo
      */
     fun fromTagContent(content: String) = calendarRepo.getTagFrom(content) { anyEnd = true }
 
+
+    /**
+     * Retrieves the notifications associated with a [calendar]
+     */
+    fun notificationsOf(calendar: CalendarModel?) = flow {
+        if(calendar == null) emit(emptyList())
+        else emitAll(
+            calendarRepo.getNotificationRulesFor(calendar)
+                .filterNotNull()
+                .map { it.notificationRules }
+        )
+    }
+
+    /**
+     * Retrieves the notifications associated with a [event]
+     * Applying the calendar and override rules to the event
+     */
+    fun notificationsOf(event: EventModel?) = flow {
+        if(event == null) emit(emptyList())
+        else emitAll(calendarRepo.determineNotificationsOf(event))
+    }
+
     /**
      * Updates the list of tags associated with an event
      * @param event The event to be updated
      * @param tags  The new list of tags
      */
-    suspend fun updateTags(event: EventModel, tags: List<String>)
-        = calendarRepo.updateAssociatedTags(event, tags)
+    suspend fun updateTags(event: EventModel, tags: List<String>) =
+        calendarRepo.updateAssociatedTags(event, tags)
+
+    /**
+     * Updates the list of notification rules associated with an event
+     * @param event     The event to be updated
+     * @param reminders The new list of reminders
+     */
+    suspend fun updateNotificationRules(event: EventModel, reminders: List<Duration>) =
+        calendarRepo.updateAssociatedReminders(event, reminders).also {
+            workManager.startOneOffScheduling(event)
+        }
+    /**
+     * Updates the list of notification rules associated with an event
+     * @param calendar  The calendar to be updated
+     * @param reminders The new list of reminders
+     */
+    suspend fun updateNotificationRules(calendar: CalendarModel, reminders: List<Duration>) =
+        calendarRepo.updateAssociatedReminders(calendar, reminders).also {
+            workManager.startOneOffScheduling(calendar)
+        }
 
     /**
      * Updates a calendar
@@ -198,18 +256,25 @@ import uk.co.sksulai.multitasker.db.repo.CalendarRepo
      * Updates a event
      * @param event Event model which has been modified
      */
-    suspend fun update(event: EventModel) = calendarRepo.update(event)
+    suspend fun update(event: EventModel) = calendarRepo.update(event).also {
+        workManager.startOneOffScheduling(event)
+    }
 
     /**
      * Deletes a calendar from the database
      * @param calendar Calendar to be removed
      */
-    suspend fun delete(calendar: CalendarModel) = calendarRepo.delete(calendar)
+    suspend fun delete(calendar: CalendarModel) = calendarRepo.delete(calendar).also {
+        workManager.startOneOffScheduling(calendar)
+        Notification.Channel.Calendar(calendar).delete(applicationContext)
+    }
     /**
      * Deletes a event from the database
      * @param event Event to be removed
      */
-    suspend fun delete(event: EventModel) = calendarRepo.delete(event)
+    suspend fun delete(event: EventModel) = calendarRepo.delete(event).also {
+        workManager.startOneOffScheduling(event)
+    }
     /**
      * Deletes tag(s) from the database
      * @param tags Tags to be removed
@@ -239,4 +304,5 @@ import uk.co.sksulai.multitasker.db.repo.CalendarRepo
                     event.end.toLocalDate().run { isEqual(start) || isAfter(start) }
         }
     }
+
 }

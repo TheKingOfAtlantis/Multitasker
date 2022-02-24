@@ -160,6 +160,8 @@ dependencies {
     // Arch: WorkManager
     implementation("androidx.work:work-runtime-ktx:${Version.workmanager}")
     implementation("androidx.work:work-gcm:${Version.workmanager}")
+    implementation("androidx.hilt:hilt-work:1.0.0")
+    kapt("androidx.hilt:hilt-compiler:1.0.0")
 
     // Firebase & Google
     implementation("com.google.android.gms:play-services-auth:20.1.0")

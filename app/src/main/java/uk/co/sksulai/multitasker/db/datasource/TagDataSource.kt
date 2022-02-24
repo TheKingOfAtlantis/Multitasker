@@ -8,34 +8,34 @@ interface TagDataSource {
     /**
      * Insert a event tag
      */
-    fun insert(vararg tag: EventTagModel)
+    suspend fun insert(vararg tag: EventTagModel)
     /**
      * Update an event tag
      */
-    fun update(vararg tag: EventTagModel)
+    suspend fun update(vararg tag: EventTagModel)
     /**
      * Deletes an event tag
      */
-    fun delete(vararg tag: EventTagModel)
+    suspend fun delete(vararg tag: EventTagModel)
 
     /**
      * Creates a link between an [event] and a [tag]
      * @param event Event to add the tag to
      * @param tag   Tag to associate with the event
      */
-    fun associate(event: EventModel, tag: EventTagModel)
+    suspend fun associate(event: EventModel, tag: EventTagModel)
     /**
      * Creates a link between an [event] and a list of tags
      * @param event Event to add the tags to
      * @param tags  List of tags to associate with the event
      */
-    fun associate(event: EventModel, tags: List<EventTagModel>)
+    suspend fun associate(event: EventModel, tags: List<EventTagModel>)
     /**
      * Removes the link between an [event] and a list of tags
      * @param event Event to remove the tags to
      * @param tags  List of tags to disassociate from the event
      */
-    fun disassociate(event: EventModel, tags: List<EventTagModel>)
+    suspend fun disassociate(event: EventModel, tags: List<EventTagModel>)
 
     /**
      * List of all the tags

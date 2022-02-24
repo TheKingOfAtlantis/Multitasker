@@ -8,10 +8,10 @@ import androidx.room.*
 import uk.co.sksulai.multitasker.db.model.CalendarModel
 import uk.co.sksulai.multitasker.db.datasource.CalendarDataSource
 
-@Dao interface CalendarDao : CalendarDataSource {
-    @Insert override fun insert(calendar: CalendarModel)
-    @Update override fun update(calendar: CalendarModel)
-    @Delete override fun delete(calendar: CalendarModel)
+@Dao interface CalendarDao : CalendarDataSource, DatabaseService {
+    @Insert override suspend fun insert(calendar: CalendarModel)
+    @Update override suspend fun update(calendar: CalendarModel)
+    @Delete override suspend fun delete(calendar: CalendarModel)
 
     @Query("Select * From Calendar")
     override fun getAll(): Flow<List<CalendarModel>>

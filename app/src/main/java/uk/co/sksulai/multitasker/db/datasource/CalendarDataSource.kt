@@ -8,15 +8,15 @@ interface CalendarDataSource {
     /**
      * Insert an calendar
      */
-    fun insert(calendar: CalendarModel)
+    suspend fun insert(calendar: CalendarModel)
     /**
      * Updates an calendar
      */
-    fun update(calendar: CalendarModel)
+    suspend fun update(calendar: CalendarModel)
     /**
      * Deletes an calendar
      */
-    fun delete(calendar: CalendarModel)
+    suspend  fun delete(calendar: CalendarModel)
 
     /**
      * Retrieves a list of all the [CalendarModel]s
