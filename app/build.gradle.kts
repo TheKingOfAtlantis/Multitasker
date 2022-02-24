@@ -31,8 +31,8 @@ android {
 
     defaultConfig {
         applicationId = "uk.co.sksulai.multitasker"
-        versionCode   = 2
-        versionName   = "0.0.2"
+        versionCode   = 3
+        versionName   = "0.1.0"
 
         minSdk        = 26
         targetSdk     = 31
