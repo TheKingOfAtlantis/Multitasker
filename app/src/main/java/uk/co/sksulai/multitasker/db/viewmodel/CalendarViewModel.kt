@@ -67,13 +67,14 @@ import uk.co.sksulai.multitasker.db.repo.CalendarRepo
 
         colour: Color?,
         category: String,
+        location: String,
         tags: List<String>,
         parentID: UUID?,
     ) = calendarRepo.createEvent(
         calendar,
         name, description,
         allDay, start, duration, endTimeZone,
-        colour, category, tags,
+        colour, category, location, tags,
         parentID
     )
     /**
@@ -104,12 +105,13 @@ import uk.co.sksulai.multitasker.db.repo.CalendarRepo
 
         colour: Color?,
         category: String,
+        location: String,
         parentID: UUID?,
     ) = calendarRepo.createEvent(
         calendar,
         name, description,
         allDay, start, duration, endTimeZone,
-        colour, category,
+        colour, category, location,
         parentID
     )
 

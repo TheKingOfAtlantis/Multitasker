@@ -39,10 +39,11 @@ import uk.co.sksulai.multitasker.util.timezone
  * @param description Description of the event
  * @param colour      Optional colour to associate with this event
  * @param category    Classification of the event
+ * @param location    Location of the event
  *
- * @param allDay   Whether this event last all day
- * @param start    When this event starts
- * @param duration How long this event lasts
+ * @param allDay      Whether this event last all day
+ * @param start       When this event starts
+ * @param duration    How long this event lasts
  * @param endTimezone The timezone in which the end of the event occurs
  */
 @Immutable @Parcelize
@@ -72,6 +73,7 @@ import uk.co.sksulai.multitasker.util.timezone
     val description: String,
     val category: String,
     val colour: Int?,
+    val location: String,
 
     // Time Specifiers
     val allDay: Boolean,

@@ -95,6 +95,7 @@ class CalendarRepo @Inject constructor(
         endTimeZone: TimeZone,
         colour: Color?         = null,
         category: String       = "",
+        location: String       = "",
         tags: List<String>     = emptyList(),
         parentID: UUID?        = null,
     ) = EventWithTags(
@@ -103,7 +104,7 @@ class CalendarRepo @Inject constructor(
             name,
             description,
             allDay, start, duration, endTimeZone,
-            colour, category,
+            colour, category, location,
             parentID
         ),
         createTags(tags)
@@ -134,6 +135,7 @@ class CalendarRepo @Inject constructor(
         endTimeZone: TimeZone,
         colour: Color?   = null,
         category: String = "",
+        location: String = "",
         parentID: UUID?  = null,
     ) = createEvent(
         calendarId  = calendar.calendarID,
@@ -145,6 +147,7 @@ class CalendarRepo @Inject constructor(
         endTimeZone = endTimeZone,
         colour      = colour?.toArgb(),
         category    = category,
+        location    = location,
         parentID    = parentID,
     )
     /**
@@ -173,6 +176,7 @@ class CalendarRepo @Inject constructor(
         endTimeZone: TimeZone,
         colour: Int?     = null,
         category: String = "",
+        location: String = "",
         parentID: UUID?  = null,
     ) = create(EventModel(
         eventID     = generateID(),
@@ -182,6 +186,7 @@ class CalendarRepo @Inject constructor(
         description = description,
         colour      = colour,
         category    = category,
+        location    = location,
         allDay      = allDay,
         start       = start,
         duration    = duration,
