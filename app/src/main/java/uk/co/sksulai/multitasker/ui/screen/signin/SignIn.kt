@@ -1,7 +1,6 @@
 package uk.co.sksulai.multitasker.ui.screen.signin
 
 import kotlin.math.max
-import kotlinx.coroutines.launch
 
 import android.util.Log
 
@@ -32,6 +31,7 @@ import androidx.core.content.getSystemService
 
 import android.view.autofill.*
 import androidx.compose.ui.autofill.*
+import androidx.compose.ui.semantics.semantics
 
 import androidx.navigation.NavHostController
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -40,11 +40,13 @@ import androidx.navigation.NavGraph.Companion.findStartDestination
 import com.google.android.gms.common.api.ApiException
 import com.google.android.gms.common.api.CommonStatusCodes
 import com.google.firebase.auth.FirebaseAuthException
+import kotlinx.coroutines.*
 
 import uk.co.sksulai.multitasker.R
 import uk.co.sksulai.multitasker.ui.*
 import uk.co.sksulai.multitasker.ui.component.*
 import uk.co.sksulai.multitasker.db.repo.GoogleIntent
+import uk.co.sksulai.multitasker.db.repo.UserRepository
 import uk.co.sksulai.multitasker.db.viewmodel.*
 import uk.co.sksulai.multitasker.util.*
 
@@ -316,9 +318,11 @@ fun Modifier.addAutofillNode(
         modifier: Modifier = Modifier
     ) = Column(modifier) {
         preamble?.let {
-            Box(Modifier
-                .padding(vertical = 4.dp)
-                .testTag("preamble")
+            Box(
+                Modifier
+                    .padding(vertical = 4.dp)
+                    .testTag("preamble")
+                    .semantics(mergeDescendants = true) { }
             ) {
                 // TODO: Potentially pick a particular text style and content
                 //       alpha (potentially set it to medium)
@@ -348,7 +352,7 @@ fun Modifier.addAutofillNode(
         icon     = painterResource(R.drawable.ic_google_g_logo),
         text     = googleText,
         preamble = googlePreamble,
-        modifier = Modifier.testTag("google")
+        modifier = Modifier.testTag( UserRepository.AuthProvider.Google.name)
     )
 }
 
@@ -455,6 +459,14 @@ fun Modifier.addAutofillNode(
         route: Destination,
         action: suspend (email: String, password: String) -> Unit
     ) {
+        suspend fun navigate() = withContext(Dispatchers.Main) {
+            route.navigate(navController) {
+                popUpTo(navController.graph.findStartDestination().id) {
+                    inclusive = true
+                }
+            }
+        }
+
         scope.launch {
             emailError    = ""
             passwordError = ""
@@ -470,12 +482,12 @@ fun Modifier.addAutofillNode(
             }
             try {
                 showProgressIndicator = true
-                action(email, password)
-                route.navigate(navController) {
-                    popUpTo(navController.graph.findStartDestination().id) {
-                        inclusive = true
-                    }
+                Log.d("Email action", "Starting action")
+                withContext(Dispatchers.IO) {
+                    action(email, password)
                 }
+                Log.d("Email action", "Starting Navigation")
+                navigate()
             } catch (err: FirebaseAuthException) {
                 user.handleAuthError(err,
                     onEmailError    = { emailError = it },
@@ -486,13 +498,11 @@ fun Modifier.addAutofillNode(
                 // If the saver fails isn't critical
                 // May fail if we just used autofill to get details
                 Log.e("Sign in/up", "Failed to save the email/password", e)
-                route.navigate(navController) {
-                    popUpTo(navController.graph.findStartDestination().id) {
-                        inclusive = true
-                    }
-                }
+                navigate()
+                Log.d("Email action", "Starting Navigation")
             } finally {
                 showProgressIndicator = false
+                Log.d("Email action", "Completed succesfully")
             }
         }
     }
