@@ -3,11 +3,16 @@ package uk.co.sksulai.multitasker.db.model
 import java.time.*
 import android.net.Uri
 import android.os.Parcelable
+import androidx.compose.runtime.Composable
 import androidx.room.*
 import androidx.compose.runtime.Immutable
+import coil.compose.rememberImagePainter
+import coil.transform.CircleCropTransformation
 import kotlinx.parcelize.Parcelize
 
 import com.google.firebase.auth.FirebaseUser
+
+import uk.co.sksulai.multitasker.R
 
 /**
  *
@@ -42,3 +47,13 @@ import com.google.firebase.auth.FirebaseUser
     val home: String?,
     val dob: LocalDate?
 ) : Parcelable
+
+/**
+ * Painter which retrieves the user's profile picture [UserModel.avatar]
+ */
+val UserModel.avatarPainter @Composable get() = rememberImagePainter(avatar) {
+    crossfade(true)
+    placeholder(R.drawable.ic_baseline_account_circle)
+    error(R.drawable.ic_baseline_account_circle)
+    transformations(CircleCropTransformation())
+}
