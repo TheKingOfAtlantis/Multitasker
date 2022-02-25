@@ -27,7 +27,9 @@ import com.google.accompanist.pager.ExperimentalPagerApi
 
 import uk.co.sksulai.multitasker.db.viewmodel.CalendarViewModel
 import uk.co.sksulai.multitasker.ui.Destinations
+import uk.co.sksulai.multitasker.ui.component.DrawerContent
 import uk.co.sksulai.multitasker.ui.component.Scrim
+import uk.co.sksulai.multitasker.util.provideInScope
 import uk.co.sksulai.multitasker.util.rememberMutableState
 
 
@@ -64,9 +66,11 @@ import uk.co.sksulai.multitasker.util.rememberMutableState
     navController: NavHostController,
     calendarViewModel: CalendarViewModel = hiltViewModel()
 ) {
-    val bottomSheetNavigator  = rememberBottomSheetNavigator()
-    val calendarNavController = rememberNavController(bottomSheetNavigator)
+    val scope = rememberCoroutineScope()
 
+    val bottomSheetNavigator  = rememberBottomSheetNavigator()
+    val bottomDrawerState     = rememberBottomDrawerState(BottomDrawerValue.Closed)
+    val calendarNavController = rememberNavController(bottomSheetNavigator)
 
     var expandFabMenu by rememberMutableState(false)
     val fabAnim by animateFloatAsState(targetValue = if(expandFabMenu) 1f else 0f)
@@ -118,6 +122,11 @@ import uk.co.sksulai.multitasker.util.rememberMutableState
     }
 
     @Composable fun bottomAppBar() = BottomAppBar {
+        IconButton(
+            onClick = provideInScope(scope) { bottomDrawerState.open() },
+            content = { Icon(Icons.Default.Menu, null) }
+        )
+        Spacer(Modifier.weight(1f))
     }
     
     @Composable fun mainContent() = NavHost(calendarNavController, Destinations.Dashboard.route) {
@@ -135,6 +144,17 @@ import uk.co.sksulai.multitasker.util.rememberMutableState
     ModalBottomSheetLayout(
         bottomSheetNavigator,
         sheetShape = shape
+    ) { BottomDrawer(
+        drawerState     = bottomDrawerState,
+        drawerShape     = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp),
+        gesturesEnabled = bottomDrawerState.isOpen,
+        drawerContent   = {
+            DrawerContent(
+                navController,
+                calendarNavController,
+                onCloseDrawer = provideInScope(scope) { bottomDrawerState.close() }
+            )
+        }
     ) {
         Scaffold(
             bottomBar = { bottomAppBar() },
@@ -150,7 +170,7 @@ import uk.co.sksulai.multitasker.util.rememberMutableState
                     .padding(bottom = 32.dp)
             )
         } }
-    }
+    } }
 }
 
 
